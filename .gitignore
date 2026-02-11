@@ -28,6 +28,10 @@ migrate_working_dir/
 **/ios/Flutter/.last_build_id
 .firebase/
 .dart_tool/
+android/build/
+ios/Pods/
+ios/Runner.xcworkspace
+**/Flutter/ephemeral/
 .flutter-plugins-dependencies
 .pub-cache/
 .pub/
