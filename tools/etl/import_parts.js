@@ -46,7 +46,7 @@ const LIMIT_PER_FILE = process.env.LIMIT_PER_FILE
 const DRY_RUN = process.env.DRY_RUN === "1";
 
 // Firestore batch limit is 500; keep buffer
-const BATCH_LIMIT = 400;
+const BATCH_LIMIT = 200;
 
 // ---------------- FIREBASE INIT (only if not DRY_RUN) ----------------
 let db = null;
@@ -350,6 +350,9 @@ async function uploadParts(parts) {
     batch.set(docRef, part, { merge: false });
     batchCount++;
     uploaded++;
+    if (uploaded % 200 === 0) {
+      console.log("Prepared for upload: " + uploaded + " / " + parts.length);
+    }
 
     if (batchCount >= BATCH_LIMIT) {
       await batch.commit();
