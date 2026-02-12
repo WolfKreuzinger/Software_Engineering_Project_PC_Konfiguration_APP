@@ -67,6 +67,10 @@ function initFirebaseIfNeeded() {
   });
 
   db = admin.firestore();
+
+  // Workaround: avoid gRPC hangs (use HTTP/1.1 REST transport until gRPC is required)
+  db.settings({ preferRest: true });
+
 }
 
 // ---------------- HELPERS ----------------
