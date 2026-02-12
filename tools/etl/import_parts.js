@@ -125,6 +125,16 @@ function mapType(datasetType) {
   return map[datasetType] || null;
 }
 
+function safe(value) {
+  return value === undefined ? null : value;
+}
+
+function safeArrayValue(arr, idx) {
+  if (!Array.isArray(arr)) return null;
+  const v = arr[idx];
+  return v === undefined ? null : v;
+}
+
 /**
  * CPU socket detection (heuristic) to make CPU<->Motherboard compatibility possible
  * even though cpu.json has no socket field.
@@ -245,13 +255,10 @@ function normalizeRaw(datasetType, raw) {
   // RAM (memory)
   if (type === "memory") {
     spec = {
-      memoryType: raw.speed ? "DDR" + raw.speed[0] : null,
-      speedMHz: raw.speed ? raw.speed[1] : null,
-      modules: raw.modules ? raw.modules[0] : null,
-      capacityPerModuleGB: raw.modules ? raw.modules[1] : null,
-      firstWordLatencyNs: raw.first_word_latency ?? null,
-      casLatency: raw.cas_latency ?? null,
-      color: raw.color ?? null,
+      memoryType: safeArrayValue(raw.speed, 0) !== null ? ("DDR" + safeArrayValue(raw.speed, 0)) : null,
+      speedMHz: safeArrayValue(raw.speed, 1),
+      modules: safeArrayValue(raw.modules, 0),
+      capacityPerModuleGB: safeArrayValue(raw.modules, 1),
     };
   }
 
