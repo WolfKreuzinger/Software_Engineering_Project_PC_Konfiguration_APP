@@ -37,6 +37,8 @@ ios/Runner.xcworkspace
 .pub/
 /build/
 /coverage/
+tools/etl/serviceAccountKey.json
+tools/etl/input
 
 # Symbolication related
 app.*.symbols
