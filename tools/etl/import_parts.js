@@ -46,7 +46,7 @@ const LIMIT_PER_FILE = process.env.LIMIT_PER_FILE
 const DRY_RUN = process.env.DRY_RUN === "1";
 
 // Firestore batch limit is 500; keep buffer
-const BATCH_LIMIT = 200;
+const BATCH_LIMIT = 400;
 
 // ---------------- FIREBASE INIT (only if not DRY_RUN) ----------------
 let db = null;
@@ -123,45 +123,6 @@ function mapType(datasetType) {
     "power-supply": "psu",
   };
   return map[datasetType] || null;
-}
-
-function safe(value) {
-  return value === undefined ? null : value;
-}
-
-function safeArrayValue(arr, idx) {
-  if (!Array.isArray(arr)) return null;
-  const v = arr[idx];
-  return v === undefined ? null : v;
-}
-
-/**
- * Make a value Firestore-safe:
- * - undefined -> null
- * - NaN/Infinity -> null
- * - recursively cleans objects/arrays
- */
-function firestoreSafe(v) {
-  if (v === undefined) return null;
-  if (v === null) return null;
-
-  if (typeof v === "number") {
-    return Number.isFinite(v) ? v : null;
-  }
-
-  if (Array.isArray(v)) {
-    return v.map(firestoreSafe);
-  }
-
-  if (typeof v === "object") {
-    const out = {};
-    for (const [k, val] of Object.entries(v)) {
-      out[k] = firestoreSafe(val);
-    }
-    return out;
-  }
-
-  return v; // string/bool
 }
 
 /**
@@ -284,13 +245,13 @@ function normalizeRaw(datasetType, raw) {
   // RAM (memory)
   if (type === "memory") {
     spec = {
-      memoryType:
-        safeArrayValue(raw.speed, 0) !== null
-          ? "DDR" + safeArrayValue(raw.speed, 0)
-          : null,
-      speedMHz: safeArrayValue(raw.speed, 1),
-      modules: safeArrayValue(raw.modules, 0),
-      capacityPerModuleGB: safeArrayValue(raw.modules, 1),
+      memoryType: raw.speed ? "DDR" + raw.speed[0] : null,
+      speedMHz: raw.speed ? raw.speed[1] : null,
+      modules: raw.modules ? raw.modules[0] : null,
+      capacityPerModuleGB: raw.modules ? raw.modules[1] : null,
+      firstWordLatencyNs: raw.first_word_latency ?? null,
+      casLatency: raw.cas_latency ?? null,
+      color: raw.color ?? null,
     };
   }
 
@@ -368,24 +329,8 @@ function normalizeRaw(datasetType, raw) {
   };
 }
 
-async function commitBatch(batch, uploaded, lastPartInfo) {
-  try {
-    await batch.commit();
-    console.log("Committed batch, uploaded so far: " + uploaded);
-  } catch (err) {
-    console.error("❌ batch.commit failed at uploaded=" + uploaded);
-    if (lastPartInfo) console.error("Last prepared doc:", lastPartInfo);
-    console.error(err?.message ?? err);
-    console.error(err?.stack ?? "");
-    throw err;
-  }
-}
-
 async function uploadParts(parts) {
-  if (!db)
-    throw new Error(
-      "Firestore not initialized. DRY_RUN should not call uploadParts()."
-    );
+  if (!db) throw new Error("Firestore not initialized. DRY_RUN should not call uploadParts().");
 
   const col = db.collection("parts");
 
@@ -393,39 +338,22 @@ async function uploadParts(parts) {
   let batchCount = 0;
   let uploaded = 0;
 
-  // helps identifying the last part before a failing commit
-  let lastPartInfo = null;
-
   for (const part of parts) {
-    const cleaned = firestoreSafe(part);
-
-    // auto id
-    const docRef = col.doc();
-    batch.set(docRef, cleaned, { merge: false });
-
-    lastPartInfo = {
-      type: cleaned?.type ?? null,
-      name: cleaned?.name ?? null,
-      datasetType: cleaned?.metadata?.datasetType ?? null,
-    };
-
+    const docRef = col.doc(); // auto id
+    batch.set(docRef, part, { merge: false });
     batchCount++;
     uploaded++;
 
-    if (uploaded % 200 === 0) {
-      console.log("Prepared for upload: " + uploaded + " / " + parts.length);
-    }
-
     if (batchCount >= BATCH_LIMIT) {
-      await commitBatch(batch, uploaded, lastPartInfo);
+      await batch.commit();
+      console.log("Committed batch, uploaded so far: " + uploaded);
       batch = db.batch();
       batchCount = 0;
-      lastPartInfo = null;
     }
   }
 
   if (batchCount > 0) {
-    await commitBatch(batch, uploaded, lastPartInfo);
+    await batch.commit();
     console.log("Committed final batch, total uploaded: " + uploaded);
   }
 }
@@ -509,8 +437,6 @@ async function main() {
 }
 
 main().catch((err) => {
-  console.error("❌ Fatal error:");
-  console.error(err?.message ?? err);
-  console.error(err?.stack ?? "");
+  console.error(err);
   process.exit(1);
 });
