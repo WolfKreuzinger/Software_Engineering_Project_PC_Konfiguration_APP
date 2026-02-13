@@ -121,6 +121,17 @@ function mapType(datasetType) {
     "video-card": "gpu",
     case: "case",
     "power-supply": "psu",
+    "case-fan": "caseFan",
+    "case-accessory": "caseAccessory",
+    "fan-controller": "fanController",
+    "wired-network-card": "wiredNic",
+    "wireless-network-card": "wirelessNic",
+    "sound-card": "soundCard",
+    "optical-drive": "opticalDrive",
+    os: "os",
+    "thermal-paste": "thermalPaste",
+    ups: "ups",
+    "external-hard-drive": "externalStorage",
   };
   return map[datasetType] || null;
 }
@@ -203,113 +214,127 @@ function loadJsonArray(filePath) {
  *
  * Important: We do NOT filter out old CPUs. We set metadata flags instead.
  */
+// 2) normalizeRaw() erweitern: neue Typen
 function normalizeRaw(datasetType, raw) {
   const type = mapType(datasetType);
   if (!type) return null;
 
   const name = raw.name ?? null;
   const price = raw.price ?? null;
-
   if (!name) return null;
 
   let spec = {};
 
-  // CPU
-  if (type === "cpu") {
-    const socket = detectCpuSocket(name);
+  // ... eure bestehenden Blöcke (cpu, motherboard, gpu, memory, storage, psu, case, cooler) bleiben unverändert ...
+
+  // ---- added: case fan ----
+  if (type === "caseFan") {
     spec = {
-      socket: socket,
-      cores: raw.core_count ?? null,
-      baseClockGHz: raw.core_clock ?? null,
-      boostClockGHz: raw.boost_clock ?? null,
-      tdpW: raw.tdp ?? null,
-      microarchitecture: raw.microarchitecture ?? null,
-      graphics: raw.graphics ?? null,
-      smt: raw.smt ?? null,
+      sizeMm: raw.size ?? null,
+      rpm: raw.rpm ?? null,
+      airflowCfm: raw.airflow ?? null,
+      noiseLevelDb: raw.noise_level ?? null,
+      pwm: raw.pwm ?? null,
+      led: raw.led ?? null,
+      color: raw.color ?? null,
     };
   }
 
-  // Motherboard
-  if (type === "motherboard") {
+  // ---- added: case accessory ----
+  if (type === "caseAccessory") {
     spec = {
-      socket: raw.socket ?? null,
+      accessoryType: raw.type ?? null,
+      color: raw.color ?? null,
+    };
+  }
+
+  // ---- added: fan controller ----
+  if (type === "fanController") {
+    spec = {
+      channels: raw.channels ?? null,
+      pwm: raw.pwm ?? null,
       formFactor: raw.form_factor ?? null,
-      maxMemoryGB: raw.max_memory ?? null,
-      memorySlots: raw.memory_slots ?? null,
       color: raw.color ?? null,
     };
   }
 
-  // GPU (video-card)
-  if (type === "gpu") {
+  // ---- added: wired NIC ----
+  if (type === "wiredNic") {
     spec = {
-      chipset: raw.chipset ?? null,
-      vramGB: raw.memory ?? null,
-      coreClockMHz: raw.core_clock ?? null,
-      boostClockMHz: raw.boost_clock ?? null,
-      lengthMM: raw.length ?? null,
-      color: raw.color ?? null,
+      interface: raw.interface ?? null,     // e.g. PCIe x1
+      speedMbps: raw.speed ?? null,         // dataset dependent
+      ports: raw.ports ?? null,
     };
   }
 
-  // RAM (memory)
-  if (type === "memory") {
+  // ---- added: wireless NIC ----
+  if (type === "wirelessNic") {
     spec = {
-      memoryType: safeArrayValue(raw.speed, 0) !== null ? ("DDR" + safeArrayValue(raw.speed, 0)) : null,
-      speedMHz: safeArrayValue(raw.speed, 1),
-      modules: safeArrayValue(raw.modules, 0),
-      capacityPerModuleGB: safeArrayValue(raw.modules, 1),
-      firstWordLatencyNs: raw.first_word_latency ?? null,
-      casLatency: raw.cas_latency ?? null,
+      interface: raw.interface ?? null,
+      protocol: raw.protocol ?? null,       // e.g. 802.11ax
+      speedMbps: raw.speed ?? null,
+      bluetooth: raw.bluetooth ?? null,
+    };
+  }
+
+  // ---- added: sound card ----
+  if (type === "soundCard") {
+    spec = {
+      interface: raw.interface ?? null,
+      channels: raw.channels ?? null,
+      snrDb: raw.snr ?? null,
+      sampleRateKHz: raw.sample_rate ?? null,
+    };
+  }
+
+  // ---- added: optical drive ----
+  if (type === "opticalDrive") {
+    spec = {
+      driveType: raw.type ?? null,          // BD/DVD etc.
+      interface: raw.interface ?? null,     // SATA/USB
+      bufferMB: raw.buffer ?? null,
       color: raw.color ?? null,
     };
   }
 
-  // Storage (internal-hard-drive)
-  if (type === "storage") {
+  // ---- added: OS ----
+  if (type === "os") {
+    spec = {
+      family: raw.family ?? null,           // Windows/Linux etc. (dataset dependent)
+      version: raw.version ?? null,
+      architecture: raw.architecture ?? null, // 64-bit etc.
+      license: raw.license ?? null,
+    };
+  }
+
+  // ---- added: thermal paste ----
+  if (type === "thermalPaste") {
+    spec = {
+      thermalConductivityWmk: raw.thermal_conductivity ?? null,
+      amountG: raw.amount ?? null,
+    };
+  }
+
+  // ---- added: UPS ----
+  if (type === "ups") {
+    spec = {
+      capacityVA: raw.capacity_va ?? null,
+      capacityW: raw.capacity_w ?? null,
+      outlets: raw.outlets ?? null,
+    };
+  }
+
+  // ---- added: external storage ----
+  if (type === "externalStorage") {
     spec = {
       capacityGB: raw.capacity ?? null,
       driveType: raw.type ?? null,
-      cacheMB: raw.cache ?? null,
-      formFactor: raw.form_factor ?? null,
-      interface: raw.interface ?? null,
-    };
-  }
-
-  // PSU (power-supply)
-  if (type === "psu") {
-    spec = {
-      psuType: raw.type ?? null,
-      efficiency: raw.efficiency ?? null,
-      wattageW: raw.wattage ?? null,
-      modular: raw.modular ?? null,
+      interface: raw.interface ?? null,      // USB etc.
       color: raw.color ?? null,
     };
   }
 
-  // Case
-  if (type === "case") {
-    spec = {
-      caseType: raw.type ?? null,
-      includedPsuW: raw.psu ?? null,
-      sidePanel: raw.side_panel ?? null,
-      externalVolumeL: raw.external_volume ?? null,
-      internal35Bays: raw.internal_35_bays ?? null,
-      color: raw.color ?? null,
-    };
-  }
-
-  // Cooler
-  if (type === "cooler") {
-    spec = {
-      rpm: raw.rpm ?? null,
-      noiseLevelDb: raw.noise_level ?? null,
-      sizeMm: raw.size ?? null,
-      color: raw.color ?? null,
-    };
-  }
-
-  // ---- metadata flags ----
+  // ---- metadata flags (wie bei euch) ----
   const socket =
     type === "cpu" || type === "motherboard" ? (spec.socket ?? null) : null;
 
