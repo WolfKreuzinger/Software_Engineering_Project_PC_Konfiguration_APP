@@ -146,6 +146,36 @@ function safeArrayValue(arr, idx) {
   return v === undefined ? null : v;
 }
 
+function slugify(str, maxLen = 180) {
+  if (!str) return "";
+  return String(str)
+    .normalize("NFKD")                 // Umlaute etc. trennen
+    .replace(/[\u0300-\u036f]/g, "")   // Diakritika entfernen
+    .toLowerCase()
+    .trim()
+    .replace(/&/g, " and ")
+    .replace(/[^a-z0-9]+/g, "_")       // alles Nicht-Alnum -> _
+    .replace(/^_+|_+$/g, "")           // _ am Anfang/Ende weg
+    .slice(0, maxLen);
+}
+
+function makeDocId(part) {
+  // datasetType ist stabiler als "type", weil ihr "type" teils zusammenfasst (z.B. storage)
+  const datasetType = part?.metadata?.datasetType || "unknown";
+  const nameSlug = slugify(part?.name || "noname");
+
+  // brand kann helfen, Kollisionen zu vermeiden (gleichnamige Produkte)
+  const brandSlug = slugify(part?.brand || "");
+
+  // snapshotDate NICHT in die ID, weil Option A überschreiben soll
+  // Format: video-card__msi_geforce_rtx_4070__msi
+  const base = `${datasetType}__${nameSlug}${brandSlug ? "__" + brandSlug : ""}`;
+
+  // Firestore Doc IDs dürfen lang sein, aber keep it reasonable
+  return base.slice(0, 300);
+}
+
+
 /**
  * CPU socket detection (heuristic) to make CPU<->Motherboard compatibility possible
  * even though cpu.json has no socket field.
@@ -374,7 +404,8 @@ async function uploadParts(parts) {
   let uploaded = 0;
 
   for (const part of parts) {
-    const docRef = col.doc(); // auto id
+    const docId = makeDocId(part);
+    const docRef = col.doc(docId);
     batch.set(docRef, part, { merge: false });
     batchCount++;
     uploaded++;
