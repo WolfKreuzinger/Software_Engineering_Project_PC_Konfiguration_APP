@@ -45,17 +45,13 @@ class BuildPlaceholderCard extends StatelessWidget {
                       right: 8,
                       top: 8,
                       child: Container(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 10, vertical: 4),
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                         decoration: BoxDecoration(
-                          color:
-                              compatible ? Colors.green : Colors.orange,
+                          color: compatible ? Colors.green : Colors.orange,
                           borderRadius: BorderRadius.circular(999),
                         ),
                         child: Text(
-                          compatible
-                              ? "COMPATIBLE"
-                              : "IN PROGRESS",
+                          compatible ? "COMPATIBLE" : "IN PROGRESS",
                           style: const TextStyle(
                             fontSize: 10,
                             color: Colors.white,
@@ -68,28 +64,53 @@ class BuildPlaceholderCard extends StatelessWidget {
                 ),
               ),
               const SizedBox(height: 10),
-              Text(title,
-                  style: const TextStyle(fontWeight: FontWeight.w800)),
-              Text(subtitle,
-                  style: TextStyle(
-                      color: theme.colorScheme.onSurfaceVariant)),
+
+              Text(
+                title,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(fontWeight: FontWeight.w800),
+              ),
+
+              Text(
+                subtitle,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(color: theme.colorScheme.onSurfaceVariant),
+              ),
+
               const SizedBox(height: 8),
+
               Row(
                 children: [
-                  Text(
-                    "\$${price.toStringAsFixed(2)}",
-                    style: TextStyle(
-                      fontWeight: FontWeight.w900,
-                      color: theme.colorScheme.primary,
+                  Expanded(
+                    child: Text(
+                      "\$${price.toStringAsFixed(2)}",
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        fontWeight: FontWeight.w900,
+                        color: theme.colorScheme.primary,
+                      ),
                     ),
                   ),
-                  const Spacer(),
-                  Text(
-                    "PROGRESS ${(progress * 100).round()}%",
-                    style: const TextStyle(fontSize: 11),
+                  const SizedBox(width: 8),
+                  Flexible(
+                    child: FittedBox(
+                      fit: BoxFit.scaleDown,
+                      alignment: Alignment.centerRight,
+                      child: Text(
+                        "PROGRESS ${(progress * 100).round()}%",
+                        style: TextStyle(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w600,
+                          color: theme.colorScheme.onSurfaceVariant,
+                        ),
+                      ),
+                    ),
                   ),
                 ],
-              )
+              ),
             ],
           ),
         ),
