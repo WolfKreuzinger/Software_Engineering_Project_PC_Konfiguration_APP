@@ -1,25 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'package:flutter_web_plugins/url_strategy.dart';
 
 import 'firebase_options.dart';
-import 'screens/home_screen.dart';
+import 'app.dart';
 
-void main() async {
+Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  usePathUrlStrategy(); // ← HIER
+
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
-  runApp(const BuildMyPCApp());
-}
 
-class BuildMyPCApp extends StatelessWidget {
-  const BuildMyPCApp({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'BuildMyPC',
-      debugShowCheckedModeBanner: false,
-      theme: ThemeData(useMaterial3: true),
-      home: const HomeScreen(),
-    );
-  }
+  runApp(const App());
 }

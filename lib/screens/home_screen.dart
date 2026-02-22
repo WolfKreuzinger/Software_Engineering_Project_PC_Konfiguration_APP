@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 
 class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});
@@ -20,7 +21,7 @@ class HomeScreen extends StatelessWidget {
             const SizedBox(height: 24),
             FilledButton(
               onPressed: () {
-                // später: Navigation zum Konfigurator
+                context.go('/login');
               },
               child: const Text('Konfiguration starten'),
             ),
