@@ -5,8 +5,8 @@ import '../widgets/guided_configurator_card.dart';
 import '../widgets/start_new_build_tile.dart';
 import '../widgets/section_header.dart';
 
-class HomeScreen extends StatelessWidget {
-  const HomeScreen({super.key});
+class Dashboard extends StatelessWidget {
+  const Dashboard({super.key});
 
   @override
   Widget build(BuildContext context) {
