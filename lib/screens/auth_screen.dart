@@ -50,10 +50,7 @@ class _AuthScreenState extends State<AuthScreen> {
           ),
         ),
       );
-
-      // TODO: später Dashboard
-      // context.go('/home'); oder '/dashboard'
-      context.go('/'); // erstmal zurück Home
+      context.go('/dashboard');
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
@@ -435,7 +432,7 @@ class _AuthScreenState extends State<AuthScreen> {
                                   content: Text('Als Gast fortgefahren'),
                                 ),
                               );
-                              context.go('/'); // später dashboard
+                              context.go('/dashboard');
                             } catch (e) {
                               if (!mounted) return;
                               ScaffoldMessenger.of(context).showSnackBar(
