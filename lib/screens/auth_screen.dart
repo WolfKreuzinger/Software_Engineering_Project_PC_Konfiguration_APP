@@ -432,7 +432,7 @@ class _AuthScreenState extends State<AuthScreen> {
                                   content: Text('Als Gast fortgefahren'),
                                 ),
                               );
-                              context.go('/dashboard');
+                              context.go('/configure');
                             } catch (e) {
                               if (!mounted) return;
                               ScaffoldMessenger.of(context).showSnackBar(
