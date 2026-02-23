@@ -1,35 +1,74 @@
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 
 import '../widgets/bottom_nav.dart';
 import '../widgets/top_profile_app_bar.dart';
 
-import 'dashboard.dart';
+class ShellScreen extends StatelessWidget {
+  const ShellScreen({super.key, required this.child});
 
-class ShellScreen extends StatefulWidget {
-  const ShellScreen({super.key});
+  final Widget child;
 
-  @override
-  State<ShellScreen> createState() => _ShellScreenState();
-}
+  bool _isAuthed(User? u) => u != null && !u.isAnonymous;
 
-class _ShellScreenState extends State<ShellScreen> {
-  int _tab = 0;
+  int _indexForLocation(String location, bool authed) {
+    if (!authed) {
+      if (location == '/configure') return 1;
+      if (location == '/settings') return 2;
+      return 0;
+    } else {
+      if (location == '/parts') return 1;
+      if (location == '/settings') return 2;
+      return 0;
+    }
+  }
 
-  final _screens = const [
-    Dashboard(),
-  ];
+  void _goForIndex(BuildContext context, int index, bool authed) {
+    if (!authed) {
+      switch (index) {
+        case 0:
+          context.go('/');
+          return;
+        case 1:
+          context.go('/configure');
+          return;
+        case 2:
+          context.go('/settings');
+          return;
+      }
+    } else {
+      switch (index) {
+        case 0:
+          context.go('/dashboard');
+          return;
+        case 1:
+          context.go('/parts');
+          return;
+        case 2:
+          context.go('/settings');
+          return;
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
+    final user = FirebaseAuth.instance.currentUser;
+    final authed = _isAuthed(user);
+
+    final location = GoRouterState.of(context).matchedLocation;
+    final currentIndex = _indexForLocation(location, authed);
+
     return Scaffold(
-      appBar: const TopProfileAppBar(
-        title: 'BuildMyPC',
-        subtitle: 'PRO BUILDER',
-      ),
-      body: _screens[_tab],
+      appBar: authed
+          ? const TopProfileAppBar(title: 'BuildMyPC', subtitle: 'PRO BUILDER')
+          : null,
+      body: child,
       bottomNavigationBar: BottomNav(
-        currentIndex: _tab,
-        onChanged: (i) => setState(() => _tab = i),
+        mode: authed ? BottomNavMode.authed : BottomNavMode.public,
+        currentIndex: currentIndex,
+        onChanged: (i) => _goForIndex(context, i, authed),
       ),
     );
   }

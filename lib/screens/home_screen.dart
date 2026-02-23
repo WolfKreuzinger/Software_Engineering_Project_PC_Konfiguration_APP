@@ -33,8 +33,8 @@ class HomeScreen extends StatelessWidget {
             ),
             const SizedBox(height: 24),
             FilledButton(
-              onPressed: () => context.go('/login'),
-              child: const Text('Konfiguration starten'),
+              onPressed: () => context.go('/configure'),
+              child: const Text('PC konfigurieren'),
             ),
           ],
         ),
