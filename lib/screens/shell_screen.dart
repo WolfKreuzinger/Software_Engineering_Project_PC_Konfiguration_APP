@@ -1,4 +1,5 @@
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
@@ -11,6 +12,23 @@ class ShellScreen extends StatelessWidget {
   final Widget child;
 
   bool _isAuthed(User? u) => u != null && !u.isAnonymous;
+
+  bool _firebaseReady() {
+    try {
+      return Firebase.apps.isNotEmpty;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  User? _safeUser() {
+    if (!_firebaseReady()) return null;
+    try {
+      return FirebaseAuth.instance.currentUser;
+    } catch (_) {
+      return null;
+    }
+  }
 
   int _indexForLocation(String location, bool authed) {
     if (!authed) {
@@ -54,7 +72,7 @@ class ShellScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final user = FirebaseAuth.instance.currentUser;
+    final user = _safeUser();
     final authed = _isAuthed(user);
 
     final location = GoRouterState.of(context).matchedLocation;
