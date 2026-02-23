@@ -1,7 +1,9 @@
 import 'dart:async';
-import 'package:flutter/material.dart';
 
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_core/firebase_core.dart';
+import 'package:flutter/foundation.dart';
+import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
 import 'screens/auth_screen.dart';
@@ -14,17 +16,27 @@ import 'screens/shell_screen.dart';
 import 'screens/terms_screen.dart';
 
 class AuthListenable extends ChangeNotifier {
+  StreamSubscription<User?>? _sub;
+
   AuthListenable() {
-    _sub = FirebaseAuth.instance.authStateChanges().listen((_) {
-      notifyListeners();
-    });
+    _bindIfPossible();
   }
 
-  late final StreamSubscription<User?> _sub;
+  void _bindIfPossible() {
+    if (_sub != null) return;
+    try {
+      if (Firebase.apps.isEmpty) return;
+      _sub = FirebaseAuth.instance.authStateChanges().listen((_) {
+        notifyListeners();
+      });
+    } catch (_) {}
+  }
+
+  void ensureBound() => _bindIfPossible();
 
   @override
   void dispose() {
-    _sub.cancel();
+    _sub?.cancel();
     super.dispose();
   }
 }
@@ -39,9 +51,16 @@ final router = GoRouter(
   initialLocation: '/',
   refreshListenable: _authListenable,
   redirect: (context, state) {
-    final user = FirebaseAuth.instance.currentUser;
-    final authed = _isAuthed(user);
+    _authListenable.ensureBound();
 
+    User? user;
+    try {
+      user = FirebaseAuth.instance.currentUser;
+    } catch (_) {
+      user = null;
+    }
+
+    final authed = _isAuthed(user);
     final loc = state.matchedLocation;
 
     final isPrivate = loc == '/dashboard' || loc == '/parts';
