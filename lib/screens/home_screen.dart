@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import '../theme/theme_global.dart';
 
 class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});
@@ -7,7 +8,19 @@ class HomeScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('BuildMyPC')),
+      appBar: AppBar(
+        title: const Text('BuildMyPC'),
+        actions: [
+          IconButton(
+            icon: Icon(
+              themeController.mode == ThemeMode.dark
+                  ? Icons.dark_mode
+                  : Icons.light_mode,
+            ),
+            onPressed: () => themeController.toggleLightDark(),
+          ),
+        ],
+      ),
       body: Center(
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -20,9 +33,7 @@ class HomeScreen extends StatelessWidget {
             ),
             const SizedBox(height: 24),
             FilledButton(
-              onPressed: () {
-                context.go('/login');
-              },
+              onPressed: () => context.go('/login'),
               child: const Text('Konfiguration starten'),
             ),
           ],
