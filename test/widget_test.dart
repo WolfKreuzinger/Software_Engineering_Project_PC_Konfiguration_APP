@@ -6,15 +6,12 @@
 // tree, read text, and verify that the values of widget properties are correct.
 
 import 'package:flutter_test/flutter_test.dart';
-
-import 'package:software_engineering_project_pc_konfiguration_app/main.dart';
+import 'package:software_engineering_project_pc_konfiguration_app/app.dart';
 
 void main() {
-  testWidgets('app starts (smoke test)', (WidgetTester tester) async {
-    // Build our app and trigger a frame.
-    await tester.pumpWidget(const BuildMyPCApp());
-    await tester.pumpAndSettle();
+  testWidgets('App smoke test', (WidgetTester tester) async {
+    await tester.pumpWidget(const App());
 
-    expect(find.byType(BuildMyPCApp), findsOneWidget);
+    expect(find.byType(App), findsOneWidget);
   });
 }
