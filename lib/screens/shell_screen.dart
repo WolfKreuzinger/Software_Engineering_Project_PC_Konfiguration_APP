@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import '../widgets/bottom_nav.dart';
 import '../widgets/top_profile_app_bar.dart';
 
-import 'home_screen.dart';
+import 'dashboard.dart';
 
 class ShellScreen extends StatefulWidget {
   const ShellScreen({super.key});
@@ -16,7 +16,7 @@ class _ShellScreenState extends State<ShellScreen> {
   int _tab = 0;
 
   final _screens = const [
-    HomeScreen(),
+    Dashboard(),
   ];
 
   @override
