@@ -379,17 +379,44 @@ class _AuthScreenState extends State<AuthScreen> {
                                     child: OutlinedButton(
                                       onPressed: _loading
                                           ? null
-                                          : () {
-                                              // TODO: Google Sign-In
-                                              ScaffoldMessenger.of(
-                                                context,
-                                              ).showSnackBar(
-                                                const SnackBar(
-                                                  content: Text(
-                                                    'Google Sign-In (Demo)',
+                                          : () async {
+                                              setState(() => _loading = true);
+                                              try {
+                                                await _auth.signInWithGoogle();
+
+                                                if (!mounted) return;
+                                                ScaffoldMessenger.of(
+                                                  context,
+                                                ).showSnackBar(
+                                                  const SnackBar(
+                                                    content: Text(
+                                                      'Google Login erfolgreich',
+                                                    ),
                                                   ),
-                                                ),
-                                              );
+                                                );
+
+                                                // gleicher Flow wie bei Email Login
+                                                context.go('/dashboard');
+                                              } catch (e) {
+                                                if (!mounted) return;
+                                                ScaffoldMessenger.of(
+                                                  context,
+                                                ).showSnackBar(
+                                                  SnackBar(
+                                                    content: Text(
+                                                      e.toString().replaceFirst(
+                                                        'Exception: ',
+                                                        '',
+                                                      ),
+                                                    ),
+                                                  ),
+                                                );
+                                              } finally {
+                                                if (mounted)
+                                                  setState(
+                                                    () => _loading = false,
+                                                  );
+                                              }
                                             },
                                       child: const Text('Google'),
                                     ),
