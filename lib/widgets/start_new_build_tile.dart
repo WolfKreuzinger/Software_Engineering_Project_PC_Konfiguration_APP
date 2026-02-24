@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 
 class StartNewBuildTile extends StatelessWidget {
   const StartNewBuildTile({super.key});
@@ -31,8 +32,7 @@ class StartNewBuildTile extends StatelessWidget {
           ),
           subtitle: const Text("Manual / Part Selection"),
           trailing: const Icon(Icons.chevron_right),
-          onTap: () {
-          },
+          onTap: () => context.go('/configure'),
         ),
       ),
     );
