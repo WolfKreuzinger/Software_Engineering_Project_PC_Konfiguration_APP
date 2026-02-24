@@ -11,8 +11,10 @@ import 'screens/configure_screen.dart';
 import 'screens/dashboard.dart';
 import 'screens/home_screen.dart';
 import 'screens/parts_screen.dart';
+import 'screens/privacy_policy_screen.dart';
 import 'screens/settings_screen.dart';
 import 'screens/shell_screen.dart';
+import 'screens/support_screen.dart';
 import 'screens/terms_screen.dart';
 
 class AuthListenable extends ChangeNotifier {
@@ -74,34 +76,42 @@ final router = GoRouter(
   routes: [
     GoRoute(
       path: '/login',
-      pageBuilder: (_, __) => _noAnim(const AuthScreen()),
+      pageBuilder: (_, _) => _noAnim(const AuthScreen()),
     ),
     GoRoute(
       path: '/terms',
-      pageBuilder: (_, __) => _noAnim(const TermsScreen()),
+      pageBuilder: (_, _) => _noAnim(const TermsScreen()),
+    ),
+    GoRoute(
+      path: '/privacy',
+      pageBuilder: (_, _) => _noAnim(const PrivacyPolicyScreen()),
+    ),
+    GoRoute(
+      path: '/support',
+      pageBuilder: (_, _) => _noAnim(const SupportScreen()),
     ),
     ShellRoute(
       builder: (context, state, child) => ShellScreen(child: child),
       routes: [
         GoRoute(
           path: '/',
-          pageBuilder: (_, __) => _noAnim(const HomeScreen()),
+          pageBuilder: (_, _) => _noAnim(const HomeScreen()),
         ),
         GoRoute(
           path: '/configure',
-          pageBuilder: (_, __) => _noAnim(const ConfigureScreen()),
+          pageBuilder: (_, _) => _noAnim(const ConfigureScreen()),
         ),
         GoRoute(
           path: '/settings',
-          pageBuilder: (_, __) => _noAnim(const SettingsScreen()),
+          pageBuilder: (_, _) => _noAnim(const SettingsScreen()),
         ),
         GoRoute(
           path: '/dashboard',
-          pageBuilder: (_, __) => _noAnim(const Dashboard()),
+          pageBuilder: (_, _) => _noAnim(const Dashboard()),
         ),
         GoRoute(
           path: '/parts',
-          pageBuilder: (_, __) => _noAnim(const PartsScreen()),
+          pageBuilder: (_, _) => _noAnim(const PartsScreen()),
         ),
       ],
     ),
