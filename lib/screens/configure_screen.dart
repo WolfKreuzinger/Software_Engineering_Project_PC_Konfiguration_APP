@@ -4,13 +4,238 @@ import 'package:go_router/go_router.dart';
 class ConfigureScreen extends StatelessWidget {
   const ConfigureScreen({super.key});
 
+  int _gpuFallbackWattsFromChipset(String chipset) {
+    final s = chipset.toLowerCase();
+
+    final ultra450 = [
+      '4090',
+      '3090',
+      '3090 ti',
+      '7900 xtx',
+      '7900xtx',
+    ];
+    for (final k in ultra450) {
+      if (s.contains(k)) return 450;
+    }
+
+    final high300 = [
+      '4080',
+      '3080',
+      '3080 ti',
+      '3070 ti',
+      '4070 ti',
+      '4070ti',
+      '7900 xt',
+      '7900xt',
+    ];
+    for (final k in high300) {
+      if (s.contains(k)) return 300;
+    }
+
+    final mid200 = [
+      '4070',
+      '4060',
+      '3060',
+      '3050',
+      '6600',
+      '6650',
+      '6700',
+      '6750',
+      '7600',
+      '7700',
+    ];
+    for (final k in mid200) {
+      if (s.contains(k)) return 200;
+    }
+
+    return 300;
+  }
+
+  int _estimateWattsUpperBound({
+    required int cpuTdp,
+    required String? gpuChipset,
+    required int ramModules,
+    required int ssdCount,
+    required bool hasMotherboard,
+    required int caseFans,
+    required bool hasCpuCooler,
+  }) {
+    final cpu = cpuTdp;
+    final gpu =
+        gpuChipset == null ? 0 : _gpuFallbackWattsFromChipset(gpuChipset);
+    final ram = ramModules * 5;
+    final ssd = ssdCount * 7;
+    final mb = hasMotherboard ? 60 : 0;
+    final fans = caseFans * 4;
+    final cpuCoolerFan = hasCpuCooler ? 4 : 0;
+
+    return cpu + gpu + ram + ssd + mb + fans + cpuCoolerFan;
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
 
-    const partsDone = 5;
-    const partsTotal = 8;
-    final progress = partsDone / partsTotal;
+    final build = _BuildSelection(
+      cpuTdp: 0,
+      gpuChipset: null,
+      ramModules: 0,
+      ssdCount: 0,
+      hasMotherboard: false,
+      caseFans: 0,
+      hasCpuCooler: false,
+    );
+
+    final parts = <_PartTile>[
+      _PartTile(
+        icon: Icons.computer_rounded,
+        label: 'Processor (CPU)',
+        title: 'Choose a CPU',
+        price: '—',
+        isSelected: build.cpuTdp > 0,
+      ),
+      _PartTile(
+        icon: Icons.air_rounded,
+        label: 'CPU Cooler',
+        title: 'Choose a CPU Cooler',
+        price: '—',
+        isSelected: build.hasCpuCooler,
+      ),
+      _PartTile(
+        icon: Icons.grain_rounded,
+        label: 'Thermal Paste',
+        title: 'Choose Thermal Paste',
+        price: '—',
+        isSelected: false,
+      ),
+      _PartTile(
+        icon: Icons.developer_board_rounded,
+        label: 'Motherboard',
+        title: 'Choose a Motherboard',
+        price: '—',
+        isSelected: build.hasMotherboard,
+      ),
+      _PartTile(
+        icon: Icons.memory_rounded,
+        label: 'Memory (RAM)',
+        title: 'Choose RAM',
+        price: '—',
+        isSelected: build.ramModules > 0,
+      ),
+      _PartTile(
+        icon: Icons.videogame_asset_rounded,
+        label: 'Graphics Card (GPU)',
+        title: 'Choose a GPU',
+        price: '—',
+        isSelected: build.gpuChipset != null,
+      ),
+      _PartTile(
+        icon: Icons.storage_rounded,
+        label: 'Storage (SSD / HDD)',
+        title: 'Choose Storage',
+        price: '—',
+        isSelected: build.ssdCount > 0,
+      ),
+      _PartTile(
+        icon: Icons.desktop_windows_rounded,
+        label: 'Case',
+        title: 'Choose a Case',
+        price: '—',
+        isSelected: false,
+      ),
+      _PartTile(
+        icon: Icons.blur_circular_rounded,
+        label: 'Case Fans',
+        title: 'Choose Case Fans',
+        price: '—',
+        isSelected: build.caseFans > 0,
+      ),
+      _PartTile(
+        icon: Icons.tune_rounded,
+        label: 'Fan Controller',
+        title: 'Choose a Fan Controller',
+        price: '—',
+        isSelected: false,
+      ),
+      _PartTile(
+        icon: Icons.grid_view_rounded,
+        label: 'Case Accessories',
+        title: 'Choose Accessories',
+        price: '—',
+        isSelected: false,
+      ),
+      _PartTile(
+        icon: Icons.power_rounded,
+        label: 'Power Supply (PSU)',
+        title: 'Choose a Power Supply',
+        price: '—',
+        isSelected: false,
+      ),
+      _PartTile(
+        icon: Icons.network_wifi_rounded,
+        label: 'Wireless Network Card',
+        title: 'Choose Wi-Fi',
+        price: '—',
+        isSelected: false,
+      ),
+      _PartTile(
+        icon: Icons.settings_ethernet_rounded,
+        label: 'Wired Network Card',
+        title: 'Choose Ethernet',
+        price: '—',
+        isSelected: false,
+      ),
+      _PartTile(
+        icon: Icons.volume_up_rounded,
+        label: 'Sound Card',
+        title: 'Choose a Sound Card',
+        price: '—',
+        isSelected: false,
+      ),
+      _PartTile(
+        icon: Icons.disc_full_rounded,
+        label: 'Optical Drive',
+        title: 'Choose an Optical Drive',
+        price: '—',
+        isSelected: false,
+      ),
+      _PartTile(
+        icon: Icons.usb_rounded,
+        label: 'External Hard Drive',
+        title: 'Choose External Storage',
+        price: '—',
+        isSelected: false,
+      ),
+      _PartTile(
+        icon: Icons.battery_charging_full_rounded,
+        label: 'UPS',
+        title: 'Choose a UPS',
+        price: '—',
+        isSelected: false,
+      ),
+      _PartTile(
+        icon: Icons.window_rounded,
+        label: 'Operating System',
+        title: 'Choose an OS',
+        price: '—',
+        isSelected: false,
+      ),
+    ];
+
+    final partsDone = parts.where((p) => p.isSelected).length;
+    final partsTotal = parts.length;
+    final progress =
+        partsTotal == 0 ? 0.0 : (partsDone / partsTotal).clamp(0.0, 1.0);
+
+    final estWatts = _estimateWattsUpperBound(
+      cpuTdp: build.cpuTdp,
+      gpuChipset: build.gpuChipset,
+      ramModules: build.ramModules,
+      ssdCount: build.ssdCount,
+      hasMotherboard: build.hasMotherboard,
+      caseFans: build.caseFans,
+      hasCpuCooler: build.hasCpuCooler,
+    );
 
     return Stack(
       children: [
@@ -19,69 +244,100 @@ class ConfigureScreen extends StatelessWidget {
             SliverAppBar(
               pinned: true,
               elevation: 0,
-              backgroundColor: theme.colorScheme.surface.withOpacity(0.92),
+              backgroundColor:
+                  theme.colorScheme.surface.withOpacity(0.92),
               surfaceTintColor: Colors.transparent,
               automaticallyImplyLeading: false,
               toolbarHeight: 64,
               titleSpacing: 0,
               title: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 12),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 12),
                 child: Row(
                   children: [
                     IconButton(
-                      onPressed: () => context.go('/dashboard'),
-                      icon: const Icon(Icons.arrow_back_rounded),
+                      onPressed: () =>
+                          context.go('/dashboard'),
+                      icon: const Icon(
+                          Icons.arrow_back_rounded),
+                      splashRadius: 22,
                     ),
                     const SizedBox(width: 4),
                     Expanded(
                       child: Text(
                         'Custom PC Builder',
-                        style: theme.textTheme.titleLarge?.copyWith(
+                        style: theme.textTheme.titleLarge
+                            ?.copyWith(
                           fontWeight: FontWeight.w800,
+                          letterSpacing: -0.2,
                         ),
+                        overflow: TextOverflow.ellipsis,
                       ),
-                    ),
-                    const SizedBox(width: 10),
-                    _Pill(
-                      icon: Icons.bolt_rounded,
-                      text: '420W Est.',
-                      color: theme.colorScheme.primary,
-                      background:
-                          theme.colorScheme.primary.withOpacity(0.10),
-                      border:
-                          theme.colorScheme.primary.withOpacity(0.20),
                     ),
                   ],
                 ),
               ),
               bottom: PreferredSize(
-                preferredSize: const Size.fromHeight(46),
+                preferredSize:
+                    const Size.fromHeight(46),
                 child: Padding(
-                  padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+                  padding:
+                      const EdgeInsets.fromLTRB(
+                          16, 0, 16, 12),
                   child: Column(
                     children: [
                       Row(
                         children: [
                           Text(
                             'Build Progress',
-                            style: theme.textTheme.labelSmall?.copyWith(
-                              fontWeight: FontWeight.w900,
+                            style: theme.textTheme
+                                .labelSmall
+                                ?.copyWith(
+                              fontWeight:
+                                  FontWeight.w900,
+                              letterSpacing: 1.2,
+                              color: theme
+                                  .colorScheme
+                                  .onSurfaceVariant,
                             ),
                           ),
                           const Spacer(),
                           Text(
                             '$partsDone / $partsTotal Parts',
-                            style: theme.textTheme.labelSmall?.copyWith(
-                              fontWeight: FontWeight.w900,
+                            style: theme.textTheme
+                                .labelSmall
+                                ?.copyWith(
+                              fontWeight:
+                                  FontWeight.w900,
+                              letterSpacing: 1.2,
+                              color: theme
+                                  .colorScheme
+                                  .onSurfaceVariant,
                             ),
                           ),
                         ],
                       ),
                       const SizedBox(height: 8),
-                      LinearProgressIndicator(
-                        value: progress,
-                        backgroundColor:
-                            theme.colorScheme.surfaceContainerHighest,
+                      ClipRRect(
+                        borderRadius:
+                            BorderRadius.circular(
+                                999),
+                        child: SizedBox(
+                          height: 8,
+                          child:
+                              LinearProgressIndicator(
+                            value: progress,
+                            backgroundColor: theme
+                                .colorScheme
+                                .surfaceContainerHighest,
+                            valueColor:
+                                AlwaysStoppedAnimation<
+                                        Color>(
+                                    theme
+                                        .colorScheme
+                                        .primary),
+                          ),
+                        ),
                       ),
                     ],
                   ),
@@ -89,59 +345,31 @@ class ConfigureScreen extends StatelessWidget {
               ),
             ),
             SliverPadding(
-              padding: const EdgeInsets.fromLTRB(16, 16, 16, 92),
+              padding:
+                  const EdgeInsets.fromLTRB(
+                      16, 16, 16, 92),
               sliver: SliverList(
-                delegate: SliverChildListDelegate(
-                  [
-                    _SelectedPartCard(
-                      categoryIcon: Icons.computer_rounded,
-                      categoryLabel: 'Processor',
-                      title: 'Intel Core i9-13900K 3 GHz 24-Core',
-                      price: '\$569.99',
-                      onChange: () {},
-                    ),
-                    const SizedBox(height: 12),
-                    _SelectedPartCard(
-                      categoryIcon: Icons.developer_board_rounded,
-                      categoryLabel: 'Motherboard',
-                      title: 'Asus ROG MAXIMUS Z790 HERO ATX',
-                      price: '\$629.99',
-                      onChange: () {},
-                    ),
-                    const SizedBox(height: 12),
-                    _SelectedPartCard(
-                      categoryIcon: Icons.videogame_asset_rounded,
-                      categoryLabel: 'Graphics Card',
-                      title: 'NVIDIA RTX 4080 16GB',
-                      price: '\$1,199.00',
-                      onChange: () {},
-                    ),
-                    const SizedBox(height: 12),
-                    _SelectedPartCard(
-                      categoryIcon: Icons.storage_rounded,
-                      categoryLabel: 'Storage',
-                      title: 'Samsung 980 Pro 2 TB NVME',
-                      price: '\$159.99',
-                      onChange: () {},
-                    ),
-                    const SizedBox(height: 12),
-                    _SelectedPartCard(
-                      categoryIcon: Icons.desktop_windows_rounded,
-                      categoryLabel: 'Case',
-                      title: 'Choose a Case',
-                      price: '—',
-                      onChange: () {},
-                      isEmpty: true,
-                    ),
-                    const SizedBox(height: 12),
-                    _SelectedPartCard(
-                      categoryIcon: Icons.power_rounded,
-                      categoryLabel: 'Power Supply',
-                      title: 'Corsair RM850x 850 W',
-                      price: '\$149.99',
-                      onChange: () {},
-                    ),
-                  ],
+                delegate:
+                    SliverChildBuilderDelegate(
+                  (context, index) {
+                    final p = parts[index];
+                    return Padding(
+                      padding: EdgeInsets.only(
+                          bottom: index ==
+                                  parts.length - 1
+                              ? 0
+                              : 12),
+                      child: _SelectedPartCard(
+                        categoryIcon: p.icon,
+                        categoryLabel: p.label,
+                        title: p.title,
+                        price: p.price,
+                        onChange: () {},
+                        isEmpty: !p.isSelected,
+                      ),
+                    );
+                  },
+                  childCount: parts.length,
                 ),
               ),
             ),
@@ -155,52 +383,69 @@ class ConfigureScreen extends StatelessWidget {
             top: false,
             child: Container(
               decoration: BoxDecoration(
-                color: theme.colorScheme.surface.withOpacity(0.96),
+                color: theme
+                    .colorScheme.surface
+                    .withOpacity(0.96),
                 border: Border(
-                  top: BorderSide(color: theme.colorScheme.outlineVariant),
+                  top: BorderSide(
+                      color: theme.colorScheme
+                          .outlineVariant),
                 ),
               ),
-              padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
+              padding:
+                  const EdgeInsets.fromLTRB(
+                      16, 12, 16, 12),
               child: Center(
                 child: ConstrainedBox(
-                  constraints: const BoxConstraints(maxWidth: 560),
+                  constraints:
+                      const BoxConstraints(
+                          maxWidth: 560),
                   child: Row(
                     children: [
                       Expanded(
-                        child: Column(
-                          mainAxisSize: MainAxisSize.min,
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              'Total Price',
-                              style: theme.textTheme.labelSmall?.copyWith(
-                                fontWeight: FontWeight.w900,
-                              ),
-                            ),
-                            const SizedBox(height: 6),
-                            Text(
-                              '\$2,708.96',
-                              style: theme.textTheme.headlineMedium?.copyWith(
-                                fontWeight: FontWeight.w900,
-                              ),
-                            ),
-                          ],
+                        child: _BottomMetric(
+                          label: 'Total Price',
+                          value: '\$0.00',
                         ),
                       ),
-                      const SizedBox(width: 16),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: _BottomMetric(
+                          label:
+                              'Estimated Wattage',
+                          value:
+                              '${estWatts}W',
+                        ),
+                      ),
+                      const SizedBox(width: 12),
                       SizedBox(
-                        width: 190,
-                        height: 52,
+                        width: 132,
+                        height: 44,
                         child: FilledButton(
                           onPressed: () {},
-                          style: FilledButton.styleFrom(
-                            shape: const StadiumBorder(),
-                            textStyle: const TextStyle(
-                              fontWeight: FontWeight.w900,
-                              letterSpacing: 1.6,
+                          style:
+                              FilledButton.styleFrom(
+                            shape:
+                                const StadiumBorder(),
+                            padding:
+                                const EdgeInsets
+                                    .symmetric(
+                                        horizontal:
+                                            10),
+                            textStyle:
+                                const TextStyle(
+                              fontWeight:
+                                  FontWeight.w900,
+                              letterSpacing:
+                                  1.0,
+                              fontSize: 12,
                             ),
                           ),
-                          child: const Text('ADD TO BUILDS'),
+                          child: const FittedBox(
+                            fit: BoxFit.scaleDown,
+                            child: Text(
+                                'ADD TO BUILDS'),
+                          ),
                         ),
                       ),
                     ],
@@ -215,52 +460,92 @@ class ConfigureScreen extends StatelessWidget {
   }
 }
 
-class _Pill extends StatelessWidget {
-  const _Pill({
+class _BuildSelection {
+  const _BuildSelection({
+    required this.cpuTdp,
+    required this.gpuChipset,
+    required this.ramModules,
+    required this.ssdCount,
+    required this.hasMotherboard,
+    required this.caseFans,
+    required this.hasCpuCooler,
+  });
+
+  final int cpuTdp;
+  final String? gpuChipset;
+  final int ramModules;
+  final int ssdCount;
+  final bool hasMotherboard;
+  final int caseFans;
+  final bool hasCpuCooler;
+}
+
+class _PartTile {
+  const _PartTile({
     required this.icon,
-    required this.text,
-    required this.color,
-    required this.background,
-    required this.border,
+    required this.label,
+    required this.title,
+    required this.price,
+    required this.isSelected,
   });
 
   final IconData icon;
-  final String text;
-  final Color color;
-  final Color background;
-  final Color border;
+  final String label;
+  final String title;
+  final String price;
+  final bool isSelected;
+}
+
+class _BottomMetric extends StatelessWidget {
+  const _BottomMetric({
+    required this.label,
+    required this.value,
+  });
+
+  final String label;
+  final String value;
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
 
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-      decoration: BoxDecoration(
-        color: background,
-        borderRadius: BorderRadius.circular(999),
-        border: Border.all(color: border),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(icon, size: 16, color: color),
-          const SizedBox(width: 6),
-          Text(
-            text,
-            style: theme.textTheme.labelSmall?.copyWith(
-              fontWeight: FontWeight.w900,
-              letterSpacing: 1.2,
-              color: color,
-            ),
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment:
+          CrossAxisAlignment.start,
+      children: [
+        Text(
+          label,
+          style: theme.textTheme
+              .labelSmall
+              ?.copyWith(
+            fontWeight: FontWeight.w900,
+            letterSpacing: 1.2,
+            color: theme.colorScheme
+                .onSurfaceVariant,
           ),
-        ],
-      ),
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+        ),
+        const SizedBox(height: 6),
+        Text(
+          value,
+          style: theme.textTheme
+              .titleMedium
+              ?.copyWith(
+            fontWeight: FontWeight.w900,
+            letterSpacing: -0.2,
+          ),
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+        ),
+      ],
     );
   }
 }
 
-class _SelectedPartCard extends StatelessWidget {
+class _SelectedPartCard
+    extends StatelessWidget {
   const _SelectedPartCard({
     required this.categoryIcon,
     required this.categoryLabel,
@@ -284,34 +569,51 @@ class _SelectedPartCard extends StatelessWidget {
     return DecoratedBox(
       decoration: BoxDecoration(
         color: theme.colorScheme.surface,
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: theme.colorScheme.outlineVariant),
+        borderRadius:
+            BorderRadius.circular(18),
+        border: Border.all(
+            color:
+                theme.colorScheme.outlineVariant),
       ),
       child: Padding(
-        padding: const EdgeInsets.all(14),
+        padding:
+            const EdgeInsets.all(14),
         child: Column(
           children: [
             Row(
               children: [
-                Icon(categoryIcon, color: theme.colorScheme.primary),
+                Icon(categoryIcon,
+                    color: theme
+                        .colorScheme.primary),
                 const SizedBox(width: 8),
                 Expanded(
                   child: Text(
-                    categoryLabel.toUpperCase(),
-                    style: theme.textTheme.labelSmall?.copyWith(
-                      fontWeight: FontWeight.w900,
+                    categoryLabel
+                        .toUpperCase(),
+                    style: theme.textTheme
+                        .labelSmall
+                        ?.copyWith(
+                      fontWeight:
+                          FontWeight.w900,
                       letterSpacing: 1.0,
-                      color: theme.colorScheme.onSurfaceVariant,
+                      color: theme
+                          .colorScheme
+                          .onSurfaceVariant,
                     ),
                   ),
                 ),
                 TextButton(
                   onPressed: onChange,
                   child: Text(
-                    isEmpty ? 'Choose' : 'Change',
+                    isEmpty
+                        ? 'Choose'
+                        : 'Change',
                     style: TextStyle(
-                      fontWeight: FontWeight.w900,
-                      color: theme.colorScheme.primary,
+                      fontWeight:
+                          FontWeight.w900,
+                      color: theme
+                          .colorScheme
+                          .primary,
                     ),
                   ),
                 ),
@@ -319,26 +621,45 @@ class _SelectedPartCard extends StatelessWidget {
             ),
             const SizedBox(height: 10),
             Align(
-              alignment: Alignment.centerLeft,
+              alignment:
+                  Alignment.centerLeft,
               child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+                crossAxisAlignment:
+                    CrossAxisAlignment
+                        .start,
                 children: [
                   Text(
                     title,
-                    style: theme.textTheme.bodyLarge?.copyWith(
-                      fontWeight: FontWeight.w900,
+                    style: theme.textTheme
+                        .bodyLarge
+                        ?.copyWith(
+                      fontWeight:
+                          FontWeight.w900,
                       height: 1.12,
                     ),
+                    maxLines: 2,
+                    overflow:
+                        TextOverflow.ellipsis,
                   ),
                   const SizedBox(height: 8),
                   Text(
                     price,
-                    style: theme.textTheme.bodyLarge?.copyWith(
-                      fontWeight: FontWeight.w900,
+                    style: theme.textTheme
+                        .bodyLarge
+                        ?.copyWith(
+                      fontWeight:
+                          FontWeight.w900,
                       color: isEmpty
-                          ? theme.colorScheme.onSurfaceVariant
-                          : theme.colorScheme.primary,
+                          ? theme
+                              .colorScheme
+                              .onSurfaceVariant
+                          : theme
+                              .colorScheme
+                              .primary,
                     ),
+                    maxLines: 1,
+                    overflow:
+                        TextOverflow.ellipsis,
                   ),
                 ],
               ),
