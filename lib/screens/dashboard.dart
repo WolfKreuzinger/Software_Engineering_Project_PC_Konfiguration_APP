@@ -32,7 +32,7 @@ class Dashboard extends StatelessWidget {
               padding: const EdgeInsets.symmetric(horizontal: 16),
               scrollDirection: Axis.horizontal,
               itemCount: 2,
-              separatorBuilder: (_, __) => const SizedBox(width: 14),
+              separatorBuilder: (_, _) => const SizedBox(width: 14),
               itemBuilder: (context, index) {
                 return BuildPlaceholderCard(
                   title: index == 0 ? "Gaming Beast" : "Work Rig",
