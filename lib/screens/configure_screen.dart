@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import '../l10n/l10n_ext.dart';
 
 class ConfigureScreen extends StatelessWidget {
   const ConfigureScreen({super.key});
@@ -75,6 +76,7 @@ class ConfigureScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final l10n = context.l10n;
 
     final build = _BuildSelection(
       cpuTdp: 0,
@@ -89,134 +91,134 @@ class ConfigureScreen extends StatelessWidget {
     final parts = <_PartTile>[
       _PartTile(
         icon: Icons.computer_rounded,
-        label: 'Processor (CPU)',
-        title: 'Choose a CPU',
+        label: l10n.configureCatCpu,
+        title: l10n.configureChooseCpu,
         price: '—',
         isSelected: build.cpuTdp > 0,
       ),
       _PartTile(
         icon: Icons.air_rounded,
-        label: 'CPU Cooler',
-        title: 'Choose a CPU Cooler',
+        label: l10n.configureCatCpuCooler,
+        title: l10n.configureChooseCpuCooler,
         price: '—',
         isSelected: build.hasCpuCooler,
       ),
       _PartTile(
         icon: Icons.grain_rounded,
-        label: 'Thermal Paste',
-        title: 'Choose Thermal Paste',
+        label: l10n.configureCatThermalPaste,
+        title: l10n.configureChooseThermalPaste,
         price: '—',
         isSelected: false,
       ),
       _PartTile(
         icon: Icons.developer_board_rounded,
-        label: 'Motherboard',
-        title: 'Choose a Motherboard',
+        label: l10n.configureCatMotherboard,
+        title: l10n.configureChooseMotherboard,
         price: '—',
         isSelected: build.hasMotherboard,
       ),
       _PartTile(
         icon: Icons.memory_rounded,
-        label: 'Memory (RAM)',
-        title: 'Choose RAM',
+        label: l10n.configureCatRam,
+        title: l10n.configureChooseRam,
         price: '—',
         isSelected: build.ramModules > 0,
       ),
       _PartTile(
         icon: Icons.videogame_asset_rounded,
-        label: 'Graphics Card (GPU)',
-        title: 'Choose a GPU',
+        label: l10n.configureCatGpu,
+        title: l10n.configureChooseGpu,
         price: '—',
         isSelected: build.gpuChipset != null,
       ),
       _PartTile(
         icon: Icons.storage_rounded,
-        label: 'Storage (SSD / HDD)',
-        title: 'Choose Storage',
+        label: l10n.configureCatStorage,
+        title: l10n.configureChooseStorage,
         price: '—',
         isSelected: build.ssdCount > 0,
       ),
       _PartTile(
         icon: Icons.desktop_windows_rounded,
-        label: 'Case',
-        title: 'Choose a Case',
+        label: l10n.configureCatCase,
+        title: l10n.configureChooseCase,
         price: '—',
         isSelected: false,
       ),
       _PartTile(
         icon: Icons.blur_circular_rounded,
-        label: 'Case Fans',
-        title: 'Choose Case Fans',
+        label: l10n.configureCatCaseFans,
+        title: l10n.configureChooseCaseFans,
         price: '—',
         isSelected: build.caseFans > 0,
       ),
       _PartTile(
         icon: Icons.tune_rounded,
-        label: 'Fan Controller',
-        title: 'Choose a Fan Controller',
+        label: l10n.configureCatFanController,
+        title: l10n.configureChooseFanController,
         price: '—',
         isSelected: false,
       ),
       _PartTile(
         icon: Icons.grid_view_rounded,
-        label: 'Case Accessories',
-        title: 'Choose Accessories',
+        label: l10n.configureCatCaseAccessories,
+        title: l10n.configureChooseCaseAccessories,
         price: '—',
         isSelected: false,
       ),
       _PartTile(
         icon: Icons.power_rounded,
-        label: 'Power Supply (PSU)',
-        title: 'Choose a Power Supply',
+        label: l10n.configureCatPsu,
+        title: l10n.configureChoosePsu,
         price: '—',
         isSelected: false,
       ),
       _PartTile(
         icon: Icons.network_wifi_rounded,
-        label: 'Wireless Network Card',
-        title: 'Choose Wi-Fi',
+        label: l10n.configureCatWifi,
+        title: l10n.configureChooseWifi,
         price: '—',
         isSelected: false,
       ),
       _PartTile(
         icon: Icons.settings_ethernet_rounded,
-        label: 'Wired Network Card',
-        title: 'Choose Ethernet',
+        label: l10n.configureCatEthernet,
+        title: l10n.configureChooseEthernet,
         price: '—',
         isSelected: false,
       ),
       _PartTile(
         icon: Icons.volume_up_rounded,
-        label: 'Sound Card',
-        title: 'Choose a Sound Card',
+        label: l10n.configureCatSoundCard,
+        title: l10n.configureChooseSoundCard,
         price: '—',
         isSelected: false,
       ),
       _PartTile(
         icon: Icons.disc_full_rounded,
-        label: 'Optical Drive',
-        title: 'Choose an Optical Drive',
+        label: l10n.configureCatOpticalDrive,
+        title: l10n.configureChooseOpticalDrive,
         price: '—',
         isSelected: false,
       ),
       _PartTile(
         icon: Icons.usb_rounded,
-        label: 'External Hard Drive',
-        title: 'Choose External Storage',
+        label: l10n.configureCatExternalHdd,
+        title: l10n.configureChooseExternalHdd,
         price: '—',
         isSelected: false,
       ),
       _PartTile(
         icon: Icons.battery_charging_full_rounded,
-        label: 'UPS',
-        title: 'Choose a UPS',
+        label: l10n.configureCatUps,
+        title: l10n.configureChooseUps,
         price: '—',
         isSelected: false,
       ),
       _PartTile(
         icon: Icons.window_rounded,
-        label: 'Operating System',
-        title: 'Choose an OS',
+        label: l10n.configureCatOs,
+        title: l10n.configureChooseOs,
         price: '—',
         isSelected: false,
       ),
@@ -245,7 +247,7 @@ class ConfigureScreen extends StatelessWidget {
               pinned: true,
               elevation: 0,
               backgroundColor:
-                  theme.colorScheme.surface.withOpacity(0.92),
+                  theme.colorScheme.surface.withValues(alpha: 0.92),
               surfaceTintColor: Colors.transparent,
               automaticallyImplyLeading: false,
               toolbarHeight: 64,
@@ -265,7 +267,7 @@ class ConfigureScreen extends StatelessWidget {
                     const SizedBox(width: 4),
                     Expanded(
                       child: Text(
-                        'Custom PC Builder',
+                        l10n.configureBuildTitle,
                         style: theme.textTheme.titleLarge
                             ?.copyWith(
                           fontWeight: FontWeight.w800,
@@ -289,7 +291,7 @@ class ConfigureScreen extends StatelessWidget {
                       Row(
                         children: [
                           Text(
-                            'Build Progress',
+                            l10n.configureBuildProgress,
                             style: theme.textTheme
                                 .labelSmall
                                 ?.copyWith(
@@ -303,7 +305,7 @@ class ConfigureScreen extends StatelessWidget {
                           ),
                           const Spacer(),
                           Text(
-                            '$partsDone / $partsTotal Parts',
+                            l10n.configurePartsCount(partsDone, partsTotal),
                             style: theme.textTheme
                                 .labelSmall
                                 ?.copyWith(
@@ -385,7 +387,7 @@ class ConfigureScreen extends StatelessWidget {
               decoration: BoxDecoration(
                 color: theme
                     .colorScheme.surface
-                    .withOpacity(0.96),
+                    .withValues(alpha: 0.96),
                 border: Border(
                   top: BorderSide(
                       color: theme.colorScheme
@@ -404,17 +406,15 @@ class ConfigureScreen extends StatelessWidget {
                     children: [
                       Expanded(
                         child: _BottomMetric(
-                          label: 'Total Price',
+                          label: l10n.configureTotalPrice,
                           value: '\$0.00',
                         ),
                       ),
                       const SizedBox(width: 12),
                       Expanded(
                         child: _BottomMetric(
-                          label:
-                              'Estimated Wattage',
-                          value:
-                              '${estWatts}W',
+                          label: l10n.configureEstimatedWattage,
+                          value: '${estWatts}W',
                         ),
                       ),
                       const SizedBox(width: 12),
@@ -441,10 +441,10 @@ class ConfigureScreen extends StatelessWidget {
                               fontSize: 12,
                             ),
                           ),
-                          child: const FittedBox(
+                          child: FittedBox(
                             fit: BoxFit.scaleDown,
                             child: Text(
-                                'ADD TO BUILDS'),
+                                l10n.configureAddToBuilds),
                           ),
                         ),
                       ),
@@ -565,6 +565,7 @@ class _SelectedPartCard
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final l10n = context.l10n;
 
     return DecoratedBox(
       decoration: BoxDecoration(
@@ -606,8 +607,8 @@ class _SelectedPartCard
                   onPressed: onChange,
                   child: Text(
                     isEmpty
-                        ? 'Choose'
-                        : 'Change',
+                        ? l10n.configureChoose
+                        : l10n.configureChange,
                     style: TextStyle(
                       fontWeight:
                           FontWeight.w900,

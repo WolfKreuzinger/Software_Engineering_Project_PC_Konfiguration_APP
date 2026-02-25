@@ -387,7 +387,7 @@ class _AuthScreenState extends State<AuthScreen> {
                                               final l10n = context.l10n;
                                               try {
                                                 await _auth.signInWithGoogle();
-                                                if (!mounted) return;
+                                                if (!context.mounted) return;
                                                 ScaffoldMessenger.of(context)
                                                     .showSnackBar(SnackBar(
                                                   content: Text(
@@ -395,7 +395,7 @@ class _AuthScreenState extends State<AuthScreen> {
                                                 ));
                                                 context.go('/dashboard');
                                               } catch (e) {
-                                                if (!mounted) return;
+                                                if (!context.mounted) return;
                                                 ScaffoldMessenger.of(context)
                                                     .showSnackBar(SnackBar(
                                                   content: Text(e
@@ -446,14 +446,14 @@ class _AuthScreenState extends State<AuthScreen> {
                             final l10n = context.l10n;
                             try {
                               await _auth.signInAnonymously();
-                              if (!mounted) return;
+                              if (!context.mounted) return;
                               ScaffoldMessenger.of(context).showSnackBar(
                                 SnackBar(
                                     content: Text(l10n.authGuestSuccess)),
                               );
                               context.go('/configure');
                             } catch (e) {
-                              if (!mounted) return;
+                              if (!context.mounted) return;
                               ScaffoldMessenger.of(context).showSnackBar(
                                 SnackBar(
                                   content: Text(e

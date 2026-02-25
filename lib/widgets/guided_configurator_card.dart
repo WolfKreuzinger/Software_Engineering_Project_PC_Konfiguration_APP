@@ -20,7 +20,7 @@ class GuidedConfiguratorCard extends StatelessWidget {
               end: Alignment.bottomRight,
               colors: [
                 theme.colorScheme.primary,
-                theme.colorScheme.primary.withOpacity(0.78),
+                theme.colorScheme.primary.withValues(alpha: 0.78),
               ],
             ),
           ),
@@ -65,7 +65,7 @@ class GuidedConfiguratorCard extends StatelessWidget {
                           maxLines: 3,
                           overflow: TextOverflow.ellipsis,
                           style: TextStyle(
-                            color: theme.colorScheme.onPrimary.withOpacity(0.92),
+                            color: theme.colorScheme.onPrimary.withValues(alpha: 0.92),
                             height: 1.25,
                             fontSize: 14.5,
                           ),
@@ -108,14 +108,14 @@ class GuidedConfiguratorCard extends StatelessWidget {
                     height: 88,
                     decoration: BoxDecoration(
                       borderRadius: BorderRadius.circular(24),
-                      color: theme.colorScheme.onPrimary.withOpacity(0.14),
+                      color: theme.colorScheme.onPrimary.withValues(alpha: 0.14),
                       border: Border.all(
-                        color: theme.colorScheme.onPrimary.withOpacity(0.20),
+                        color: theme.colorScheme.onPrimary.withValues(alpha: 0.20),
                         width: 1,
                       ),
                       boxShadow: [
                         BoxShadow(
-                          color: Colors.black.withOpacity(0.12),
+                          color: Colors.black.withValues(alpha: 0.12),
                           blurRadius: 18,
                           offset: const Offset(0, 10),
                         ),
@@ -127,12 +127,12 @@ class GuidedConfiguratorCard extends StatelessWidget {
                         height: 54,
                         decoration: BoxDecoration(
                           borderRadius: BorderRadius.circular(18),
-                          color: theme.colorScheme.onPrimary.withOpacity(0.18),
+                          color: theme.colorScheme.onPrimary.withValues(alpha: 0.18),
                         ),
                         child: Icon(
                           Icons.dashboard_customize,
                           size: 30,
-                          color: theme.colorScheme.onPrimary.withOpacity(0.96),
+                          color: theme.colorScheme.onPrimary.withValues(alpha: 0.96),
                         ),
                       ),
                     ),

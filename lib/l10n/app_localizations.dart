@@ -296,6 +296,282 @@ abstract class AppLocalizations {
   /// **'Hier kommt euer Wizard / Konfigurator rein.'**
   String get configurePlaceholder;
 
+  /// No description provided for @configureBuildTitle.
+  ///
+  /// In de, this message translates to:
+  /// **'PC-Konfigurator'**
+  String get configureBuildTitle;
+
+  /// No description provided for @configureBuildProgress.
+  ///
+  /// In de, this message translates to:
+  /// **'Build-Fortschritt'**
+  String get configureBuildProgress;
+
+  /// No description provided for @configurePartsCount.
+  ///
+  /// In de, this message translates to:
+  /// **'{done} / {total} Teile'**
+  String configurePartsCount(int done, int total);
+
+  /// No description provided for @configureTotalPrice.
+  ///
+  /// In de, this message translates to:
+  /// **'Gesamtpreis'**
+  String get configureTotalPrice;
+
+  /// No description provided for @configureEstimatedWattage.
+  ///
+  /// In de, this message translates to:
+  /// **'Geschätzter Verbrauch'**
+  String get configureEstimatedWattage;
+
+  /// No description provided for @configureAddToBuilds.
+  ///
+  /// In de, this message translates to:
+  /// **'ZU BUILDS HINZUFÜGEN'**
+  String get configureAddToBuilds;
+
+  /// No description provided for @configureChoose.
+  ///
+  /// In de, this message translates to:
+  /// **'Auswählen'**
+  String get configureChoose;
+
+  /// No description provided for @configureChange.
+  ///
+  /// In de, this message translates to:
+  /// **'Ändern'**
+  String get configureChange;
+
+  /// No description provided for @configureCatCpu.
+  ///
+  /// In de, this message translates to:
+  /// **'Prozessor (CPU)'**
+  String get configureCatCpu;
+
+  /// No description provided for @configureCatCpuCooler.
+  ///
+  /// In de, this message translates to:
+  /// **'CPU-Kühler'**
+  String get configureCatCpuCooler;
+
+  /// No description provided for @configureCatThermalPaste.
+  ///
+  /// In de, this message translates to:
+  /// **'Wärmeleitpaste'**
+  String get configureCatThermalPaste;
+
+  /// No description provided for @configureCatMotherboard.
+  ///
+  /// In de, this message translates to:
+  /// **'Mainboard'**
+  String get configureCatMotherboard;
+
+  /// No description provided for @configureCatRam.
+  ///
+  /// In de, this message translates to:
+  /// **'Arbeitsspeicher (RAM)'**
+  String get configureCatRam;
+
+  /// No description provided for @configureCatGpu.
+  ///
+  /// In de, this message translates to:
+  /// **'Grafikkarte (GPU)'**
+  String get configureCatGpu;
+
+  /// No description provided for @configureCatStorage.
+  ///
+  /// In de, this message translates to:
+  /// **'Speicher (SSD / HDD)'**
+  String get configureCatStorage;
+
+  /// No description provided for @configureCatCase.
+  ///
+  /// In de, this message translates to:
+  /// **'Gehäuse'**
+  String get configureCatCase;
+
+  /// No description provided for @configureCatCaseFans.
+  ///
+  /// In de, this message translates to:
+  /// **'Gehäuselüfter'**
+  String get configureCatCaseFans;
+
+  /// No description provided for @configureCatFanController.
+  ///
+  /// In de, this message translates to:
+  /// **'Lüftersteuerung'**
+  String get configureCatFanController;
+
+  /// No description provided for @configureCatCaseAccessories.
+  ///
+  /// In de, this message translates to:
+  /// **'Gehäuse-Zubehör'**
+  String get configureCatCaseAccessories;
+
+  /// No description provided for @configureCatPsu.
+  ///
+  /// In de, this message translates to:
+  /// **'Netzteil (PSU)'**
+  String get configureCatPsu;
+
+  /// No description provided for @configureCatWifi.
+  ///
+  /// In de, this message translates to:
+  /// **'WLAN-Karte'**
+  String get configureCatWifi;
+
+  /// No description provided for @configureCatEthernet.
+  ///
+  /// In de, this message translates to:
+  /// **'LAN-Karte'**
+  String get configureCatEthernet;
+
+  /// No description provided for @configureCatSoundCard.
+  ///
+  /// In de, this message translates to:
+  /// **'Soundkarte'**
+  String get configureCatSoundCard;
+
+  /// No description provided for @configureCatOpticalDrive.
+  ///
+  /// In de, this message translates to:
+  /// **'Optisches Laufwerk'**
+  String get configureCatOpticalDrive;
+
+  /// No description provided for @configureCatExternalHdd.
+  ///
+  /// In de, this message translates to:
+  /// **'Externe Festplatte'**
+  String get configureCatExternalHdd;
+
+  /// No description provided for @configureCatUps.
+  ///
+  /// In de, this message translates to:
+  /// **'USV'**
+  String get configureCatUps;
+
+  /// No description provided for @configureCatOs.
+  ///
+  /// In de, this message translates to:
+  /// **'Betriebssystem'**
+  String get configureCatOs;
+
+  /// No description provided for @configureChooseCpu.
+  ///
+  /// In de, this message translates to:
+  /// **'CPU auswählen'**
+  String get configureChooseCpu;
+
+  /// No description provided for @configureChooseCpuCooler.
+  ///
+  /// In de, this message translates to:
+  /// **'CPU-Kühler auswählen'**
+  String get configureChooseCpuCooler;
+
+  /// No description provided for @configureChooseThermalPaste.
+  ///
+  /// In de, this message translates to:
+  /// **'Wärmeleitpaste auswählen'**
+  String get configureChooseThermalPaste;
+
+  /// No description provided for @configureChooseMotherboard.
+  ///
+  /// In de, this message translates to:
+  /// **'Mainboard auswählen'**
+  String get configureChooseMotherboard;
+
+  /// No description provided for @configureChooseRam.
+  ///
+  /// In de, this message translates to:
+  /// **'RAM auswählen'**
+  String get configureChooseRam;
+
+  /// No description provided for @configureChooseGpu.
+  ///
+  /// In de, this message translates to:
+  /// **'Grafikkarte auswählen'**
+  String get configureChooseGpu;
+
+  /// No description provided for @configureChooseStorage.
+  ///
+  /// In de, this message translates to:
+  /// **'Speicher auswählen'**
+  String get configureChooseStorage;
+
+  /// No description provided for @configureChooseCase.
+  ///
+  /// In de, this message translates to:
+  /// **'Gehäuse auswählen'**
+  String get configureChooseCase;
+
+  /// No description provided for @configureChooseCaseFans.
+  ///
+  /// In de, this message translates to:
+  /// **'Gehäuselüfter auswählen'**
+  String get configureChooseCaseFans;
+
+  /// No description provided for @configureChooseFanController.
+  ///
+  /// In de, this message translates to:
+  /// **'Lüftersteuerung auswählen'**
+  String get configureChooseFanController;
+
+  /// No description provided for @configureChooseCaseAccessories.
+  ///
+  /// In de, this message translates to:
+  /// **'Zubehör auswählen'**
+  String get configureChooseCaseAccessories;
+
+  /// No description provided for @configureChoosePsu.
+  ///
+  /// In de, this message translates to:
+  /// **'Netzteil auswählen'**
+  String get configureChoosePsu;
+
+  /// No description provided for @configureChooseWifi.
+  ///
+  /// In de, this message translates to:
+  /// **'WLAN-Karte auswählen'**
+  String get configureChooseWifi;
+
+  /// No description provided for @configureChooseEthernet.
+  ///
+  /// In de, this message translates to:
+  /// **'LAN-Karte auswählen'**
+  String get configureChooseEthernet;
+
+  /// No description provided for @configureChooseSoundCard.
+  ///
+  /// In de, this message translates to:
+  /// **'Soundkarte auswählen'**
+  String get configureChooseSoundCard;
+
+  /// No description provided for @configureChooseOpticalDrive.
+  ///
+  /// In de, this message translates to:
+  /// **'Optisches Laufwerk auswählen'**
+  String get configureChooseOpticalDrive;
+
+  /// No description provided for @configureChooseExternalHdd.
+  ///
+  /// In de, this message translates to:
+  /// **'Externe Festplatte auswählen'**
+  String get configureChooseExternalHdd;
+
+  /// No description provided for @configureChooseUps.
+  ///
+  /// In de, this message translates to:
+  /// **'USV auswählen'**
+  String get configureChooseUps;
+
+  /// No description provided for @configureChooseOs.
+  ///
+  /// In de, this message translates to:
+  /// **'Betriebssystem auswählen'**
+  String get configureChooseOs;
+
   /// No description provided for @partsTitle.
   ///
   /// In de, this message translates to:

@@ -39,11 +39,6 @@ class BottomNav extends StatelessWidget {
     final bottomInset = MediaQuery.of(context).padding.bottom;
     final bottomPadding = (bottomInset - 20).clamp(0.0, double.infinity);
 
-    final barColor = Color.alphaBlend(
-      theme.colorScheme.primary.withOpacity(0.035),
-      theme.colorScheme.surface.withOpacity(0.98),
-    );
-
     return SafeArea(
       top: false,
       bottom: false,
@@ -59,22 +54,6 @@ class BottomNav extends StatelessWidget {
                 color: Colors.black.withValues(alpha: 0.10),
                 blurRadius: 24,
                 offset: const Offset(0, 12),
-            color: barColor,
-            borderRadius: BorderRadius.circular(40),
-            border: Border.all(
-              color: theme.colorScheme.outlineVariant.withOpacity(0.85),
-              width: 1,
-            ),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withOpacity(0.08),
-                blurRadius: 26,
-                offset: const Offset(0, 16),
-              ),
-              BoxShadow(
-                color: theme.colorScheme.primary.withOpacity(0.05),
-                blurRadius: 40,
-                offset: const Offset(0, 20),
               ),
             ],
           ),
@@ -126,11 +105,11 @@ class _NavButton extends StatelessWidget {
     final theme = Theme.of(context);
 
     final selectedBg = Color.alphaBlend(
-      theme.colorScheme.primary.withOpacity(0.16),
+      theme.colorScheme.primary.withValues(alpha: 0.16),
       theme.colorScheme.surface,
     );
 
-    final selectedBorder = theme.colorScheme.primary.withOpacity(0.18);
+    final selectedBorder = theme.colorScheme.primary.withValues(alpha: 0.18);
 
     return Material(
       color: Colors.transparent,

@@ -4,7 +4,6 @@ import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter_web_plugins/url_strategy.dart';
 
 import 'firebase_options.dart';
-import 'screens/dashboard.dart';
 import 'app.dart';
 
 Future<void> main() async {

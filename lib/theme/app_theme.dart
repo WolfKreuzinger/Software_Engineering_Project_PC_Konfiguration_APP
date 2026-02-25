@@ -13,8 +13,7 @@ class AppTheme {
           brightness: Brightness.light,
         ).copyWith(
           primary: _lightPrimary,
-          background: _lightBg,
-          surface: const Color(0xFFFFFFFF),
+          surface: _lightBg,
         );
 
     return ThemeData(
@@ -23,7 +22,7 @@ class AppTheme {
       scaffoldBackgroundColor: _lightBg,
       appBarTheme: AppBarTheme(
         backgroundColor: _lightBg,
-        foregroundColor: scheme.onBackground,
+        foregroundColor: scheme.onSurface,
         elevation: 0,
         centerTitle: false,
       ),
@@ -49,10 +48,10 @@ class AppTheme {
     return ThemeData(
       useMaterial3: true,
       colorScheme: scheme,
-      scaffoldBackgroundColor: scheme.background,
+      scaffoldBackgroundColor: scheme.surface,
       appBarTheme: AppBarTheme(
-        backgroundColor: scheme.background,
-        foregroundColor: scheme.onBackground,
+        backgroundColor: scheme.surface,
+        foregroundColor: scheme.onSurface,
         elevation: 0,
         centerTitle: false,
       ),

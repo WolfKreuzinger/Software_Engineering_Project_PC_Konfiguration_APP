@@ -111,6 +111,146 @@ class AppLocalizationsDe extends AppLocalizations {
       'Hier kommt euer Wizard / Konfigurator rein.';
 
   @override
+  String get configureBuildTitle => 'PC-Konfigurator';
+
+  @override
+  String get configureBuildProgress => 'Build-Fortschritt';
+
+  @override
+  String configurePartsCount(int done, int total) {
+    return '$done / $total Teile';
+  }
+
+  @override
+  String get configureTotalPrice => 'Gesamtpreis';
+
+  @override
+  String get configureEstimatedWattage => 'Geschätzter Verbrauch';
+
+  @override
+  String get configureAddToBuilds => 'ZU BUILDS HINZUFÜGEN';
+
+  @override
+  String get configureChoose => 'Auswählen';
+
+  @override
+  String get configureChange => 'Ändern';
+
+  @override
+  String get configureCatCpu => 'Prozessor (CPU)';
+
+  @override
+  String get configureCatCpuCooler => 'CPU-Kühler';
+
+  @override
+  String get configureCatThermalPaste => 'Wärmeleitpaste';
+
+  @override
+  String get configureCatMotherboard => 'Mainboard';
+
+  @override
+  String get configureCatRam => 'Arbeitsspeicher (RAM)';
+
+  @override
+  String get configureCatGpu => 'Grafikkarte (GPU)';
+
+  @override
+  String get configureCatStorage => 'Speicher (SSD / HDD)';
+
+  @override
+  String get configureCatCase => 'Gehäuse';
+
+  @override
+  String get configureCatCaseFans => 'Gehäuselüfter';
+
+  @override
+  String get configureCatFanController => 'Lüftersteuerung';
+
+  @override
+  String get configureCatCaseAccessories => 'Gehäuse-Zubehör';
+
+  @override
+  String get configureCatPsu => 'Netzteil (PSU)';
+
+  @override
+  String get configureCatWifi => 'WLAN-Karte';
+
+  @override
+  String get configureCatEthernet => 'LAN-Karte';
+
+  @override
+  String get configureCatSoundCard => 'Soundkarte';
+
+  @override
+  String get configureCatOpticalDrive => 'Optisches Laufwerk';
+
+  @override
+  String get configureCatExternalHdd => 'Externe Festplatte';
+
+  @override
+  String get configureCatUps => 'USV';
+
+  @override
+  String get configureCatOs => 'Betriebssystem';
+
+  @override
+  String get configureChooseCpu => 'CPU auswählen';
+
+  @override
+  String get configureChooseCpuCooler => 'CPU-Kühler auswählen';
+
+  @override
+  String get configureChooseThermalPaste => 'Wärmeleitpaste auswählen';
+
+  @override
+  String get configureChooseMotherboard => 'Mainboard auswählen';
+
+  @override
+  String get configureChooseRam => 'RAM auswählen';
+
+  @override
+  String get configureChooseGpu => 'Grafikkarte auswählen';
+
+  @override
+  String get configureChooseStorage => 'Speicher auswählen';
+
+  @override
+  String get configureChooseCase => 'Gehäuse auswählen';
+
+  @override
+  String get configureChooseCaseFans => 'Gehäuselüfter auswählen';
+
+  @override
+  String get configureChooseFanController => 'Lüftersteuerung auswählen';
+
+  @override
+  String get configureChooseCaseAccessories => 'Zubehör auswählen';
+
+  @override
+  String get configureChoosePsu => 'Netzteil auswählen';
+
+  @override
+  String get configureChooseWifi => 'WLAN-Karte auswählen';
+
+  @override
+  String get configureChooseEthernet => 'LAN-Karte auswählen';
+
+  @override
+  String get configureChooseSoundCard => 'Soundkarte auswählen';
+
+  @override
+  String get configureChooseOpticalDrive => 'Optisches Laufwerk auswählen';
+
+  @override
+  String get configureChooseExternalHdd => 'Externe Festplatte auswählen';
+
+  @override
+  String get configureChooseUps => 'USV auswählen';
+
+  @override
+  String get configureChooseOs => 'Betriebssystem auswählen';
+
+  @override
   String get partsTitle => 'Komponenten';
 
   @override
