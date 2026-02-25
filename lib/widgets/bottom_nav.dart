@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../l10n/l10n_ext.dart';
 
 enum BottomNavMode { public, authed }
 
@@ -14,25 +15,26 @@ class BottomNav extends StatelessWidget {
   final int currentIndex;
   final ValueChanged<int> onChanged;
 
-  List<_NavItem> _items(BottomNavMode mode) {
+  List<_NavItem> _items(BuildContext context) {
+    final l10n = context.l10n;
     if (mode == BottomNavMode.public) {
-      return const [
-        _NavItem(label: 'Home', icon: Icons.home_rounded),
-        _NavItem(label: 'Konfigurieren', icon: Icons.build_circle_rounded),
-        _NavItem(label: 'Einstellungen', icon: Icons.settings_rounded),
+      return [
+        _NavItem(label: l10n.navHome, icon: Icons.home_rounded),
+        _NavItem(label: l10n.navConfigure, icon: Icons.build_circle_rounded),
+        _NavItem(label: l10n.navSettings, icon: Icons.settings_rounded),
       ];
     }
-    return const [
-      _NavItem(label: 'Dashboard', icon: Icons.dashboard_rounded),
-      _NavItem(label: 'Komponenten', icon: Icons.grid_view_rounded),
-      _NavItem(label: 'Einstellungen', icon: Icons.settings_rounded),
+    return [
+      _NavItem(label: l10n.navDashboard, icon: Icons.dashboard_rounded),
+      _NavItem(label: l10n.navComponents, icon: Icons.grid_view_rounded),
+      _NavItem(label: l10n.navSettings, icon: Icons.settings_rounded),
     ];
   }
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final items = _items(mode);
+    final items = _items(context);
 
     return SafeArea(
       top: false,
@@ -40,12 +42,12 @@ class BottomNav extends StatelessWidget {
         padding: const EdgeInsets.fromLTRB(16, 10, 16, 14),
         child: DecoratedBox(
           decoration: BoxDecoration(
-            color: theme.colorScheme.surface.withOpacity(0.92),
+            color: theme.colorScheme.surface.withValues(alpha: 0.92),
             borderRadius: BorderRadius.circular(18),
             border: Border.all(color: theme.colorScheme.outlineVariant),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withOpacity(0.10),
+                color: Colors.black.withValues(alpha: 0.10),
                 blurRadius: 24,
                 offset: const Offset(0, 12),
               ),
