@@ -2,6 +2,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
+import '../l10n/l10n_ext.dart';
 import '../theme/language_global.dart';
 import '../theme/theme_global.dart';
 
@@ -18,6 +19,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final l10n = context.l10n;
     final user = FirebaseAuth.instance.currentUser;
     final authed = _isAuthed(user);
 
@@ -25,37 +27,37 @@ class _SettingsScreenState extends State<SettingsScreen> {
       padding: const EdgeInsets.fromLTRB(16, 16, 16, 120),
       children: [
         // ── Profil ──────────────────────────────────────────────────────
-        _buildProfileCard(context, theme, user, authed),
+        _buildProfileCard(context, theme, user, authed, l10n),
         const SizedBox(height: 24),
 
-        // ── Darstellung ─────────────────────────────────────────────────
-        _sectionLabel(theme, 'Darstellung'),
+        // ── Darstellung / Appearance ─────────────────────────────────────
+        _sectionLabel(theme, l10n.settingsAppearance),
         const SizedBox(height: 10),
-        _buildAppearanceCard(theme),
+        _buildAppearanceCard(context, theme, l10n),
         const SizedBox(height: 24),
 
-        // ── Sprache ──────────────────────────────────────────────────────
-        _sectionLabel(theme, 'Sprache'),
+        // ── Sprache / Language ────────────────────────────────────────────
+        _sectionLabel(theme, l10n.settingsLanguage),
         const SizedBox(height: 10),
-        _buildLanguageCard(theme),
+        _buildLanguageCard(context, theme, l10n),
         const SizedBox(height: 24),
 
         // ── Konto & Sicherheit (nur wenn eingeloggt) ─────────────────────
         if (authed) ...[
-          _sectionLabel(theme, 'Konto & Sicherheit'),
+          _sectionLabel(theme, l10n.settingsAccountSecurity),
           const SizedBox(height: 10),
-          _buildAccountCard(context, theme, user!),
+          _buildAccountCard(context, theme, user!, l10n),
           const SizedBox(height: 24),
         ],
 
-        // ── Rechtliches & Support ────────────────────────────────────────
-        _sectionLabel(theme, 'Rechtliches & Support'),
+        // ── Rechtliches & Support ─────────────────────────────────────────
+        _sectionLabel(theme, l10n.settingsLegalSupport),
         const SizedBox(height: 10),
-        _buildLegalCard(context, theme),
+        _buildLegalCard(context, theme, l10n),
         const SizedBox(height: 20),
 
         Text(
-          'BuildMyPC v1.0.0',
+          l10n.settingsVersion,
           textAlign: TextAlign.center,
           style: theme.textTheme.bodySmall?.copyWith(
             color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.55),
@@ -88,9 +90,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
     ThemeData theme,
     User? user,
     bool authed,
+    AppLocalizations l10n,
   ) {
     final displayName =
-        user?.displayName ?? user?.email?.split('@').first ?? 'Gast';
+        user?.displayName ?? user?.email?.split('@').first ?? l10n.settingsGuest;
     final initial = displayName.isNotEmpty ? displayName[0].toUpperCase() : 'G';
 
     return Card(
@@ -104,10 +107,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
               height: 56,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                border: Border.all(
-                  color: theme.colorScheme.primary,
-                  width: 2,
-                ),
+                border: Border.all(color: theme.colorScheme.primary, width: 2),
               ),
               child: CircleAvatar(
                 backgroundColor:
@@ -129,14 +129,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    authed ? displayName : 'Gast',
-                    style: theme.textTheme.titleMedium?.copyWith(
-                      fontWeight: FontWeight.bold,
-                    ),
+                    authed ? displayName : l10n.settingsGuest,
+                    style: theme.textTheme.titleMedium
+                        ?.copyWith(fontWeight: FontWeight.bold),
                   ),
                   const SizedBox(height: 2),
                   Text(
-                    authed ? (user?.email ?? '') : 'Nicht eingeloggt',
+                    authed ? (user?.email ?? '') : l10n.settingsNotLoggedIn,
                     style: theme.textTheme.bodySmall?.copyWith(
                       color: theme.colorScheme.onSurfaceVariant,
                     ),
@@ -150,7 +149,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
               TextButton(
                 onPressed: () => _showEditAccountSheet(context, user!),
                 child: Text(
-                  'Bearbeiten',
+                  l10n.settingsEdit,
                   style: TextStyle(
                     color: theme.colorScheme.primary,
                     fontWeight: FontWeight.w600,
@@ -160,7 +159,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
             else
               FilledButton(
                 onPressed: () => context.go('/login'),
-                child: const Text('Login'),
+                child: Text(l10n.settingsLogin),
               ),
           ],
         ),
@@ -170,14 +169,15 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
   // ── Appearance Card ──────────────────────────────────────────────────────
 
-  Widget _buildAppearanceCard(ThemeData theme) {
+  Widget _buildAppearanceCard(
+      BuildContext context, ThemeData theme, AppLocalizations l10n) {
     final isDark = themeController.mode == ThemeMode.dark;
     return Card(
       child: _SettingsTile(
         icon: Icons.brightness_6_outlined,
         iconBgColor: Colors.indigo.withValues(alpha: 0.1),
         iconColor: theme.colorScheme.primary,
-        title: 'Theme',
+        title: l10n.settingsTheme,
         trailing: Container(
           decoration: BoxDecoration(
             color: theme.colorScheme.surfaceContainerHighest,
@@ -188,13 +188,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
             mainAxisSize: MainAxisSize.min,
             children: [
               _SegmentButton(
-                label: 'Hell',
+                label: l10n.settingsLight,
                 selected: !isDark,
                 onTap: () =>
                     setState(() => themeController.setMode(ThemeMode.light)),
               ),
               _SegmentButton(
-                label: 'Dunkel',
+                label: l10n.settingsDark,
                 selected: isDark,
                 onTap: () =>
                     setState(() => themeController.setMode(ThemeMode.dark)),
@@ -208,14 +208,15 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
   // ── Language Card ─────────────────────────────────────────────────────────
 
-  Widget _buildLanguageCard(ThemeData theme) {
+  Widget _buildLanguageCard(
+      BuildContext context, ThemeData theme, AppLocalizations l10n) {
     final isDE = languageController.locale.languageCode == 'de';
     return Card(
       child: _SettingsTile(
         icon: Icons.language_rounded,
         iconBgColor: Colors.teal.withValues(alpha: 0.1),
         iconColor: Colors.teal.shade700,
-        title: 'Sprache',
+        title: l10n.settingsLanguage,
         trailing: Container(
           decoration: BoxDecoration(
             color: theme.colorScheme.surfaceContainerHighest,
@@ -226,14 +227,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
             mainAxisSize: MainAxisSize.min,
             children: [
               _SegmentButton(
-                label: 'Deutsch',
+                label: l10n.settingsGerman,
                 selected: isDE,
                 onTap: () => setState(
                   () => languageController.setLocale(const Locale('de')),
                 ),
               ),
               _SegmentButton(
-                label: 'English',
+                label: l10n.settingsEnglish,
                 selected: !isDE,
                 onTap: () => setState(
                   () => languageController.setLocale(const Locale('en')),
@@ -252,6 +253,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     BuildContext context,
     ThemeData theme,
     User user,
+    AppLocalizations l10n,
   ) {
     return Card(
       child: Column(
@@ -260,7 +262,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
             icon: Icons.lock_outline_rounded,
             iconBgColor: Colors.orange.withValues(alpha: 0.1),
             iconColor: Colors.orange.shade700,
-            title: 'Passwort ändern',
+            title: l10n.settingsChangePassword,
             trailing: Icon(
               Icons.chevron_right,
               color: theme.colorScheme.outlineVariant,
@@ -272,7 +274,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
             icon: Icons.logout_rounded,
             iconBgColor: Colors.red.withValues(alpha: 0.1),
             iconColor: Colors.red,
-            title: 'Abmelden',
+            title: l10n.settingsSignOut,
             titleColor: Colors.red,
             onTap: () async {
               await FirebaseAuth.instance.signOut();
@@ -286,35 +288,36 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
   // ── Legal Card ───────────────────────────────────────────────────────────
 
-  Widget _buildLegalCard(BuildContext context, ThemeData theme) {
+  Widget _buildLegalCard(
+      BuildContext context, ThemeData theme, AppLocalizations l10n) {
     return Card(
       child: Column(
         children: [
           _SettingsTile(
-            title: 'Datenschutzerklärung',
+            title: l10n.settingsPrivacyPolicy,
             trailing: Icon(
               Icons.chevron_right,
               color: theme.colorScheme.outlineVariant,
             ),
-            onTap: () => context.go('/privacy'),
+            onTap: () => context.push('/privacy'),
           ),
           _divider(theme),
           _SettingsTile(
-            title: 'Nutzungsbedingungen',
+            title: l10n.settingsTermsOfService,
             trailing: Icon(
               Icons.chevron_right,
               color: theme.colorScheme.outlineVariant,
             ),
-            onTap: () => context.go('/terms'),
+            onTap: () => context.push('/terms'),
           ),
           _divider(theme),
           _SettingsTile(
-            title: 'Support kontaktieren',
+            title: l10n.settingsContactSupport,
             trailing: Icon(
               Icons.chevron_right,
               color: theme.colorScheme.outlineVariant,
             ),
-            onTap: () => context.go('/support'),
+            onTap: () => context.push('/support'),
           ),
         ],
       ),
@@ -348,22 +351,23 @@ class _SettingsScreenState extends State<SettingsScreen> {
   // ── Password Reset Dialog ─────────────────────────────────────────────────
 
   void _showPasswordResetDialog(BuildContext context, User user) {
+    final l10n = context.l10n;
     final hasEmailProvider =
         user.providerData.any((p) => p.providerId == 'password');
 
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('Passwort zurücksetzen'),
+        title: Text(l10n.settingsResetPassword),
         content: Text(
           hasEmailProvider
-              ? 'Wir senden eine E-Mail zum Zurücksetzen des Passworts an:\n\n${user.email}'
-              : 'Dein Konto ist mit Google verknüpft.\nBitte verwalte dein Passwort über dein Google-Konto.',
+              ? l10n.settingsPasswordResetBody(user.email ?? '')
+              : l10n.settingsGoogleAccountNote,
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(ctx).pop(),
-            child: const Text('Abbrechen'),
+            child: Text(l10n.settingsCancel),
           ),
           if (hasEmailProvider)
             FilledButton(
@@ -374,20 +378,21 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       .sendPasswordResetEmail(email: user.email!);
                   if (context.mounted) {
                     ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text('Passwort-Reset-E-Mail wurde gesendet.'),
-                      ),
+                      SnackBar(
+                          content: Text(l10n.settingsPasswordResetSent)),
                     );
                   }
                 } catch (e) {
                   if (context.mounted) {
                     ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(content: Text('Fehler: $e')),
+                      SnackBar(
+                          content:
+                              Text('${l10n.settingsError}: $e')),
                     );
                   }
                 }
               },
-              child: const Text('E-Mail senden'),
+              child: Text(l10n.settingsSendEmail),
             ),
         ],
       ),
@@ -513,7 +518,10 @@ class _EditAccountSheet extends StatefulWidget {
   final User user;
   final VoidCallback onSaved;
 
-  const _EditAccountSheet({required this.user, required this.onSaved});
+  const _EditAccountSheet({
+    required this.user,
+    required this.onSaved,
+  });
 
   @override
   State<_EditAccountSheet> createState() => _EditAccountSheetState();
@@ -549,7 +557,7 @@ class _EditAccountSheetState extends State<_EditAccountSheet> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Fehler: $e')),
+          SnackBar(content: Text('${context.l10n.settingsError}: $e')),
         );
       }
     } finally {
@@ -560,6 +568,7 @@ class _EditAccountSheetState extends State<_EditAccountSheet> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final l10n = context.l10n;
     return Padding(
       padding: EdgeInsets.fromLTRB(
         20,
@@ -571,14 +580,12 @@ class _EditAccountSheetState extends State<_EditAccountSheet> {
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Header
           Row(
             children: [
               Text(
-                'Profil bearbeiten',
-                style: theme.textTheme.titleLarge?.copyWith(
-                  fontWeight: FontWeight.bold,
-                ),
+                l10n.settingsEditProfile,
+                style: theme.textTheme.titleLarge
+                    ?.copyWith(fontWeight: FontWeight.bold),
               ),
               const Spacer(),
               IconButton(
@@ -589,14 +596,13 @@ class _EditAccountSheetState extends State<_EditAccountSheet> {
           ),
           const SizedBox(height: 20),
 
-          // Display name field
+          // Display name
           TextField(
             controller: _nameController,
             decoration: InputDecoration(
-              labelText: 'Anzeigename',
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
-              ),
+              labelText: l10n.settingsDisplayName,
+              border:
+                  OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
               prefixIcon: const Icon(Icons.person_outline_rounded),
             ),
             textInputAction: TextInputAction.done,
@@ -608,21 +614,18 @@ class _EditAccountSheetState extends State<_EditAccountSheet> {
           TextField(
             readOnly: true,
             decoration: InputDecoration(
-              labelText: 'E-Mail',
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
-              ),
+              labelText: l10n.settingsEmail,
+              border:
+                  OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
               prefixIcon: const Icon(Icons.email_outlined),
               filled: true,
               fillColor: theme.colorScheme.surfaceContainerHighest
                   .withValues(alpha: 0.5),
             ),
-            controller:
-                TextEditingController(text: widget.user.email ?? ''),
+            controller: TextEditingController(text: widget.user.email ?? ''),
           ),
           const SizedBox(height: 24),
 
-          // Save button
           SizedBox(
             width: double.infinity,
             height: 50,
@@ -637,7 +640,7 @@ class _EditAccountSheetState extends State<_EditAccountSheet> {
                         color: Colors.white,
                       ),
                     )
-                  : const Text('Speichern'),
+                  : Text(l10n.settingsSave),
             ),
           ),
         ],
@@ -645,3 +648,4 @@ class _EditAccountSheetState extends State<_EditAccountSheet> {
     );
   }
 }
+

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import '../auth_service.dart';
+import '../l10n/l10n_ext.dart';
 
 class AuthScreen extends StatefulWidget {
   const AuthScreen({super.key});
@@ -32,6 +33,7 @@ class _AuthScreenState extends State<AuthScreen> {
     if (!_formKey.currentState!.validate()) return;
 
     setState(() => _loading = true);
+    final l10n = context.l10n;
     try {
       final email = _emailCtrl.text.trim();
       final pw = _pwCtrl.text;
@@ -46,7 +48,7 @@ class _AuthScreenState extends State<AuthScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
-            _isLogin ? 'Login erfolgreich' : 'Registrierung erfolgreich',
+            _isLogin ? l10n.authLoginSuccess : l10n.authRegisterSuccess,
           ),
         ),
       );
@@ -63,12 +65,11 @@ class _AuthScreenState extends State<AuthScreen> {
 
   Future<void> _forgotPassword() async {
     final email = _emailCtrl.text.trim();
+    final l10n = context.l10n;
 
     if (email.isEmpty || !email.contains('@')) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Bitte gib oben eine gültige E-Mail ein.'),
-        ),
+        SnackBar(content: Text(l10n.authForgotPasswordValid)),
       );
       return;
     }
@@ -78,11 +79,7 @@ class _AuthScreenState extends State<AuthScreen> {
       await _auth.sendPasswordResetEmail(email: email);
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text(
-            'Wenn ein Konto existiert, wurde eine E-Mail gesendet.',
-          ),
-        ),
+        SnackBar(content: Text(l10n.authForgotPasswordSent)),
       );
     } catch (e) {
       if (!mounted) return;
@@ -97,6 +94,7 @@ class _AuthScreenState extends State<AuthScreen> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final l10n = context.l10n;
 
     return Scaffold(
       body: SafeArea(
@@ -118,7 +116,7 @@ class _AuthScreenState extends State<AuthScreen> {
                       borderRadius: BorderRadius.circular(14),
                       boxShadow: [
                         BoxShadow(
-                          color: Colors.black.withOpacity(0.08),
+                          color: Colors.black.withValues(alpha: 0.08),
                           blurRadius: 18,
                           offset: const Offset(0, 8),
                         ),
@@ -152,7 +150,7 @@ class _AuthScreenState extends State<AuthScreen> {
                   ),
                   const SizedBox(height: 6),
                   Text(
-                    'Forge your ultimate battlestation',
+                    l10n.authTagline,
                     style: theme.textTheme.bodyMedium?.copyWith(
                       color: theme.colorScheme.onSurfaceVariant,
                     ),
@@ -171,7 +169,7 @@ class _AuthScreenState extends State<AuthScreen> {
                       ),
                       boxShadow: [
                         BoxShadow(
-                          color: Colors.black.withOpacity(0.06),
+                          color: Colors.black.withValues(alpha: 0.06),
                           blurRadius: 24,
                           offset: const Offset(0, 12),
                         ),
@@ -220,7 +218,7 @@ class _AuthScreenState extends State<AuthScreen> {
                             crossAxisAlignment: CrossAxisAlignment.stretch,
                             children: [
                               Text(
-                                'Email Address',
+                                l10n.authEmailLabel,
                                 style: theme.textTheme.labelLarge,
                               ),
                               const SizedBox(height: 8),
@@ -228,17 +226,19 @@ class _AuthScreenState extends State<AuthScreen> {
                                 controller: _emailCtrl,
                                 keyboardType: TextInputType.emailAddress,
                                 autofillHints: const [AutofillHints.email],
-                                decoration: const InputDecoration(
-                                  prefixIcon: Icon(Icons.alternate_email),
-                                  hintText: 'name@example.com',
-                                  border: OutlineInputBorder(),
+                                decoration: InputDecoration(
+                                  prefixIcon: const Icon(Icons.alternate_email),
+                                  hintText: l10n.authEmailHint,
+                                  border: const OutlineInputBorder(),
                                 ),
                                 validator: (v) {
                                   final value = (v ?? '').trim();
-                                  if (value.isEmpty)
-                                    return 'Bitte E-Mail eingeben.';
-                                  if (!value.contains('@'))
-                                    return 'Ungültige E-Mail.';
+                                  if (value.isEmpty) {
+                                    return l10n.authEmailRequired;
+                                  }
+                                  if (!value.contains('@')) {
+                                    return l10n.authEmailInvalid;
+                                  }
                                   return null;
                                 },
                               ),
@@ -249,7 +249,7 @@ class _AuthScreenState extends State<AuthScreen> {
                                     MainAxisAlignment.spaceBetween,
                                 children: [
                                   Text(
-                                    'Password',
+                                    l10n.authPasswordLabel,
                                     style: theme.textTheme.labelLarge,
                                   ),
                                   if (_isLogin)
@@ -257,7 +257,7 @@ class _AuthScreenState extends State<AuthScreen> {
                                       onPressed: _loading
                                           ? null
                                           : _forgotPassword,
-                                      child: const Text('Forgot?'),
+                                      child: Text(l10n.authForgot),
                                     ),
                                 ],
                               ),
@@ -285,10 +285,12 @@ class _AuthScreenState extends State<AuthScreen> {
                                 ),
                                 validator: (v) {
                                   final value = v ?? '';
-                                  if (value.isEmpty)
-                                    return 'Bitte Passwort eingeben.';
-                                  if (value.length < 6)
-                                    return 'Mind. 6 Zeichen.';
+                                  if (value.isEmpty) {
+                                    return l10n.authPasswordRequired;
+                                  }
+                                  if (value.length < 6) {
+                                    return l10n.authPasswordMinLength;
+                                  }
                                   return null;
                                 },
                               ),
@@ -298,17 +300,18 @@ class _AuthScreenState extends State<AuthScreen> {
                                 TextFormField(
                                   controller: _pw2Ctrl,
                                   obscureText: true,
-                                  decoration: const InputDecoration(
-                                    prefixIcon: Icon(Icons.lock),
-                                    border: OutlineInputBorder(),
-                                    hintText: 'Confirm password',
+                                  decoration: InputDecoration(
+                                    prefixIcon: const Icon(Icons.lock),
+                                    border: const OutlineInputBorder(),
+                                    hintText: l10n.authConfirmPasswordHint,
                                   ),
                                   validator: (v) {
                                     final value = v ?? '';
-                                    if (value.isEmpty)
-                                      return 'Bitte Passwort bestätigen.';
+                                    if (value.isEmpty) {
+                                      return l10n.authConfirmPasswordRequired;
+                                    }
                                     if (value != _pwCtrl.text) {
-                                      return 'Passwörter stimmen nicht überein.';
+                                      return l10n.authPasswordMismatch;
                                     }
                                     return null;
                                   },
@@ -332,8 +335,8 @@ class _AuthScreenState extends State<AuthScreen> {
                                       : const Icon(Icons.power_settings_new),
                                   label: Text(
                                     _isLogin
-                                        ? 'Enter BuildMyPC'
-                                        : 'Create Account',
+                                        ? l10n.authEnterApp
+                                        : l10n.authCreateAccount,
                                   ),
                                 ),
                               ),
@@ -352,7 +355,7 @@ class _AuthScreenState extends State<AuthScreen> {
                                       horizontal: 10,
                                     ),
                                     child: Text(
-                                      'OR CONNECT USING',
+                                      l10n.authOrConnect,
                                       style: theme.textTheme.labelMedium
                                           ?.copyWith(
                                             color: theme
@@ -381,41 +384,30 @@ class _AuthScreenState extends State<AuthScreen> {
                                           ? null
                                           : () async {
                                               setState(() => _loading = true);
+                                              final l10n = context.l10n;
                                               try {
                                                 await _auth.signInWithGoogle();
-
                                                 if (!mounted) return;
-                                                ScaffoldMessenger.of(
-                                                  context,
-                                                ).showSnackBar(
-                                                  const SnackBar(
-                                                    content: Text(
-                                                      'Google Login erfolgreich',
-                                                    ),
-                                                  ),
-                                                );
-
-                                                // gleicher Flow wie bei Email Login
+                                                ScaffoldMessenger.of(context)
+                                                    .showSnackBar(SnackBar(
+                                                  content: Text(
+                                                      l10n.authGoogleSuccess),
+                                                ));
                                                 context.go('/dashboard');
                                               } catch (e) {
                                                 if (!mounted) return;
-                                                ScaffoldMessenger.of(
-                                                  context,
-                                                ).showSnackBar(
-                                                  SnackBar(
-                                                    content: Text(
-                                                      e.toString().replaceFirst(
-                                                        'Exception: ',
-                                                        '',
-                                                      ),
-                                                    ),
-                                                  ),
-                                                );
+                                                ScaffoldMessenger.of(context)
+                                                    .showSnackBar(SnackBar(
+                                                  content: Text(e
+                                                      .toString()
+                                                      .replaceFirst(
+                                                          'Exception: ', '')),
+                                                ));
                                               } finally {
-                                                if (mounted)
+                                                if (mounted) {
                                                   setState(
-                                                    () => _loading = false,
-                                                  );
+                                                      () => _loading = false);
+                                                }
                                               }
                                             },
                                       child: const Text('Google'),
@@ -451,32 +443,29 @@ class _AuthScreenState extends State<AuthScreen> {
                         ? null
                         : () async {
                             setState(() => _loading = true);
+                            final l10n = context.l10n;
                             try {
                               await _auth.signInAnonymously();
                               if (!mounted) return;
                               ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(
-                                  content: Text('Als Gast fortgefahren'),
-                                ),
+                                SnackBar(
+                                    content: Text(l10n.authGuestSuccess)),
                               );
                               context.go('/configure');
                             } catch (e) {
                               if (!mounted) return;
                               ScaffoldMessenger.of(context).showSnackBar(
                                 SnackBar(
-                                  content: Text(
-                                    e.toString().replaceFirst(
-                                      'Exception: ',
-                                      '',
-                                    ),
-                                  ),
+                                  content: Text(e
+                                      .toString()
+                                      .replaceFirst('Exception: ', '')),
                                 ),
                               );
                             } finally {
                               if (mounted) setState(() => _loading = false);
                             }
                           },
-                    child: const Text('Continue as Guest →'),
+                    child: Text(l10n.authGuest),
                   ),
 
                   const SizedBox(height: 6),
@@ -486,14 +475,14 @@ class _AuthScreenState extends State<AuthScreen> {
                     crossAxisAlignment: WrapCrossAlignment.center,
                     children: [
                       Text(
-                        'By signing in, you agree to our ',
+                        l10n.authTermsAgreement,
                         style: theme.textTheme.bodySmall?.copyWith(
                           color: theme.colorScheme.onSurfaceVariant,
                         ),
                       ),
                       TextButton(
                         onPressed: () => context.go('/terms'),
-                        child: const Text('Terms of Service'),
+                        child: Text(l10n.authTermsLink),
                       ),
                     ],
                   ),
@@ -531,7 +520,7 @@ class _SegmentButton extends StatelessWidget {
         boxShadow: selected
             ? [
                 BoxShadow(
-                  color: Colors.black.withOpacity(0.10),
+                  color: Colors.black.withValues(alpha: 0.10),
                   blurRadius: 14,
                   offset: const Offset(0, 8),
                 ),

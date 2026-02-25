@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:url_launcher/url_launcher.dart';
+import '../l10n/l10n_ext.dart';
 
 class SupportScreen extends StatefulWidget {
   const SupportScreen({super.key});
@@ -15,14 +16,7 @@ class _SupportScreenState extends State<SupportScreen> {
   final _messageController = TextEditingController();
   bool _sending = false;
 
-  static const _subjects = [
-    'Bug melden',
-    'Feature-Anfrage',
-    'Allgemeine Anfrage',
-    'Feedback',
-  ];
-
-  static const _supportEmail = 'luca.hansche@gmx.de';
+  static const _supportEmail = 'buildmypc@gmx.de';
 
   @override
   void dispose() {
@@ -35,6 +29,7 @@ class _SupportScreenState extends State<SupportScreen> {
     _formKey.currentState!.save();
 
     setState(() => _sending = true);
+    final l10n = context.l10n;
 
     final uri = Uri(
       scheme: 'mailto',
@@ -51,16 +46,14 @@ class _SupportScreenState extends State<SupportScreen> {
       } else {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Kein E-Mail-Client gefunden. Bitte sende eine E-Mail an $_supportEmail.'),
-            ),
+            SnackBar(content: Text(l10n.supportNoEmailClient)),
           );
         }
       }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Fehler beim Öffnen des E-Mail-Clients: $e')),
+          SnackBar(content: Text(l10n.supportEmailError(e.toString()))),
         );
       }
     } finally {
@@ -71,9 +64,16 @@ class _SupportScreenState extends State<SupportScreen> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final l10n = context.l10n;
+    final subjects = [
+      l10n.supportSubjectBug,
+      l10n.supportSubjectFeature,
+      l10n.supportSubjectGeneral,
+      l10n.supportSubjectFeedback,
+    ];
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Support kontaktieren'),
+        title: Text(l10n.supportTitle),
         leading: BackButton(onPressed: () => context.pop()),
       ),
       body: Form(
@@ -99,7 +99,7 @@ class _SupportScreenState extends State<SupportScreen> {
                   const SizedBox(width: 10),
                   Expanded(
                     child: Text(
-                      'Deine Anfrage wird über deinen E-Mail-Client an unser Team weitergeleitet.',
+                      l10n.supportInfoBanner,
                       style: theme.textTheme.bodySmall?.copyWith(
                         color: theme.colorScheme.primary,
                       ),
@@ -113,20 +113,19 @@ class _SupportScreenState extends State<SupportScreen> {
             // Subject dropdown
             DropdownButtonFormField<String>(
               decoration: InputDecoration(
-                labelText: 'Betreff',
+                labelText: l10n.supportSubjectLabel,
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(12),
                 ),
                 prefixIcon: const Icon(Icons.subject_rounded),
               ),
               initialValue: _subject,
-              items: _subjects
+              items: subjects
                   .map((s) => DropdownMenuItem(value: s, child: Text(s)))
                   .toList(),
               onChanged: (v) => setState(() => _subject = v),
               onSaved: (v) => _subject = v,
-              validator: (v) =>
-                  v == null ? 'Bitte einen Betreff auswählen' : null,
+              validator: (v) => v == null ? l10n.supportSubjectRequired : null,
             ),
             const SizedBox(height: 16),
 
@@ -134,7 +133,7 @@ class _SupportScreenState extends State<SupportScreen> {
             TextFormField(
               controller: _messageController,
               decoration: InputDecoration(
-                labelText: 'Nachricht',
+                labelText: l10n.supportMessageLabel,
                 alignLabelWithHint: true,
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(12),
@@ -147,7 +146,7 @@ class _SupportScreenState extends State<SupportScreen> {
               maxLines: 8,
               minLines: 5,
               validator: (v) => (v == null || v.trim().isEmpty)
-                  ? 'Bitte eine Nachricht eingeben'
+                  ? l10n.supportMessageRequired
                   : null,
             ),
             const SizedBox(height: 28),
@@ -167,12 +166,12 @@ class _SupportScreenState extends State<SupportScreen> {
                         ),
                       )
                     : const Icon(Icons.send_rounded),
-                label: const Text('Anfrage senden'),
+                label: Text(l10n.supportSendButton),
               ),
             ),
             const SizedBox(height: 16),
             Text(
-              'Antworten werden an deine registrierte E-Mail-Adresse gesendet.',
+              l10n.supportReplyNote,
               textAlign: TextAlign.center,
               style: theme.textTheme.bodySmall?.copyWith(
                 color: theme.colorScheme.onSurfaceVariant,
