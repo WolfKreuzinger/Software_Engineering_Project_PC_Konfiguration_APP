@@ -134,11 +134,23 @@ abstract class AppLocalizations {
   /// **'Willkommen bei BuildMyPC'**
   String get homeWelcome;
 
+  /// No description provided for @homeSubtitle.
+  ///
+  /// In de, this message translates to:
+  /// **'Plane, konfiguriere und baue deinen Traum-PC.'**
+  String get homeSubtitle;
+
   /// No description provided for @homeConfigureButton.
   ///
   /// In de, this message translates to:
   /// **'PC konfigurieren'**
   String get homeConfigureButton;
+
+  /// No description provided for @homeLoginButton.
+  ///
+  /// In de, this message translates to:
+  /// **'Anmelden / Registrieren'**
+  String get homeLoginButton;
 
   /// No description provided for @authTagline.
   ///
