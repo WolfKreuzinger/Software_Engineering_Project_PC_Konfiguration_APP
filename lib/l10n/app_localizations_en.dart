@@ -27,7 +27,13 @@ class AppLocalizationsEn extends AppLocalizations {
   String get homeWelcome => 'Welcome to BuildMyPC';
 
   @override
+  String get homeSubtitle => 'Plan, configure and build your dream PC.';
+
+  @override
   String get homeConfigureButton => 'Configure PC';
+
+  @override
+  String get homeLoginButton => 'Sign In / Register';
 
   @override
   String get authTagline => 'Forge your ultimate battlestation';
