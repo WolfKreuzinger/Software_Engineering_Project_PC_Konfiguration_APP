@@ -8,7 +8,9 @@
   "navComponents": "Components",
 
   "homeWelcome": "Welcome to BuildMyPC",
+  "homeSubtitle": "Plan, configure and build your dream PC.",
   "homeConfigureButton": "Configure PC",
+  "homeLoginButton": "Sign In / Register",
 
   "authTagline": "Forge your ultimate battlestation",
   "authEmailLabel": "Email Address",
