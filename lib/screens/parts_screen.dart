@@ -10,10 +10,14 @@ class PartsScreen extends StatefulWidget {
 
 class _PartsScreenState extends State<PartsScreen> {
   final _searchCtrl = TextEditingController();
+  String _searchQuery = '';
+  final ValueNotifier<int> _visibleCount = ValueNotifier<int>(0);
+  final Map<String, _PartIndex> _partIndexCache = <String, _PartIndex>{};
+  int? _pendingVisibleCount;
 
   String _selectedType = 'All Components';
   String _selectedSort = 'Price: Low to High';
-  RangeValues _priceRange = const RangeValues(0, 2500);
+  RangeValues _priceRange = const RangeValues(0, 5000);
 
   static const _types = <String>[
     'All Components',
@@ -44,21 +48,144 @@ class _PartsScreenState extends State<PartsScreen> {
     'Name: A to Z',
   ];
 
+  bool _useCollectionGroup = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _detectPartsLocation();
+  }
+
+  Future<void> _detectPartsLocation() async {
+    try {
+      final snap = await FirebaseFirestore.instance
+          .collection('parts')
+          .limit(1)
+          .get();
+      if (!mounted) return;
+      setState(() => _useCollectionGroup = snap.docs.isEmpty);
+    } catch (_) {
+      if (!mounted) return;
+      setState(() => _useCollectionGroup = false);
+    }
+  }
+
+  Query<Map<String, dynamic>> _partsQuery() {
+    if (_useCollectionGroup) {
+      return FirebaseFirestore.instance.collectionGroup('parts');
+    }
+    return FirebaseFirestore.instance.collection('parts');
+  }
+
   @override
   void dispose() {
+    _pendingVisibleCount = null;
+    _visibleCount.dispose();
     _searchCtrl.dispose();
     super.dispose();
   }
 
-  Query<Map<String, dynamic>> _baseQuery() {
-    Query<Map<String, dynamic>> q =
-        FirebaseFirestore.instance.collection('parts');
+  void _setVisibleCount(int next, {bool immediate = false}) {
+    if (immediate) {
+      if (_visibleCount.value != next) _visibleCount.value = next;
+      return;
+    }
+    if (_visibleCount.value == next || _pendingVisibleCount == next) return;
+    _pendingVisibleCount = next;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      final pending = _pendingVisibleCount;
+      _pendingVisibleCount = null;
+      if (pending == null || _visibleCount.value == pending) return;
+      _visibleCount.value = pending;
+    });
+  }
 
-    if (_selectedType != 'All Components') {
-      q = q.where('type', isEqualTo: _selectedType);
+  void _applySearch() {
+    final next = _searchCtrl.text;
+    if (next == _searchQuery) return;
+    setState(() {
+      _searchQuery = next;
+      _setVisibleCount(0, immediate: true);
+    });
+  }
+
+  static String _normType(String s) {
+    return s
+        .trim()
+        .toLowerCase()
+        .replaceAll('_', '-')
+        .replaceAll(RegExp(r'\s+'), '-');
+  }
+
+  static String _camelToKebab(String s) {
+    final t = s.trim();
+    if (t.isEmpty) return '';
+    final out = t.replaceAllMapped(
+      RegExp(r'([a-z0-9])([A-Z])'),
+      (m) => '${m.group(1)}-${m.group(2)}',
+    );
+    return _normType(out);
+  }
+
+  static const Map<String, String> _typeAliases = {
+    'gpu': 'video-card',
+    'psu': 'power-supply',
+    'cooler': 'cpu-cooler',
+    'storage': 'internal-hard-drive',
+    'external-storage': 'external-hard-drive',
+    'case-fan': 'case-fan',
+    'casefan': 'case-fan',
+    'case-accessory': 'case-accessory',
+    'caseaccessory': 'case-accessory',
+    'fan-controller': 'fan-controller',
+    'fancontroller': 'fan-controller',
+    'wired-network-card': 'wired-network-card',
+    'wirednic': 'wired-network-card',
+    'wireless-network-card': 'wireless-network-card',
+    'wirelessnic': 'wireless-network-card',
+    'sound-card': 'sound-card',
+    'soundcard': 'sound-card',
+    'optical-drive': 'optical-drive',
+    'opticaldrive': 'optical-drive',
+    'thermal-paste': 'thermal-paste',
+    'thermalpaste': 'thermal-paste',
+    'external-hard-drive': 'external-hard-drive',
+    'cpu-cooler': 'cpu-cooler',
+    'video-card': 'video-card',
+    'power-supply': 'power-supply',
+    'internal-hard-drive': 'internal-hard-drive',
+    'motherboard': 'motherboard',
+    'memory': 'memory',
+    'case': 'case',
+    'cpu': 'cpu',
+    'os': 'os',
+    'ups': 'ups',
+  };
+
+  static String _canonicalType(String value) {
+    final normalized = _normType(value);
+    return _typeAliases[normalized] ?? normalized;
+  }
+
+  static String _datasetTypeFrom(Map<String, dynamic> data) {
+    final meta = data['metadata'];
+    if (meta is Map) {
+      final ds = meta['datasetType'];
+      if (ds != null && ds.toString().trim().isNotEmpty) {
+        return _canonicalType(ds.toString());
+      }
     }
 
-    return q.limit(250);
+    final t = data['type'];
+    if (t != null && t.toString().trim().isNotEmpty) {
+      final raw = t.toString().trim();
+      final fromRaw = _canonicalType(raw);
+      if (fromRaw.isNotEmpty) return fromRaw;
+      return _canonicalType(_camelToKebab(raw));
+    }
+
+    return '';
   }
 
   static double _toDouble(dynamic v) {
@@ -91,23 +218,34 @@ class _PartsScreenState extends State<PartsScreen> {
   }
 
   static String _subtitleFor(Map<String, dynamic> data) {
-    final type = (data['type'] ?? '').toString();
+    final type = _datasetTypeFrom(data);
+    final spec = data['spec'];
 
     if (type == 'video-card') {
-      final mem = _toInt(data['memory']);
-      final chipset = (data['chipset'] ?? '').toString();
-      final boost = _toInt(data['boost_clock']);
+      final mem = _toInt(
+        (spec is Map ? spec['memory'] : null) ?? data['memory'],
+      );
+      final chipset =
+          ((spec is Map ? spec['chipset'] : null) ?? data['chipset'] ?? '')
+              .toString();
+      final boost = _toInt(
+        (spec is Map ? spec['boostClock'] : null) ?? data['boost_clock'],
+      );
       final pieces = <String>[];
       if (mem > 0) pieces.add('${mem}GB');
       if (chipset.isNotEmpty) pieces.add(chipset);
-      if (boost > 0) pieces.add('${boost} MHz');
+      if (boost > 0) pieces.add('$boost MHz');
       return pieces.isEmpty ? 'Graphics card' : pieces.join(' • ');
     }
 
     if (type == 'cpu') {
-      final cores = _toInt(data['core_count']);
-      final threads = _toInt(data['thread_count']);
-      final tdp = _toInt(data['tdp']);
+      final cores = _toInt(
+        (spec is Map ? spec['coreCount'] : null) ?? data['core_count'],
+      );
+      final threads = _toInt(
+        (spec is Map ? spec['threadCount'] : null) ?? data['thread_count'],
+      );
+      final tdp = _toInt((spec is Map ? spec['tdp'] : null) ?? data['tdp']);
       final pieces = <String>[];
       if (cores > 0) pieces.add('$cores cores');
       if (threads > 0) pieces.add('$threads threads');
@@ -116,9 +254,11 @@ class _PartsScreenState extends State<PartsScreen> {
     }
 
     if (type == 'memory') {
-      final speed = data['speed'];
-      final modules = data['modules'];
-      final cas = _toInt(data['cas_latency']);
+      final speed = (spec is Map ? spec['speed'] : null) ?? data['speed'];
+      final modules = (spec is Map ? spec['modules'] : null) ?? data['modules'];
+      final cas = _toInt(
+        (spec is Map ? spec['casLatency'] : null) ?? data['cas_latency'],
+      );
       final pieces = <String>[];
       if (modules is List && modules.length >= 2) {
         final count = _toInt(modules[0]);
@@ -135,8 +275,12 @@ class _PartsScreenState extends State<PartsScreen> {
     }
 
     if (type == 'internal-hard-drive') {
-      final cap = _toInt(data['capacity']);
-      final iface = (data['interface'] ?? '').toString();
+      final cap = _toInt(
+        (spec is Map ? spec['capacityGb'] : null) ?? data['capacity'],
+      );
+      final iface =
+          ((spec is Map ? spec['interface'] : null) ?? data['interface'] ?? '')
+              .toString();
       final pieces = <String>[];
       if (cap > 0) pieces.add('${cap}GB');
       if (iface.isNotEmpty) pieces.add(iface);
@@ -144,8 +288,14 @@ class _PartsScreenState extends State<PartsScreen> {
     }
 
     if (type == 'motherboard') {
-      final socket = (data['socket'] ?? '').toString();
-      final ff = (data['form_factor'] ?? '').toString();
+      final socket =
+          ((spec is Map ? spec['socket'] : null) ?? data['socket'] ?? '')
+              .toString();
+      final ff =
+          ((spec is Map ? spec['formFactor'] : null) ??
+                  data['form_factor'] ??
+                  '')
+              .toString();
       final pieces = <String>[];
       if (socket.isNotEmpty) pieces.add(socket);
       if (ff.isNotEmpty) pieces.add(ff);
@@ -153,8 +303,14 @@ class _PartsScreenState extends State<PartsScreen> {
     }
 
     if (type == 'power-supply') {
-      final w = _toInt(data['wattage']);
-      final eff = (data['efficiency'] ?? '').toString();
+      final w = _toInt(
+        (spec is Map ? spec['wattage'] : null) ?? data['wattage'],
+      );
+      final eff =
+          ((spec is Map ? spec['efficiency'] : null) ??
+                  data['efficiency'] ??
+                  '')
+              .toString();
       final pieces = <String>[];
       if (w > 0) pieces.add('${w}W');
       if (eff.isNotEmpty) pieces.add(eff);
@@ -162,14 +318,16 @@ class _PartsScreenState extends State<PartsScreen> {
     }
 
     if (type == 'case') {
-      final panel = (data['side_panel'] ?? '').toString();
+      final panel =
+          ((spec is Map ? spec['sidePanel'] : null) ?? data['side_panel'] ?? '')
+              .toString();
       final pieces = <String>[];
       if (panel.isNotEmpty) pieces.add(panel);
       return pieces.isEmpty ? 'Case' : pieces.join(' • ');
     }
 
     if (type == 'cpu-cooler') {
-      final rpm = data['rpm'];
+      final rpm = (spec is Map ? spec['rpm'] : null) ?? data['rpm'];
       final pieces = <String>[];
       if (rpm is List && rpm.length >= 2) {
         final a = _toInt(rpm[0]);
@@ -179,46 +337,90 @@ class _PartsScreenState extends State<PartsScreen> {
         final single = _toInt(rpm);
         if (single > 0) pieces.add('$single RPM');
       }
-      final noise = data['noise_level'];
+      final noise =
+          (spec is Map ? spec['noiseLevelDb'] : null) ?? data['noise_level'];
       if (noise is num) pieces.add('${noise.toString()} dBA');
       return pieces.isEmpty ? 'CPU cooler' : pieces.join(' • ');
     }
 
     if (type == 'case-fan') {
-      final size = _toInt(data['size']);
-      final pwm = data['pwm'] == true ? 'PWM' : '';
+      final size = _toInt(
+        (spec is Map ? spec['sizeMm'] : null) ?? data['size'],
+      );
+      final pwm = ((spec is Map ? spec['pwm'] : null) ?? data['pwm']) == true
+          ? 'PWM'
+          : '';
       final pieces = <String>[];
       if (size > 0) pieces.add('${size}mm');
       if (pwm.isNotEmpty) pieces.add(pwm);
       return pieces.isEmpty ? 'Case fan' : pieces.join(' • ');
     }
 
-    final extra = (data['chipset'] ?? data['manufacturer'] ?? '').toString();
+    final extra =
+        (data['chipset'] ?? data['manufacturer'] ?? data['brand'] ?? '')
+            .toString();
     return extra.isEmpty ? 'Component' : extra;
   }
 
-  static bool _matchesSearch(Map<String, dynamic> data, String q) {
-    if (q.trim().isEmpty) return true;
-    final query = q.trim().toLowerCase();
-    final hay = <String>[
-      (data['name'] ?? '').toString(),
-      (data['chipset'] ?? '').toString(),
-      (data['manufacturer'] ?? '').toString(),
-      (data['brand'] ?? '').toString(),
-      (data['model'] ?? '').toString(),
-      (data['type'] ?? '').toString(),
-    ].join(' ').toLowerCase();
-    return hay.contains(query);
+  static String _normalizeForSearch(String input) {
+    return input
+        .toLowerCase()
+        .replaceAll(RegExp(r'[^a-z0-9]+'), ' ')
+        .replaceAll(RegExp(r'\s+'), ' ')
+        .trim();
   }
 
-  static bool _matchesPrice(Map<String, dynamic> data, RangeValues r) {
-    final p = _toDouble(data['price']);
+  _PartIndex _partIndexFor(String docId, Map<String, dynamic> data) {
+    final cached = _partIndexCache[docId];
+    if (cached != null) return cached;
+
+    final type = _datasetTypeFrom(data);
+    final meta = data['metadata'];
+    final spec = data['spec'];
+    final ds = (meta is Map ? meta['datasetType'] : null)?.toString() ?? '';
+    final hay = <String>[
+      (data['name'] ?? '').toString(),
+      (data['brand'] ?? '').toString(),
+      (data['manufacturer'] ?? '').toString(),
+      (data['model'] ?? '').toString(),
+      (data['chipset'] ?? '').toString(),
+      (data['type'] ?? '').toString(),
+      ds,
+      type,
+      if (spec is Map)
+        ...spec.values.where((v) => v != null).map((v) => v.toString()),
+    ].join(' ');
+
+    final idx = _PartIndex(
+      type: type,
+      price: _toDouble(data['price']),
+      searchHay: _normalizeForSearch(hay),
+    );
+    _partIndexCache[docId] = idx;
+    return idx;
+  }
+
+  bool _matchesSelectedTypeIdx(String selectedType, _PartIndex idx) {
+    if (selectedType == 'All Components') return true;
+    return idx.type == _canonicalType(selectedType);
+  }
+
+  bool _matchesSearchIdx(String q, _PartIndex idx) {
+    if (q.trim().isEmpty) return true;
+    final normalizedQuery = _normalizeForSearch(q);
+    if (normalizedQuery.isEmpty) return true;
+    final queryTerms = normalizedQuery.split(' ');
+    return queryTerms.every(idx.searchHay.contains);
+  }
+
+  static bool _matchesPrice(RangeValues r, _PartIndex idx) {
+    final p = idx.price;
     if (p.isNaN) return true;
     return p >= r.start && p <= r.end;
   }
 
   static IconData _iconForType(String type) {
-    switch (type) {
+    switch (_normType(type)) {
       case 'cpu':
         return Icons.developer_board_rounded;
       case 'motherboard':
@@ -301,28 +503,23 @@ class _PartsScreenState extends State<PartsScreen> {
                   padding: const EdgeInsets.fromLTRB(16, 12, 16, 10),
                   child: Row(
                     children: [
-                      const SizedBox(width: 4),
+                      const SizedBox(width: 48),
                       Expanded(
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.center,
                           children: [
                             Text(
-                              'Parts',
+                              'Components',
                               style: theme.textTheme.titleLarge?.copyWith(
                                 fontWeight: FontWeight.w800,
                               ),
                             ),
                             const SizedBox(height: 2),
-                            StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
-                              stream: _baseQuery().snapshots(),
-                              builder: (context, snap) {
-                                final count = snap.data?.docs.length ?? 0;
-                                final label = snap.connectionState ==
-                                        ConnectionState.waiting
-                                    ? 'Loading…'
-                                    : '$count Products Found';
+                            ValueListenableBuilder<int>(
+                              valueListenable: _visibleCount,
+                              builder: (context, visibleCount, _) {
                                 return Text(
-                                  label,
+                                  '$visibleCount Products Found',
                                   style: theme.textTheme.bodySmall?.copyWith(
                                     color: cs.onSurfaceVariant,
                                     fontWeight: FontWeight.w600,
@@ -333,7 +530,6 @@ class _PartsScreenState extends State<PartsScreen> {
                           ],
                         ),
                       ),
-                      const SizedBox(width: 4),
                       IconButton(
                         onPressed: () {
                           showModalBottomSheet(
@@ -351,6 +547,7 @@ class _PartsScreenState extends State<PartsScreen> {
                                   _selectedType = t;
                                   _selectedSort = sort;
                                   _priceRange = range;
+                                  _setVisibleCount(0, immediate: true);
                                 });
                                 Navigator.of(context).pop();
                               },
@@ -367,8 +564,9 @@ class _PartsScreenState extends State<PartsScreen> {
                   padding: const EdgeInsets.fromLTRB(16, 0, 16, 10),
                   child: _SearchField(
                     controller: _searchCtrl,
-                    hint: 'Search parts (e.g. RTX 4080)',
-                    onChanged: (_) => setState(() {}),
+                    hint: 'Search parts (e.g. RTX 3080)',
+                    onSubmitted: (_) => _applySearch(),
+                    onSearchTap: _applySearch,
                   ),
                 ),
                 Padding(
@@ -389,7 +587,10 @@ class _PartsScreenState extends State<PartsScreen> {
                                 items: _types,
                                 selected: _selectedType,
                                 onPick: (v) {
-                                  setState(() => _selectedType = v);
+                                  setState(() {
+                                    _selectedType = v;
+                                    _setVisibleCount(0, immediate: true);
+                                  });
                                   Navigator.of(context).pop();
                                 },
                                 theme: theme,
@@ -410,7 +611,10 @@ class _PartsScreenState extends State<PartsScreen> {
                               builder: (_) => _PriceSheet(
                                 priceRange: _priceRange,
                                 onApply: (v) {
-                                  setState(() => _priceRange = v);
+                                  setState(() {
+                                    _priceRange = v;
+                                    _setVisibleCount(0, immediate: true);
+                                  });
                                   Navigator.of(context).pop();
                                 },
                                 theme: theme,
@@ -431,7 +635,10 @@ class _PartsScreenState extends State<PartsScreen> {
                                 items: _sorts,
                                 selected: _selectedSort,
                                 onPick: (v) {
-                                  setState(() => _selectedSort = v);
+                                  setState(() {
+                                    _selectedSort = v;
+                                    _setVisibleCount(0, immediate: true);
+                                  });
                                   Navigator.of(context).pop();
                                 },
                                 theme: theme,
@@ -445,9 +652,10 @@ class _PartsScreenState extends State<PartsScreen> {
                 ),
                 Expanded(
                   child: StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
-                    stream: _baseQuery().snapshots(),
+                    stream: _partsQuery().snapshots(),
                     builder: (context, snap) {
                       if (snap.hasError) {
+                        _setVisibleCount(0);
                         return _EmptyState(
                           icon: Icons.error_outline_rounded,
                           title: 'Error',
@@ -457,21 +665,45 @@ class _PartsScreenState extends State<PartsScreen> {
                       }
 
                       if (!snap.hasData) {
+                        _setVisibleCount(0);
                         return const Center(child: CircularProgressIndicator());
                       }
 
-                      final q = _searchCtrl.text;
-                      final filtered = snap.data!.docs
-                          .map((d) => (d.id, d.data()))
-                          .where((e) => _matchesSearch(e.$2, q))
-                          .where((e) => _matchesPrice(e.$2, _priceRange))
+                      final docs = snap.data!.docs;
+                      final docIds = docs.map((d) => d.reference.path).toSet();
+                      _partIndexCache.removeWhere(
+                        (id, _) => !docIds.contains(id),
+                      );
+                      if (docs.isEmpty) {
+                        _setVisibleCount(0);
+                        return _EmptyState(
+                          icon: Icons.cloud_off_rounded,
+                          title: 'No data loaded',
+                          subtitle: _useCollectionGroup
+                              ? 'collectionGroup("parts") returned 0 docs.'
+                              : 'collection("parts") returned 0 docs.',
+                          theme: theme,
+                        );
+                      }
+
+                      final q = _searchQuery;
+                      final filtered = docs
+                          .map((d) {
+                            final data = d.data();
+                            final idx = _partIndexFor(d.reference.path, data);
+                            return (d.id, data, idx);
+                          })
+                          .where(
+                            (e) => _matchesSelectedTypeIdx(_selectedType, e.$3),
+                          )
+                          .where((e) => _matchesSearchIdx(q, e.$3))
+                          .where((e) => _matchesPrice(_priceRange, e.$3))
                           .toList(growable: true);
 
-                      filtered.sort((a, b) => _sortCompare(
-                            _selectedSort,
-                            a.$2,
-                            b.$2,
-                          ));
+                      filtered.sort(
+                        (a, b) => _sortCompare(_selectedSort, a.$2, b.$2),
+                      );
+                      _setVisibleCount(filtered.length);
 
                       if (filtered.isEmpty) {
                         return _EmptyState(
@@ -485,15 +717,16 @@ class _PartsScreenState extends State<PartsScreen> {
                       return ListView.separated(
                         padding: const EdgeInsets.fromLTRB(16, 2, 16, 16),
                         itemCount: filtered.length,
-                        separatorBuilder: (_, __) => const SizedBox(height: 12),
+                        separatorBuilder: (_, _) => const SizedBox(height: 12),
                         itemBuilder: (context, i) {
                           final id = filtered[i].$1;
                           final data = filtered[i].$2;
+                          final idx = filtered[i].$3;
 
                           final title = _titleFor(data);
                           final subtitle = _subtitleFor(data);
                           final price = _money(data['price']);
-                          final type = (data['type'] ?? '').toString();
+                          final type = idx.type;
 
                           return _PartCard(
                             theme: theme,
@@ -516,12 +749,12 @@ class _PartsScreenState extends State<PartsScreen> {
                                   .collection('items')
                                   .doc(id)
                                   .set({
-                                'partId': id,
-                                'name': data['name'],
-                                'type': data['type'],
-                                'price': data['price'],
-                                'addedAt': FieldValue.serverTimestamp(),
-                              }, SetOptions(merge: true));
+                                    'partId': id,
+                                    'name': data['name'],
+                                    'type': type,
+                                    'price': data['price'],
+                                    'addedAt': FieldValue.serverTimestamp(),
+                                  }, SetOptions(merge: true));
                             },
                           );
                         },
@@ -538,45 +771,70 @@ class _PartsScreenState extends State<PartsScreen> {
   }
 }
 
+class _PartIndex {
+  final String type;
+  final double price;
+  final String searchHay;
+
+  const _PartIndex({
+    required this.type,
+    required this.price,
+    required this.searchHay,
+  });
+}
+
 class _SearchField extends StatelessWidget {
   final TextEditingController controller;
   final String hint;
-  final ValueChanged<String> onChanged;
+  final ValueChanged<String>? onSubmitted;
+  final VoidCallback onSearchTap;
 
   const _SearchField({
     required this.controller,
     required this.hint,
-    required this.onChanged,
+    required this.onSubmitted,
+    required this.onSearchTap,
   });
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final cs = theme.colorScheme;
+    final themeBorder = theme.inputDecorationTheme.border;
+    final radius = themeBorder is OutlineInputBorder
+        ? themeBorder.borderRadius
+        : BorderRadius.circular(18);
+    final borderSide = BorderSide(
+      color: cs.outlineVariant.withValues(alpha: 0.35),
+    );
+    final inputBorder = OutlineInputBorder(
+      borderRadius: radius,
+      borderSide: borderSide,
+    );
 
-    return Container(
-      decoration: BoxDecoration(
-        color: cs.surfaceContainerHighest.withOpacity(0.6),
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(
-          color: cs.outlineVariant.withOpacity(0.35),
-        ),
-      ),
+    return ClipRRect(
+      borderRadius: radius,
       child: TextField(
         controller: controller,
-        onChanged: onChanged,
+        onSubmitted: onSubmitted,
         textInputAction: TextInputAction.search,
         decoration: InputDecoration(
+          filled: true,
+          fillColor: cs.surfaceContainerHighest.withValues(alpha: 0.6),
           hintText: hint,
           hintStyle: theme.textTheme.bodyMedium?.copyWith(
-            color: cs.onSurfaceVariant.withOpacity(0.9),
+            color: cs.onSurfaceVariant.withValues(alpha: 0.9),
             fontWeight: FontWeight.w600,
           ),
-          prefixIcon: Icon(
-            Icons.search_rounded,
-            color: cs.onSurfaceVariant,
+          prefixIcon: IconButton(
+            onPressed: onSearchTap,
+            icon: Icon(Icons.search_rounded, color: cs.onSurfaceVariant),
           ),
-          border: InputBorder.none,
+          border: inputBorder,
+          enabledBorder: inputBorder,
+          focusedBorder: inputBorder.copyWith(
+            borderSide: BorderSide(color: cs.primary, width: 1.4),
+          ),
           contentPadding: const EdgeInsets.symmetric(
             horizontal: 14,
             vertical: 14,
@@ -680,11 +938,7 @@ class _PartCard extends StatelessWidget {
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Icon(
-                    icon,
-                    color: cs.onSurfaceVariant,
-                    size: 26,
-                  ),
+                  Icon(icon, color: cs.onSurfaceVariant, size: 26),
                   const SizedBox(height: 8),
                   Text(
                     specs,
@@ -1005,8 +1259,9 @@ class _SimplePickerSheet extends StatelessWidget {
       children: [
         Text(
           title,
-          style:
-              theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w900),
+          style: theme.textTheme.titleLarge?.copyWith(
+            fontWeight: FontWeight.w900,
+          ),
         ),
         const SizedBox(height: 10),
         ...items.map((e) {
@@ -1061,8 +1316,9 @@ class _PriceSheetState extends State<_PriceSheet> {
           children: [
             Text(
               'Price Range',
-              style:
-                  theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w900),
+              style: theme.textTheme.titleLarge?.copyWith(
+                fontWeight: FontWeight.w900,
+              ),
             ),
             const SizedBox(height: 12),
             RangeSlider(
