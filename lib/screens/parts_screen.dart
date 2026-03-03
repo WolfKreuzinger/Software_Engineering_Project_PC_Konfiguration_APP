@@ -1067,10 +1067,10 @@ class _PartCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final cs = theme.colorScheme;
     final hasTopAction = secondaryActionText != null;
-    final topInset = hasTopAction ? 18.0 : 0.0;
+    final topInset = hasTopAction ? 12.0 : 0.0;
 
     return Container(
-      constraints: const BoxConstraints(minHeight: 142),
+      constraints: const BoxConstraints(minHeight: 132),
       decoration: BoxDecoration(
         color: cs.surface,
         borderRadius: BorderRadius.circular(22),
@@ -1115,20 +1115,26 @@ class _PartCard extends StatelessWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(
-                        title,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: theme.textTheme.titleMedium?.copyWith(
-                          fontWeight: FontWeight.w900,
+                      Padding(
+                        padding: EdgeInsets.only(right: hasTopAction ? 96 : 0),
+                        child: Text(
+                          title,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: theme.textTheme.titleMedium?.copyWith(
+                            fontWeight: FontWeight.w900,
+                          ),
                         ),
                       ),
-                      SizedBox(height: 14 + topInset),
+                      SizedBox(height: 10 + topInset),
                       Row(
                         children: [
                           Expanded(
                             child: Text(
                               price,
+                              maxLines: 1,
+                              softWrap: false,
+                              overflow: TextOverflow.ellipsis,
                               style: theme.textTheme.titleLarge?.copyWith(
                                 fontWeight: FontWeight.w900,
                                 color: cs.primary,
