@@ -1,8 +1,29 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 
+class PartSelection {
+  const PartSelection({
+    required this.partId,
+    required this.type,
+    required this.title,
+    required this.subtitle,
+    required this.price,
+    required this.rawData,
+  });
+
+  final String partId;
+  final String type;
+  final String title;
+  final String subtitle;
+  final double? price;
+  final Map<String, dynamic> rawData;
+}
+
 class PartsScreen extends StatefulWidget {
-  const PartsScreen({super.key});
+  const PartsScreen({super.key, this.lockedType, this.returnSelection = false});
+
+  final String? lockedType;
+  final bool returnSelection;
 
   @override
   State<PartsScreen> createState() => _PartsScreenState();
@@ -49,10 +70,14 @@ class _PartsScreenState extends State<PartsScreen> {
   ];
 
   bool _useCollectionGroup = false;
+  bool get _isTypeLocked => (widget.lockedType ?? '').trim().isNotEmpty;
 
   @override
   void initState() {
     super.initState();
+    if (_isTypeLocked) {
+      _selectedType = _canonicalType(widget.lockedType!);
+    }
     _detectPartsLocation();
   }
 
@@ -71,6 +96,18 @@ class _PartsScreenState extends State<PartsScreen> {
   }
 
   Query<Map<String, dynamic>> _partsQuery() {
+    if (_isTypeLocked) {
+      final locked = _canonicalType(_selectedType);
+      if (_useCollectionGroup) {
+        return FirebaseFirestore.instance
+            .collectionGroup('parts')
+            .where('metadata.datasetType', isEqualTo: locked);
+      }
+      return FirebaseFirestore.instance
+          .collection('parts')
+          .where('metadata.datasetType', isEqualTo: locked);
+    }
+
     if (_useCollectionGroup) {
       return FirebaseFirestore.instance.collectionGroup('parts');
     }
@@ -186,6 +223,51 @@ class _PartsScreenState extends State<PartsScreen> {
     }
 
     return '';
+  }
+
+  static String _displayType(String value) {
+    switch (_canonicalType(value)) {
+      case 'cpu':
+        return 'CPU';
+      case 'motherboard':
+        return 'Motherboard';
+      case 'video-card':
+        return 'GPU';
+      case 'memory':
+        return 'RAM';
+      case 'internal-hard-drive':
+        return 'Storage';
+      case 'power-supply':
+        return 'Power Supply';
+      case 'case':
+        return 'Case';
+      case 'cpu-cooler':
+        return 'CPU Cooler';
+      case 'case-fan':
+        return 'Case Fan';
+      case 'wired-network-card':
+        return 'Ethernet Card';
+      case 'wireless-network-card':
+        return 'Wi-Fi Card';
+      case 'sound-card':
+        return 'Sound Card';
+      case 'optical-drive':
+        return 'Optical Drive';
+      case 'fan-controller':
+        return 'Fan Controller';
+      case 'thermal-paste':
+        return 'Thermal Paste';
+      case 'external-hard-drive':
+        return 'External Storage';
+      case 'ups':
+        return 'UPS';
+      case 'case-accessory':
+        return 'Case Accessory';
+      case 'os':
+        return 'OS';
+      default:
+        return value;
+    }
   }
 
   static double _toDouble(dynamic v) {
@@ -503,7 +585,13 @@ class _PartsScreenState extends State<PartsScreen> {
                   padding: const EdgeInsets.fromLTRB(16, 12, 16, 10),
                   child: Row(
                     children: [
-                      const SizedBox(width: 48),
+                      if (widget.returnSelection)
+                        IconButton(
+                          onPressed: () => Navigator.of(context).pop(),
+                          icon: const Icon(Icons.arrow_back_rounded),
+                        )
+                      else
+                        const SizedBox(width: 48),
                       Expanded(
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.center,
@@ -530,33 +618,36 @@ class _PartsScreenState extends State<PartsScreen> {
                           ],
                         ),
                       ),
-                      IconButton(
-                        onPressed: () {
-                          showModalBottomSheet(
-                            context: context,
-                            isScrollControlled: true,
-                            showDragHandle: true,
-                            builder: (_) => _FiltersSheet(
-                              types: _types,
-                              sorts: _sorts,
-                              selectedType: _selectedType,
-                              selectedSort: _selectedSort,
-                              priceRange: _priceRange,
-                              onApply: (t, sort, range) {
-                                setState(() {
-                                  _selectedType = t;
-                                  _selectedSort = sort;
-                                  _priceRange = range;
-                                  _setVisibleCount(0, immediate: true);
-                                });
-                                Navigator.of(context).pop();
-                              },
-                              theme: theme,
-                            ),
-                          );
-                        },
-                        icon: const Icon(Icons.tune_rounded),
-                      ),
+                      if (!_isTypeLocked)
+                        IconButton(
+                          onPressed: () {
+                            showModalBottomSheet(
+                              context: context,
+                              isScrollControlled: true,
+                              showDragHandle: true,
+                              builder: (_) => _FiltersSheet(
+                                types: _types,
+                                sorts: _sorts,
+                                selectedType: _selectedType,
+                                selectedSort: _selectedSort,
+                                priceRange: _priceRange,
+                                onApply: (t, sort, range) {
+                                  setState(() {
+                                    _selectedType = t;
+                                    _selectedSort = sort;
+                                    _priceRange = range;
+                                    _setVisibleCount(0, immediate: true);
+                                  });
+                                  Navigator.of(context).pop();
+                                },
+                                theme: theme,
+                              ),
+                            );
+                          },
+                          icon: const Icon(Icons.tune_rounded),
+                        )
+                      else
+                        const SizedBox(width: 48),
                     ],
                   ),
                 ),
@@ -575,29 +666,32 @@ class _PartsScreenState extends State<PartsScreen> {
                     scrollDirection: Axis.horizontal,
                     child: Row(
                       children: [
-                        _Pill(
-                          label: _selectedType,
-                          selected: true,
-                          onTap: () {
-                            showModalBottomSheet(
-                              context: context,
-                              showDragHandle: true,
-                              builder: (_) => _SimplePickerSheet(
-                                title: 'Component Type',
-                                items: _types,
-                                selected: _selectedType,
-                                onPick: (v) {
-                                  setState(() {
-                                    _selectedType = v;
-                                    _setVisibleCount(0, immediate: true);
-                                  });
-                                  Navigator.of(context).pop();
-                                },
-                                theme: theme,
-                              ),
-                            );
-                          },
-                        ),
+                        if (_isTypeLocked)
+                          _LockedPill(label: _displayType(_selectedType))
+                        else
+                          _Pill(
+                            label: _selectedType,
+                            selected: true,
+                            onTap: () {
+                              showModalBottomSheet(
+                                context: context,
+                                showDragHandle: true,
+                                builder: (_) => _SimplePickerSheet(
+                                  title: 'Component Type',
+                                  items: _types,
+                                  selected: _selectedType,
+                                  onPick: (v) {
+                                    setState(() {
+                                      _selectedType = v;
+                                      _setVisibleCount(0, immediate: true);
+                                    });
+                                    Navigator.of(context).pop();
+                                  },
+                                  theme: theme,
+                                ),
+                              );
+                            },
+                          ),
                         const SizedBox(width: 10),
                         _Pill(
                           label:
@@ -734,9 +828,30 @@ class _PartsScreenState extends State<PartsScreen> {
                             title: title,
                             specs: subtitle,
                             price: price,
-                            actionText: 'View',
+                            actionText: widget.returnSelection
+                                ? 'Add to Configuration'
+                                : 'View',
+                            secondaryActionText: widget.returnSelection
+                                ? 'View'
+                                : null,
                             actionEnabled: true,
                             onTapAction: () async {
+                              if (widget.returnSelection) {
+                                Navigator.of(context).pop(
+                                  PartSelection(
+                                    partId: id,
+                                    type: type,
+                                    title: title,
+                                    subtitle: subtitle,
+                                    price: _toDouble(data['price']).isNaN
+                                        ? null
+                                        : _toDouble(data['price']),
+                                    rawData: Map<String, dynamic>.from(data),
+                                  ),
+                                );
+                                return;
+                              }
+
                               ScaffoldMessenger.of(context).showSnackBar(
                                 SnackBar(
                                   content: Text('Selected: $title'),
@@ -891,6 +1006,40 @@ class _Pill extends StatelessWidget {
   }
 }
 
+class _LockedPill extends StatelessWidget {
+  const _LockedPill({required this.label});
+
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final cs = theme.colorScheme;
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+      decoration: BoxDecoration(
+        color: cs.primary.withValues(alpha: 0.12),
+        borderRadius: BorderRadius.circular(999),
+        border: Border.all(color: cs.primary.withValues(alpha: 0.45)),
+      ),
+      child: Row(
+        children: [
+          Icon(Icons.lock_rounded, size: 16, color: cs.primary),
+          const SizedBox(width: 6),
+          Text(
+            label,
+            style: theme.textTheme.bodyMedium?.copyWith(
+              color: cs.primary,
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
 class _PartCard extends StatelessWidget {
   final ThemeData theme;
   final IconData icon;
@@ -898,6 +1047,7 @@ class _PartCard extends StatelessWidget {
   final String specs;
   final String price;
   final String actionText;
+  final String? secondaryActionText;
   final bool actionEnabled;
   final VoidCallback onTapAction;
 
@@ -908,6 +1058,7 @@ class _PartCard extends StatelessWidget {
     required this.specs,
     required this.price,
     required this.actionText,
+    required this.secondaryActionText,
     required this.actionEnabled,
     required this.onTapAction,
   });
@@ -915,8 +1066,11 @@ class _PartCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final cs = theme.colorScheme;
+    final hasTopAction = secondaryActionText != null;
+    final topInset = hasTopAction ? 18.0 : 0.0;
 
     return Container(
+      constraints: const BoxConstraints(minHeight: 142),
       decoration: BoxDecoration(
         color: cs.surface,
         borderRadius: BorderRadius.circular(22),
@@ -929,79 +1083,105 @@ class _PartCard extends StatelessWidget {
         ],
         border: Border.all(color: cs.outlineVariant.withOpacity(0.35)),
       ),
-      child: Padding(
-        padding: const EdgeInsets.all(14),
-        child: Row(
-          children: [
-            SizedBox(
-              width: 74,
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(icon, color: cs.onSurfaceVariant, size: 26),
-                  const SizedBox(height: 8),
-                  Text(
-                    specs,
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                    textAlign: TextAlign.center,
-                    style: theme.textTheme.labelSmall?.copyWith(
-                      color: cs.onSurfaceVariant,
-                      fontWeight: FontWeight.w800,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    title,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: theme.textTheme.titleMedium?.copyWith(
-                      fontWeight: FontWeight.w900,
-                    ),
-                  ),
-                  const SizedBox(height: 10),
-                  Row(
+      child: Stack(
+        children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 16, 16, 16),
+            child: Row(
+              children: [
+                SizedBox(
+                  width: 86,
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
                     children: [
-                      Expanded(
-                        child: Text(
-                          price,
-                          style: theme.textTheme.titleLarge?.copyWith(
-                            fontWeight: FontWeight.w900,
-                            color: cs.primary,
-                          ),
+                      SizedBox(height: topInset + 4),
+                      Icon(icon, color: cs.onSurfaceVariant, size: 30),
+                      const SizedBox(height: 10),
+                      Text(
+                        specs,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        textAlign: TextAlign.center,
+                        style: theme.textTheme.labelSmall?.copyWith(
+                          color: cs.onSurfaceVariant,
+                          fontWeight: FontWeight.w800,
                         ),
-                      ),
-                      const SizedBox(width: 10),
-                      FilledButton(
-                        onPressed: actionEnabled ? onTapAction : null,
-                        style: FilledButton.styleFrom(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 18,
-                            vertical: 12,
-                          ),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(999),
-                          ),
-                          textStyle: theme.textTheme.labelLarge?.copyWith(
-                            fontWeight: FontWeight.w900,
-                          ),
-                        ),
-                        child: Text(actionText),
                       ),
                     ],
                   ),
-                ],
+                ),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        title,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: theme.textTheme.titleMedium?.copyWith(
+                          fontWeight: FontWeight.w900,
+                        ),
+                      ),
+                      SizedBox(height: 14 + topInset),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: Text(
+                              price,
+                              style: theme.textTheme.titleLarge?.copyWith(
+                                fontWeight: FontWeight.w900,
+                                color: cs.primary,
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          FilledButton(
+                            onPressed: actionEnabled ? onTapAction : null,
+                            style: FilledButton.styleFrom(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 20,
+                                vertical: 13,
+                              ),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(999),
+                              ),
+                              textStyle: theme.textTheme.labelLarge?.copyWith(
+                                fontWeight: FontWeight.w900,
+                              ),
+                            ),
+                            child: Text(actionText),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+          if (secondaryActionText != null)
+            Positioned(
+              top: 12,
+              right: 12,
+              child: OutlinedButton(
+                onPressed: () {},
+                style: OutlinedButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 9,
+                  ),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(999),
+                  ),
+                  textStyle: theme.textTheme.labelLarge?.copyWith(
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+                child: Text(secondaryActionText!),
               ),
             ),
-          ],
-        ),
+        ],
       ),
     );
   }
