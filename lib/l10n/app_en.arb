@@ -178,5 +178,12 @@
   "termsSection7Body": "We reserve the right to change these terms of service at any time. Registered users will be informed of significant changes. Continued use of the app constitutes acceptance of the changed terms.",
   "termsSection8Title": "8. Contact",
   "termsSection8Body": "For questions about these terms of service, contact:\nbuildmypc@gmx.de",
-  "termsDate": "Last updated: February 2026"
+  "termsDate": "Last updated: February 2026",
+
+  "compatibilityOk": "COMPATIBILITY: OK",
+  "compatibilityWarning": "COMPATIBILITY WARNING",
+  "compatibilityError": "COMPATIBILITY ERROR",
+  "compatibilityViewDetails": "DETAILS",
+  "compatibilityDetails": "Compatibility Details",
+  "compatibilityNoIssues": "All checked components are compatible."
 }

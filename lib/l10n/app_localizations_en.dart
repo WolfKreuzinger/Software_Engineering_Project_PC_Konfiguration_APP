@@ -522,4 +522,22 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get termsDate => 'Last updated: February 2026';
+
+  @override
+  String get compatibilityOk => 'COMPATIBILITY: OK';
+
+  @override
+  String get compatibilityWarning => 'COMPATIBILITY WARNING';
+
+  @override
+  String get compatibilityError => 'COMPATIBILITY ERROR';
+
+  @override
+  String get compatibilityViewDetails => 'DETAILS';
+
+  @override
+  String get compatibilityDetails => 'Compatibility Details';
+
+  @override
+  String get compatibilityNoIssues => 'All checked components are compatible.';
 }
