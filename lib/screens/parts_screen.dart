@@ -88,7 +88,10 @@ class _PartsScreenState extends State<PartsScreen> {
   /// without relying on stored `metadata.datasetType`.
   Future<void> _loadParts() async {
     if (!mounted) return;
-    setState(() { _isLoading = true; _loadError = null; });
+    setState(() {
+      _isLoading = true;
+      _loadError = null;
+    });
 
     final db = FirebaseFirestore.instance;
     final parts = <(String, Map<String, dynamic>)>[];
@@ -597,25 +600,25 @@ class _PartsScreenState extends State<PartsScreen> {
                                 final count = _isLoading
                                     ? 0
                                     : _allParts
-                                        .where(
-                                          (p) => _matchesSelectedTypeIdx(
-                                            _selectedType,
-                                            _partIndexFor(p.$1, p.$2),
-                                          ),
-                                        )
-                                        .where(
-                                          (p) => _matchesSearchIdx(
-                                            _searchQuery,
-                                            _partIndexFor(p.$1, p.$2),
-                                          ),
-                                        )
-                                        .where(
-                                          (p) => _matchesPrice(
-                                            _priceRange,
-                                            _partIndexFor(p.$1, p.$2),
-                                          ),
-                                        )
-                                        .length;
+                                          .where(
+                                            (p) => _matchesSelectedTypeIdx(
+                                              _selectedType,
+                                              _partIndexFor(p.$1, p.$2),
+                                            ),
+                                          )
+                                          .where(
+                                            (p) => _matchesSearchIdx(
+                                              _searchQuery,
+                                              _partIndexFor(p.$1, p.$2),
+                                            ),
+                                          )
+                                          .where(
+                                            (p) => _matchesPrice(
+                                              _priceRange,
+                                              _partIndexFor(p.$1, p.$2),
+                                            ),
+                                          )
+                                          .length;
                                 return Text(
                                   '$count Products Found',
                                   style: theme.textTheme.bodySmall?.copyWith(
@@ -755,7 +758,11 @@ class _PartsScreenState extends State<PartsScreen> {
 
   // ── Parts list ─────────────────────────────────────────────────────────────
 
-  Widget _buildPartsList(BuildContext context, ThemeData theme, ColorScheme cs) {
+  Widget _buildPartsList(
+    BuildContext context,
+    ThemeData theme,
+    ColorScheme cs,
+  ) {
     if (_isLoading) {
       return const Center(child: CircularProgressIndicator());
     }
@@ -909,16 +916,20 @@ class _PartsScreenState extends State<PartsScreen> {
                         children: [
                           Text(
                             title,
-                            style: theme.textTheme.titleMedium
-                                ?.copyWith(fontWeight: FontWeight.w900),
+                            style: theme.textTheme.titleMedium?.copyWith(
+                              fontWeight: FontWeight.w900,
+                            ),
                           ),
                           const SizedBox(height: 4),
                           Container(
                             padding: const EdgeInsets.symmetric(
-                                horizontal: 8, vertical: 3),
+                              horizontal: 8,
+                              vertical: 3,
+                            ),
                             decoration: BoxDecoration(
-                              color: cs.secondaryContainer
-                                  .withValues(alpha: 0.7),
+                              color: cs.secondaryContainer.withValues(
+                                alpha: 0.7,
+                              ),
                               borderRadius: BorderRadius.circular(99),
                             ),
                             child: Text(
@@ -956,14 +967,11 @@ class _PartsScreenState extends State<PartsScreen> {
                       )
                     : ListView.separated(
                         controller: scrollCtrl,
-                        padding:
-                            const EdgeInsets.fromLTRB(20, 0, 20, 32),
+                        padding: const EdgeInsets.fromLTRB(20, 0, 20, 32),
                         itemCount: specs.length,
-                        separatorBuilder: (_, _) =>
-                            const Divider(height: 1),
+                        separatorBuilder: (_, _) => const Divider(height: 1),
                         itemBuilder: (_, i) => Padding(
-                          padding:
-                              const EdgeInsets.symmetric(vertical: 10),
+                          padding: const EdgeInsets.symmetric(vertical: 10),
                           child: Row(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
@@ -971,8 +979,7 @@ class _PartsScreenState extends State<PartsScreen> {
                                 width: 150,
                                 child: Text(
                                   specs[i].$1,
-                                  style: theme.textTheme.bodySmall
-                                      ?.copyWith(
+                                  style: theme.textTheme.bodySmall?.copyWith(
                                     color: cs.onSurfaceVariant,
                                     fontWeight: FontWeight.w600,
                                   ),
@@ -981,8 +988,7 @@ class _PartsScreenState extends State<PartsScreen> {
                               Expanded(
                                 child: Text(
                                   specs[i].$2,
-                                  style: theme.textTheme.bodyMedium
-                                      ?.copyWith(
+                                  style: theme.textTheme.bodyMedium?.copyWith(
                                     fontWeight: FontWeight.w700,
                                   ),
                                 ),
@@ -1058,7 +1064,11 @@ class _PartsScreenState extends State<PartsScreen> {
   };
 
   static const _skipFields = <String>{
-    'name', '_category', 'price', 'metadata', 'spec',
+    'name',
+    '_category',
+    'price',
+    'metadata',
+    'spec',
   };
 
   static String _prettyKey(String key) {
@@ -1349,38 +1359,41 @@ class _PartCard extends StatelessWidget {
                         ),
                       ),
                       SizedBox(height: 10 + topInset),
-                      Row(
-                        children: [
-                          Expanded(
-                            child: Text(
-                              price,
-                              maxLines: 1,
-                              softWrap: false,
-                              overflow: TextOverflow.ellipsis,
-                              style: theme.textTheme.titleLarge?.copyWith(
-                                fontWeight: FontWeight.w900,
-                                color: cs.primary,
+                      Transform.translate(
+                        offset: const Offset(0, 12),
+                        child: Row(
+                          children: [
+                            Expanded(
+                              child: Text(
+                                price,
+                                maxLines: 1,
+                                softWrap: false,
+                                overflow: TextOverflow.ellipsis,
+                                style: theme.textTheme.titleLarge?.copyWith(
+                                  fontWeight: FontWeight.w900,
+                                  color: cs.primary,
+                                ),
                               ),
                             ),
-                          ),
-                          const SizedBox(width: 12),
-                          FilledButton(
-                            onPressed: actionEnabled ? onTapAction : null,
-                            style: FilledButton.styleFrom(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 20,
-                                vertical: 13,
+                            const SizedBox(width: 12),
+                            FilledButton(
+                              onPressed: actionEnabled ? onTapAction : null,
+                              style: FilledButton.styleFrom(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 20,
+                                  vertical: 13,
+                                ),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(999),
+                                ),
+                                textStyle: theme.textTheme.labelLarge?.copyWith(
+                                  fontWeight: FontWeight.w900,
+                                ),
                               ),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(999),
-                              ),
-                              textStyle: theme.textTheme.labelLarge?.copyWith(
-                                fontWeight: FontWeight.w900,
-                              ),
+                              child: Text(actionText),
                             ),
-                            child: Text(actionText),
-                          ),
-                        ],
+                          ],
+                        ),
                       ),
                     ],
                   ),
