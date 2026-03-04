@@ -11,9 +11,14 @@ class PartsScreen extends StatefulWidget {
 class _PartsScreenState extends State<PartsScreen> {
   final _searchCtrl = TextEditingController();
   String _searchQuery = '';
-  final ValueNotifier<int> _visibleCount = ValueNotifier<int>(0);
   final Map<String, _PartIndex> _partIndexCache = <String, _PartIndex>{};
-  int? _pendingVisibleCount;
+
+  static const int _kLimitPerCategory = 10;
+  bool _isLoading = true;
+  String? _loadError;
+  int _totalCount = 0;
+  final Map<String, int> _categoryCounts = {};
+  List<_LoadedPart> _loadedParts = [];
 
   String _selectedType = 'All Components';
   String _selectedSort = 'Price: Low to High';
@@ -48,57 +53,16 @@ class _PartsScreenState extends State<PartsScreen> {
     'Name: A to Z',
   ];
 
-  bool _useCollectionGroup = false;
-
   @override
   void initState() {
     super.initState();
-    _detectPartsLocation();
-  }
-
-  Future<void> _detectPartsLocation() async {
-    try {
-      final snap = await FirebaseFirestore.instance
-          .collection('parts')
-          .limit(1)
-          .get();
-      if (!mounted) return;
-      setState(() => _useCollectionGroup = snap.docs.isEmpty);
-    } catch (_) {
-      if (!mounted) return;
-      setState(() => _useCollectionGroup = false);
-    }
-  }
-
-  Query<Map<String, dynamic>> _partsQuery() {
-    if (_useCollectionGroup) {
-      return FirebaseFirestore.instance.collectionGroup('parts');
-    }
-    return FirebaseFirestore.instance.collection('parts');
+    _loadParts();
   }
 
   @override
   void dispose() {
-    _pendingVisibleCount = null;
-    _visibleCount.dispose();
     _searchCtrl.dispose();
     super.dispose();
-  }
-
-  void _setVisibleCount(int next, {bool immediate = false}) {
-    if (immediate) {
-      if (_visibleCount.value != next) _visibleCount.value = next;
-      return;
-    }
-    if (_visibleCount.value == next || _pendingVisibleCount == next) return;
-    _pendingVisibleCount = next;
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (!mounted) return;
-      final pending = _pendingVisibleCount;
-      _pendingVisibleCount = null;
-      if (pending == null || _visibleCount.value == pending) return;
-      _visibleCount.value = pending;
-    });
   }
 
   void _applySearch() {
@@ -106,7 +70,6 @@ class _PartsScreenState extends State<PartsScreen> {
     if (next == _searchQuery) return;
     setState(() {
       _searchQuery = next;
-      _setVisibleCount(0, immediate: true);
     });
   }
 
@@ -438,9 +401,11 @@ class _PartsScreenState extends State<PartsScreen> {
       case 'case':
         return Icons.crop_square_rounded;
       case 'cpu-cooler':
+        return Icons.ac_unit_rounded; // snowflake → cooling
       case 'case-fan':
+        return Icons.air_rounded; // airflow lines → fan
       case 'fan-controller':
-        return Icons.toys_rounded;
+        return Icons.tune_rounded; // sliders → controller
       case 'wired-network-card':
       case 'wireless-network-card':
         return Icons.wifi_rounded;
@@ -515,11 +480,18 @@ class _PartsScreenState extends State<PartsScreen> {
                               ),
                             ),
                             const SizedBox(height: 2),
-                            ValueListenableBuilder<int>(
-                              valueListenable: _visibleCount,
-                              builder: (context, visibleCount, _) {
+                            Builder(
+                              builder: (context) {
+                                final total =
+                                    _selectedType == 'All Components'
+                                        ? _totalCount
+                                        : (_categoryCounts[
+                                                _canonicalType(
+                                                  _selectedType,
+                                                )] ??
+                                            0);
                                 return Text(
-                                  '$visibleCount Products Found',
+                                  '$total Products Found',
                                   style: theme.textTheme.bodySmall?.copyWith(
                                     color: cs.onSurfaceVariant,
                                     fontWeight: FontWeight.w600,
@@ -547,7 +519,6 @@ class _PartsScreenState extends State<PartsScreen> {
                                   _selectedType = t;
                                   _selectedSort = sort;
                                   _priceRange = range;
-                                  _setVisibleCount(0, immediate: true);
                                 });
                                 Navigator.of(context).pop();
                               },
@@ -589,7 +560,6 @@ class _PartsScreenState extends State<PartsScreen> {
                                 onPick: (v) {
                                   setState(() {
                                     _selectedType = v;
-                                    _setVisibleCount(0, immediate: true);
                                   });
                                   Navigator.of(context).pop();
                                 },
@@ -613,7 +583,6 @@ class _PartsScreenState extends State<PartsScreen> {
                                 onApply: (v) {
                                   setState(() {
                                     _priceRange = v;
-                                    _setVisibleCount(0, immediate: true);
                                   });
                                   Navigator.of(context).pop();
                                 },
@@ -637,7 +606,6 @@ class _PartsScreenState extends State<PartsScreen> {
                                 onPick: (v) {
                                   setState(() {
                                     _selectedSort = v;
-                                    _setVisibleCount(0, immediate: true);
                                   });
                                   Navigator.of(context).pop();
                                 },
@@ -651,116 +619,7 @@ class _PartsScreenState extends State<PartsScreen> {
                   ),
                 ),
                 Expanded(
-                  child: StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
-                    stream: _partsQuery().snapshots(),
-                    builder: (context, snap) {
-                      if (snap.hasError) {
-                        _setVisibleCount(0);
-                        return _EmptyState(
-                          icon: Icons.error_outline_rounded,
-                          title: 'Error',
-                          subtitle: snap.error.toString(),
-                          theme: theme,
-                        );
-                      }
-
-                      if (!snap.hasData) {
-                        _setVisibleCount(0);
-                        return const Center(child: CircularProgressIndicator());
-                      }
-
-                      final docs = snap.data!.docs;
-                      final docIds = docs.map((d) => d.reference.path).toSet();
-                      _partIndexCache.removeWhere(
-                        (id, _) => !docIds.contains(id),
-                      );
-                      if (docs.isEmpty) {
-                        _setVisibleCount(0);
-                        return _EmptyState(
-                          icon: Icons.cloud_off_rounded,
-                          title: 'No data loaded',
-                          subtitle: _useCollectionGroup
-                              ? 'collectionGroup("parts") returned 0 docs.'
-                              : 'collection("parts") returned 0 docs.',
-                          theme: theme,
-                        );
-                      }
-
-                      final q = _searchQuery;
-                      final filtered = docs
-                          .map((d) {
-                            final data = d.data();
-                            final idx = _partIndexFor(d.reference.path, data);
-                            return (d.id, data, idx);
-                          })
-                          .where(
-                            (e) => _matchesSelectedTypeIdx(_selectedType, e.$3),
-                          )
-                          .where((e) => _matchesSearchIdx(q, e.$3))
-                          .where((e) => _matchesPrice(_priceRange, e.$3))
-                          .toList(growable: true);
-
-                      filtered.sort(
-                        (a, b) => _sortCompare(_selectedSort, a.$2, b.$2),
-                      );
-                      _setVisibleCount(filtered.length);
-
-                      if (filtered.isEmpty) {
-                        return _EmptyState(
-                          icon: Icons.search_off_rounded,
-                          title: 'No results',
-                          subtitle: 'Try adjusting filters or search.',
-                          theme: theme,
-                        );
-                      }
-
-                      return ListView.separated(
-                        padding: const EdgeInsets.fromLTRB(16, 2, 16, 16),
-                        itemCount: filtered.length,
-                        separatorBuilder: (_, _) => const SizedBox(height: 12),
-                        itemBuilder: (context, i) {
-                          final id = filtered[i].$1;
-                          final data = filtered[i].$2;
-                          final idx = filtered[i].$3;
-
-                          final title = _titleFor(data);
-                          final subtitle = _subtitleFor(data);
-                          final price = _money(data['price']);
-                          final type = idx.type;
-
-                          return _PartCard(
-                            theme: theme,
-                            icon: _iconForType(type),
-                            title: title,
-                            specs: subtitle,
-                            price: price,
-                            actionText: 'View',
-                            actionEnabled: true,
-                            onTapAction: () async {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(
-                                  content: Text('Selected: $title'),
-                                  duration: const Duration(milliseconds: 900),
-                                ),
-                              );
-                              await FirebaseFirestore.instance
-                                  .collection('selected_parts')
-                                  .doc('current')
-                                  .collection('items')
-                                  .doc(id)
-                                  .set({
-                                    'partId': id,
-                                    'name': data['name'],
-                                    'type': type,
-                                    'price': data['price'],
-                                    'addedAt': FieldValue.serverTimestamp(),
-                                  }, SetOptions(merge: true));
-                            },
-                          );
-                        },
-                      );
-                    },
-                  ),
+                  child: _buildPartsList(context, theme, cs),
                 ),
               ],
             ),
@@ -768,6 +627,488 @@ class _PartsScreenState extends State<PartsScreen> {
         ),
       ),
     );
+  }
+
+  Future<void> _loadParts() async {
+    if (!mounted) return;
+    setState(() {
+      _isLoading = true;
+      _loadError = null;
+    });
+
+    final db = FirebaseFirestore.instance;
+    final seenPaths = <String>{};
+    final parts = <_LoadedPart>[];
+    final counts = <String, int>{};
+
+    // Fetch the authoritative total once — no filter, no double counting
+    int fetchedTotal = 0;
+    try {
+      final cnt = await db.collection('parts').count().get();
+      fetchedTotal = (cnt.count ?? 0).toInt();
+    } catch (_) {}
+
+    for (final cat in _types.where((t) => t != 'All Components')) {
+      int catTotal = 0;
+
+      // Source 1: all collections named after the category at any depth
+      // (includes top-level collection(cat) and any nested subcollections)
+      try {
+        final cg = db.collectionGroup(cat);
+        final snap = await cg.limit(_kLimitPerCategory).get();
+        for (final d in snap.docs) {
+          if (seenPaths.add(d.reference.path)) {
+            parts.add(_LoadedPart(
+              d.reference.path,
+              d.data(),
+              _partIndexFor(d.reference.path, d.data()),
+            ));
+          }
+        }
+        final cnt = await cg.count().get();
+        catTotal += (cnt.count ?? 0).toInt();
+      } catch (_) {}
+
+      // Source 2: flat 'parts' collection filtered by 'type' field
+      try {
+        final q = db.collection('parts').where('type', isEqualTo: cat);
+        final snap = await q.limit(_kLimitPerCategory).get();
+        for (final d in snap.docs) {
+          if (seenPaths.add(d.reference.path)) {
+            parts.add(_LoadedPart(
+              d.reference.path,
+              d.data(),
+              _partIndexFor(d.reference.path, d.data()),
+            ));
+          }
+        }
+        final cnt = await q.count().get();
+        catTotal += (cnt.count ?? 0).toInt();
+      } catch (_) {}
+
+      // Source 3: flat 'parts' collection filtered by 'metadata.datasetType'
+      try {
+        final q = db
+            .collection('parts')
+            .where('metadata.datasetType', isEqualTo: cat);
+        final snap = await q.limit(_kLimitPerCategory).get();
+        for (final d in snap.docs) {
+          if (seenPaths.add(d.reference.path)) {
+            parts.add(_LoadedPart(
+              d.reference.path,
+              d.data(),
+              _partIndexFor(d.reference.path, d.data()),
+            ));
+          }
+        }
+        final cnt = await q.count().get();
+        catTotal += (cnt.count ?? 0).toInt();
+      } catch (_) {}
+
+      counts[cat] = catTotal;
+    }
+
+    if (!mounted) return;
+    setState(() {
+      _totalCount = fetchedTotal;
+      _loadedParts = parts;
+      _categoryCounts
+        ..clear()
+        ..addAll(counts);
+      _isLoading = false;
+    });
+  }
+
+  Widget _buildPartsList(
+    BuildContext context,
+    ThemeData theme,
+    ColorScheme cs,
+  ) {
+    if (_isLoading) {
+      return const Center(child: CircularProgressIndicator());
+    }
+
+    if (_loadError != null) {
+      return _EmptyState(
+        icon: Icons.error_outline_rounded,
+        title: 'Error',
+        subtitle: _loadError!,
+        theme: theme,
+      );
+    }
+
+    if (_loadedParts.isEmpty) {
+      return _EmptyState(
+        icon: Icons.cloud_off_rounded,
+        title: 'No data loaded',
+        subtitle: 'No products found in any category.',
+        theme: theme,
+      );
+    }
+
+    final q = _searchQuery;
+    final filtered =
+        _loadedParts
+            .where((p) => _matchesSelectedTypeIdx(_selectedType, p.index))
+            .where((p) => _matchesSearchIdx(q, p.index))
+            .where((p) => _matchesPrice(_priceRange, p.index))
+            .toList(growable: true);
+
+    filtered.sort((a, b) => _sortCompare(_selectedSort, a.data, b.data));
+
+    if (filtered.isEmpty) {
+      return _EmptyState(
+        icon: Icons.search_off_rounded,
+        title: 'No results',
+        subtitle: 'Try adjusting filters or search.',
+        theme: theme,
+      );
+    }
+
+    return ListView.separated(
+      padding: const EdgeInsets.fromLTRB(16, 2, 16, 16),
+      itemCount: filtered.length,
+      separatorBuilder: (_, _) => const SizedBox(height: 12),
+      itemBuilder: (context, i) {
+        final p = filtered[i];
+        final data = p.data;
+        final idx = p.index;
+        final title = _titleFor(data);
+        final subtitle = _subtitleFor(data);
+        final price = _money(data['price']);
+        final type = idx.type;
+
+        return _PartCard(
+          theme: theme,
+          icon: _iconForType(type),
+          title: title,
+          specs: subtitle,
+          price: price,
+          actionText: 'View',
+          actionEnabled: true,
+          onTapAction: () => _showPartDetails(context, data, type, title),
+        );
+      },
+    );
+  }
+
+  // ── Detail bottom sheet ───────────────────────────────────────────────────
+
+  void _showPartDetails(
+    BuildContext context,
+    Map<String, dynamic> data,
+    String type,
+    String title,
+  ) {
+    final theme = Theme.of(context);
+    final cs = theme.colorScheme;
+    final specs = _detailSpecs(type, data);
+    final price = _money(data['price']);
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (_) {
+        return DraggableScrollableSheet(
+          initialChildSize: 0.6,
+          minChildSize: 0.4,
+          maxChildSize: 0.92,
+          builder: (_, scrollCtrl) {
+            return Container(
+              decoration: BoxDecoration(
+                color: cs.surface,
+                borderRadius:
+                    const BorderRadius.vertical(top: Radius.circular(28)),
+              ),
+              child: Column(
+                children: [
+                  // Drag handle
+                  Padding(
+                    padding: const EdgeInsets.only(top: 12, bottom: 4),
+                    child: Container(
+                      width: 40,
+                      height: 4,
+                      decoration: BoxDecoration(
+                        color: cs.outlineVariant,
+                        borderRadius: BorderRadius.circular(99),
+                      ),
+                    ),
+                  ),
+                  // Header
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(20, 10, 20, 4),
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(10),
+                          decoration: BoxDecoration(
+                            color: cs.primaryContainer,
+                            borderRadius: BorderRadius.circular(14),
+                          ),
+                          child: Icon(
+                            _iconForType(type),
+                            color: cs.onPrimaryContainer,
+                            size: 26,
+                          ),
+                        ),
+                        const SizedBox(width: 14),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                title,
+                                style: theme.textTheme.titleMedium?.copyWith(
+                                  fontWeight: FontWeight.w900,
+                                ),
+                              ),
+                              const SizedBox(height: 4),
+                              Container(
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 8, vertical: 3),
+                                decoration: BoxDecoration(
+                                  color:
+                                      cs.secondaryContainer.withValues(alpha: 0.7),
+                                  borderRadius: BorderRadius.circular(99),
+                                ),
+                                child: Text(
+                                  type,
+                                  style: theme.textTheme.labelSmall?.copyWith(
+                                    color: cs.onSecondaryContainer,
+                                    fontWeight: FontWeight.w700,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        Text(
+                          price,
+                          style: theme.textTheme.titleLarge?.copyWith(
+                            fontWeight: FontWeight.w900,
+                            color: cs.primary,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const Divider(height: 24, indent: 20, endIndent: 20),
+                  // Spec list
+                  Expanded(
+                    child: specs.isEmpty
+                        ? Center(
+                            child: Text(
+                              'No detailed specs available.',
+                              style: theme.textTheme.bodyMedium?.copyWith(
+                                color: cs.onSurfaceVariant,
+                              ),
+                            ),
+                          )
+                        : ListView.separated(
+                            controller: scrollCtrl,
+                            padding: const EdgeInsets.fromLTRB(20, 0, 20, 32),
+                            itemCount: specs.length,
+                            separatorBuilder: (_, _) =>
+                                const Divider(height: 1),
+                            itemBuilder: (_, i) {
+                              final row = specs[i];
+                              return Padding(
+                                padding: const EdgeInsets.symmetric(
+                                    vertical: 10),
+                                child: Row(
+                                  crossAxisAlignment:
+                                      CrossAxisAlignment.start,
+                                  children: [
+                                    SizedBox(
+                                      width: 150,
+                                      child: Text(
+                                        row.$1,
+                                        style: theme.textTheme.bodySmall
+                                            ?.copyWith(
+                                          color: cs.onSurfaceVariant,
+                                          fontWeight: FontWeight.w600,
+                                        ),
+                                      ),
+                                    ),
+                                    Expanded(
+                                      child: Text(
+                                        row.$2,
+                                        style: theme.textTheme.bodyMedium
+                                            ?.copyWith(
+                                          fontWeight: FontWeight.w700,
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              );
+                            },
+                          ),
+                  ),
+                ],
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
+  // Human-readable labels for spec keys (matches import_parts.js schema)
+  static const _labelMap = <String, String>{
+    // CPU
+    'coreCount': 'Core Count',
+    'coreClock': 'Core Clock',
+    'boostClock': 'Boost Clock',
+    'microarchitecture': 'Architecture',
+    'tdp': 'TDP',
+    'graphics': 'Integrated Graphics',
+    'socket': 'Socket',
+    'eccMemorySupport': 'ECC Support',
+    'includesCooler': 'Includes Cooler',
+    // GPU
+    'chipset': 'Chipset',
+    'memory': 'Memory',
+    'memoryGb': 'Memory',
+    'lengthMm': 'Length (mm)',
+    'length': 'Length',
+    // Motherboard
+    'formFactor': 'Form Factor',
+    'maxMemory': 'Max Memory',
+    'maxMemoryGb': 'Max Memory',
+    'memorySlots': 'Memory Slots',
+    'memoryType': 'Memory Type',
+    // Memory (RAM)
+    'speed': 'Speed',
+    'modules': 'Modules',
+    'firstWordLatency': 'First Word Latency',
+    'casLatency': 'CAS Latency',
+    'pricePerGb': 'Price / GB',
+    'voltage': 'Voltage',
+    'heatSpreader': 'Heat Spreader',
+    // Storage
+    'capacity': 'Capacity',
+    'capacityGb': 'Capacity',
+    'capacityGB': 'Capacity',
+    'interface': 'Interface',
+    'cache': 'Cache',
+    'type': 'Type',
+    'driveType': 'Drive Type',
+    // Case
+    'psu': 'Included PSU',
+    'sidePanel': 'Side Panel',
+    'externalVolume': 'External Volume',
+    'internal35Bays': 'Internal 3.5" Bays',
+    // PSU
+    'wattage': 'Wattage',
+    'efficiency': 'Efficiency',
+    'modular': 'Modular',
+    // CPU Cooler / Fans
+    'rpm': 'RPM',
+    'noiseLevel': 'Noise Level',
+    'noiseLevelDb': 'Noise Level',
+    'sizeMm': 'Size (mm)',
+    'size': 'Size',
+    'airflowCfm': 'Airflow (CFM)',
+    'airflow': 'Airflow',
+    'pwm': 'PWM',
+    'led': 'LED',
+    'waterCooled': 'Water Cooled',
+    // Fan controller
+    'channels': 'Channels',
+    'channelWattage': 'Channel Wattage',
+    'accessoryType': 'Type',
+    // Network
+    'protocol': 'Protocol',
+    'speedMbps': 'Speed',
+    'bluetooth': 'Bluetooth',
+    'ports': 'Ports',
+    // Sound card
+    'snrDb': 'SNR',
+    'snr': 'SNR',
+    'sampleRateKHz': 'Sample Rate',
+    'sampleRate': 'Sample Rate',
+    'digitalAudio': 'Digital Audio',
+    // Optical drive
+    'bd': 'Blu-ray Read',
+    'bdWrite': 'Blu-ray Write',
+    'dvd': 'DVD Read',
+    'dvdWrite': 'DVD Write',
+    'cd': 'CD Read',
+    'cdWrite': 'CD Write',
+    'bufferMB': 'Buffer',
+    // UPS
+    'capacityVA': 'Capacity (VA)',
+    'capacityW': 'Capacity (W)',
+    'outlets': 'Outlets',
+    // Thermal paste
+    'thermalConductivityWmk': 'Thermal Conductivity',
+    'amountG': 'Amount',
+    'amount': 'Amount',
+    // OS
+    'mode': 'Mode',
+    'family': 'Family',
+    'version': 'Version',
+    'architecture': 'Architecture',
+    'license': 'License',
+    // Misc
+    'color': 'Color',
+  };
+
+  static String _prettyKey(String key) {
+    if (_labelMap.containsKey(key)) return _labelMap[key]!;
+    // Fallback: split camelCase / snake_case
+    final s = key
+        .replaceAllMapped(
+          RegExp(r'([a-z0-9])([A-Z])'),
+          (m) => '${m.group(1)} ${m.group(2)}',
+        )
+        .replaceAll('_', ' ')
+        .trim();
+    if (s.isEmpty) return key;
+    return s[0].toUpperCase() + s.substring(1);
+  }
+
+  static String _formatValue(dynamic v) {
+    if (v == null) return '';
+    if (v is bool) return v ? 'Yes' : 'No';
+    if (v is List) {
+      final parts = v
+          .where((e) => e != null)
+          .map((e) => e.toString().trim())
+          .where((e) => e.isNotEmpty && e != 'null')
+          .toList();
+      return parts.join(' / ');
+    }
+    return v.toString().trim();
+  }
+
+  static List<(String, String)> _detailSpecs(
+    String type,
+    Map<String, dynamic> data,
+  ) {
+    final rows = <(String, String)>[];
+
+    // Brand from top-level first
+    final brand = data['brand']?.toString().trim() ?? '';
+    if (brand.isNotEmpty && brand != 'null') {
+      rows.add(('Brand', brand));
+    }
+
+    // All spec sub-map fields — the actual product attributes from import_parts.js
+    final spec = data['spec'];
+    if (spec is Map) {
+      for (final e in spec.entries) {
+        final key = e.key as String;
+        final formatted = _formatValue(e.value);
+        if (formatted.isEmpty || formatted == 'null') continue;
+        rows.add((_prettyKey(key), formatted));
+      }
+    }
+
+    return rows;
   }
 }
 
@@ -781,6 +1122,14 @@ class _PartIndex {
     required this.price,
     required this.searchHay,
   });
+}
+
+class _LoadedPart {
+  final String path;
+  final Map<String, dynamic> data;
+  final _PartIndex index;
+
+  const _LoadedPart(this.path, this.data, this.index);
 }
 
 class _SearchField extends StatelessWidget {
