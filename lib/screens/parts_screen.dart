@@ -98,20 +98,27 @@ class _PartsScreenState extends State<PartsScreen> {
         ? [_canonicalType(widget.lockedType!)]
         : _types.where((t) => t != 'All Components').toList();
 
+    String? firstError;
+
     for (final cat in categories) {
       try {
         final snap = await db.collection(cat).limit(_kLimitPerCategory).get();
         for (final d in snap.docs) {
           final data = Map<String, dynamic>.from(d.data());
-          data['_category'] = cat; // inject category for type-detection
+          data['_category'] = cat;
           parts.add((d.reference.path, data));
         }
-      } catch (_) {}
+      } catch (e) {
+        firstError ??= '$cat: $e';
+        // ignore: avoid_print
+        print('[_loadParts] error loading $cat: $e');
+      }
     }
 
     if (!mounted) return;
     setState(() {
       _allParts = parts;
+      _loadError = parts.isEmpty ? firstError : null;
       _isLoading = false;
     });
   }

@@ -115,26 +115,84 @@ function detectCpuSocket(name) {
   if (!name) return null;
   const n = String(name).toLowerCase().trim();
 
-  // AMD Ryzen
-  if (n.includes("ryzen")) {
-    const match = n.match(/ryzen\s+\d\s+(\d{4})/);
-    if (match) {
-      const model = parseInt(match[1], 10);
-      if (model >= 7000) return "AM5";
-      if (model >= 1000) return "AM4";
+  // ── AMD Threadripper PRO ───────────────────────────────────────────────────
+  // Must be checked before generic Threadripper and Ryzen checks.
+  if (n.includes("threadripper") && n.includes("pro")) {
+    const m = n.match(/threadripper\s+pro\s+(\d{4,5})/);
+    if (m) {
+      const num = parseInt(m[1], 10);
+      if (num >= 7000) return "WRX90";
+      return "sWRX8"; // 3000 PRO, 5000 PRO series
     }
-    if (n.includes("threadripper")) {
-      if (n.match(/79\d{2}/) || n.includes("7000")) return "sTR5";
-      return "sTRX4";
-    }
+    return "sWRX8";
   }
 
-  // Older AMD families
-  if (n.includes("fx-"))    return "AM3+";
-  if (n.includes("phenom")) return "AM3";
-  if (n.includes("athlon")) return "AM4";
+  // ── AMD Threadripper (HEDT) ────────────────────────────────────────────────
+  if (n.includes("threadripper")) {
+    const m = n.match(/threadripper\s+(\d{4,5})/);
+    if (m) {
+      const num = parseInt(m[1], 10);
+      if (num >= 7000) return "sTR5";
+      if (num >= 3000) return "sTRX4";
+      // 2nd-gen: WX variants (2970WX, 2990WX) → sTRX4; others (2920X, 2950X) → TR4
+      if (num >= 2000) return /\d{4}wx/.test(n) ? "sTRX4" : "TR4";
+      return "TR4"; // 1st gen: 1900X, 1920X, 1950X
+    }
+    return null;
+  }
 
-  // Intel Core i-series (model number heuristic)
+  // ── AMD Ryzen (mainstream desktop + PRO variants) ─────────────────────────
+  // Handles: "Ryzen 9 7950X", "Ryzen 5 PRO 7645", "Ryzen 5 1600 (14nm)"
+  if (n.includes("ryzen")) {
+    const m = n.match(/ryzen\s+\d+\s+(?:pro\s+)?(\d{4,5})/);
+    if (m) {
+      const num = parseInt(m[1], 10);
+      if (num >= 7000) return "AM5";
+      if (num >= 1000) return "AM4";
+    }
+    return null;
+  }
+
+  // ── AMD FX ────────────────────────────────────────────────────────────────
+  if (n.includes("fx-")) return "AM3+";
+
+  // ── AMD Phenom ────────────────────────────────────────────────────────────
+  if (n.includes("phenom")) return "AM3";
+
+  // ── AMD Athlon ────────────────────────────────────────────────────────────
+  if (n.includes("athlon")) {
+    // AM4: Raven Ridge / Picasso APUs — GE suffix or 3000G
+    if (/\b\d{3}ge\b/.test(n) || /\b3000g\b/.test(n)) return "AM4";
+    // AM4: Athlon X4 9xx (Zen-based, e.g. X4 940, X4 950, X4 970)
+    if (/x4[\s-]*9\d\d/.test(n)) return "AM4";
+    // AM1: Kabini APU (Athlon 5370, 5350, 5150)
+    if (/\b5[13][57]0\b/.test(n)) return "AM1";
+    // AM3: Athlon II X2/X3/X4 (DDR3 era)
+    if (n.includes("athlon ii")) return "AM3";
+    // FM2+: Athlon X4 8xx (Kaveri / Godavari, e.g. 860K, 870K, 880K)
+    const x4m = n.match(/x4[\s-]*(\d{3})/);
+    if (x4m) {
+      const num = parseInt(x4m[1], 10);
+      if (num >= 840) return "FM2+";
+      if (num >= 500) return "FM2"; // X4 740, 750K, 760K, 530, 550
+    }
+    // FM2: Athlon X2 (Trinity/Richland-based desktop, e.g. X2 340, X2 370K)
+    if (/x2[\s-]*\d{3}/.test(n)) return "FM2";
+    return null;
+  }
+
+  // ── AMD A-series APU ──────────────────────────────────────────────────────
+  // Matches "A4-6300", "A10-7850K", "Pro A10-7800B", etc.
+  const apuMatch = n.match(/\ba(\d+)-(\d{4})/);
+  if (apuMatch) {
+    const model = parseInt(apuMatch[2], 10);
+    if (model >= 9000) return "AM4";   // Bristol Ridge: A6-9500, A10-9700
+    if (model >= 6000) return "FM2+";  // Kaveri/Godavari: A10-7850K, A8-6600K
+    if (model >= 4000) return "FM2";   // Trinity/Richland: A8-5500, A4-4000
+    return "FM1";                       // Llano: A8-3850, A4-3300
+  }
+
+  // ── Intel Core i-series (model number heuristic) ──────────────────────────
   const intelMatch = n.match(/i[3579]-?(\d{4,5})/);
   if (intelMatch) {
     const model = parseInt(intelMatch[1], 10);
