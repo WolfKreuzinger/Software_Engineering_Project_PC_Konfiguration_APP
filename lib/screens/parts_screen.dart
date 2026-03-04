@@ -32,9 +32,12 @@ class PartsScreen extends StatefulWidget {
 class _PartsScreenState extends State<PartsScreen> {
   final _searchCtrl = TextEditingController();
   String _searchQuery = '';
-  final ValueNotifier<int> _visibleCount = ValueNotifier<int>(0);
   final Map<String, _PartIndex> _partIndexCache = <String, _PartIndex>{};
-  int? _pendingVisibleCount;
+
+  static const int _kLimitPerCategory = 10;
+  bool _isLoading = true;
+  String? _loadError;
+  List<(String, Map<String, dynamic>)> _allParts = [];
 
   String _selectedType = 'All Components';
   String _selectedSort = 'Price: Low to High';
@@ -69,7 +72,6 @@ class _PartsScreenState extends State<PartsScreen> {
     'Name: A to Z',
   ];
 
-  bool _useCollectionGroup = false;
   bool get _isTypeLocked => (widget.lockedType ?? '').trim().isNotEmpty;
 
   @override
@@ -78,73 +80,52 @@ class _PartsScreenState extends State<PartsScreen> {
     if (_isTypeLocked) {
       _selectedType = _canonicalType(widget.lockedType!);
     }
-    _detectPartsLocation();
+    _loadParts();
   }
 
-  Future<void> _detectPartsLocation() async {
-    try {
-      final snap = await FirebaseFirestore.instance
-          .collection('parts')
-          .limit(1)
-          .get();
-      if (!mounted) return;
-      setState(() => _useCollectionGroup = snap.docs.isEmpty);
-    } catch (_) {
-      if (!mounted) return;
-      setState(() => _useCollectionGroup = false);
-    }
-  }
+  /// Load up to [_kLimitPerCategory] items from each per-type collection.
+  /// Each document gets a synthetic `_category` field so type-detection works
+  /// without relying on stored `metadata.datasetType`.
+  Future<void> _loadParts() async {
+    if (!mounted) return;
+    setState(() { _isLoading = true; _loadError = null; });
 
-  Query<Map<String, dynamic>> _partsQuery() {
-    if (_isTypeLocked) {
-      final locked = _canonicalType(_selectedType);
-      if (_useCollectionGroup) {
-        return FirebaseFirestore.instance
-            .collectionGroup('parts')
-            .where('metadata.datasetType', isEqualTo: locked);
-      }
-      return FirebaseFirestore.instance
-          .collection('parts')
-          .where('metadata.datasetType', isEqualTo: locked);
+    final db = FirebaseFirestore.instance;
+    final parts = <(String, Map<String, dynamic>)>[];
+
+    // Determine which categories to load
+    final categories = _isTypeLocked
+        ? [_canonicalType(widget.lockedType!)]
+        : _types.where((t) => t != 'All Components').toList();
+
+    for (final cat in categories) {
+      try {
+        final snap = await db.collection(cat).limit(_kLimitPerCategory).get();
+        for (final d in snap.docs) {
+          final data = Map<String, dynamic>.from(d.data());
+          data['_category'] = cat; // inject category for type-detection
+          parts.add((d.reference.path, data));
+        }
+      } catch (_) {}
     }
 
-    if (_useCollectionGroup) {
-      return FirebaseFirestore.instance.collectionGroup('parts');
-    }
-    return FirebaseFirestore.instance.collection('parts');
+    if (!mounted) return;
+    setState(() {
+      _allParts = parts;
+      _isLoading = false;
+    });
   }
 
   @override
   void dispose() {
-    _pendingVisibleCount = null;
-    _visibleCount.dispose();
     _searchCtrl.dispose();
     super.dispose();
-  }
-
-  void _setVisibleCount(int next, {bool immediate = false}) {
-    if (immediate) {
-      if (_visibleCount.value != next) _visibleCount.value = next;
-      return;
-    }
-    if (_visibleCount.value == next || _pendingVisibleCount == next) return;
-    _pendingVisibleCount = next;
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (!mounted) return;
-      final pending = _pendingVisibleCount;
-      _pendingVisibleCount = null;
-      if (pending == null || _visibleCount.value == pending) return;
-      _visibleCount.value = pending;
-    });
   }
 
   void _applySearch() {
     final next = _searchCtrl.text;
     if (next == _searchQuery) return;
-    setState(() {
-      _searchQuery = next;
-      _setVisibleCount(0, immediate: true);
-    });
+    setState(() => _searchQuery = next);
   }
 
   static String _normType(String s) {
@@ -206,20 +187,19 @@ class _PartsScreenState extends State<PartsScreen> {
   }
 
   static String _datasetTypeFrom(Map<String, dynamic> data) {
+    // Injected by _loadParts() from the collection name — always correct
+    final cat = data['_category'];
+    if (cat != null && cat.toString().trim().isNotEmpty) {
+      return _canonicalType(cat.toString());
+    }
+
+    // Legacy fallback: old schema stored metadata.datasetType
     final meta = data['metadata'];
     if (meta is Map) {
       final ds = meta['datasetType'];
       if (ds != null && ds.toString().trim().isNotEmpty) {
         return _canonicalType(ds.toString());
       }
-    }
-
-    final t = data['type'];
-    if (t != null && t.toString().trim().isNotEmpty) {
-      final raw = t.toString().trim();
-      final fromRaw = _canonicalType(raw);
-      if (fromRaw.isNotEmpty) return fromRaw;
-      return _canonicalType(_camelToKebab(raw));
     }
 
     return '';
@@ -520,9 +500,11 @@ class _PartsScreenState extends State<PartsScreen> {
       case 'case':
         return Icons.crop_square_rounded;
       case 'cpu-cooler':
+        return Icons.ac_unit_rounded;
       case 'case-fan':
+        return Icons.air_rounded;
       case 'fan-controller':
-        return Icons.toys_rounded;
+        return Icons.tune_rounded;
       case 'wired-network-card':
       case 'wireless-network-card':
         return Icons.wifi_rounded;
@@ -603,11 +585,32 @@ class _PartsScreenState extends State<PartsScreen> {
                               ),
                             ),
                             const SizedBox(height: 2),
-                            ValueListenableBuilder<int>(
-                              valueListenable: _visibleCount,
-                              builder: (context, visibleCount, _) {
+                            Builder(
+                              builder: (context) {
+                                final count = _isLoading
+                                    ? 0
+                                    : _allParts
+                                        .where(
+                                          (p) => _matchesSelectedTypeIdx(
+                                            _selectedType,
+                                            _partIndexFor(p.$1, p.$2),
+                                          ),
+                                        )
+                                        .where(
+                                          (p) => _matchesSearchIdx(
+                                            _searchQuery,
+                                            _partIndexFor(p.$1, p.$2),
+                                          ),
+                                        )
+                                        .where(
+                                          (p) => _matchesPrice(
+                                            _priceRange,
+                                            _partIndexFor(p.$1, p.$2),
+                                          ),
+                                        )
+                                        .length;
                                 return Text(
-                                  '$visibleCount Products Found',
+                                  '$count Products Found',
                                   style: theme.textTheme.bodySmall?.copyWith(
                                     color: cs.onSurfaceVariant,
                                     fontWeight: FontWeight.w600,
@@ -636,7 +639,6 @@ class _PartsScreenState extends State<PartsScreen> {
                                     _selectedType = t;
                                     _selectedSort = sort;
                                     _priceRange = range;
-                                    _setVisibleCount(0, immediate: true);
                                   });
                                   Navigator.of(context).pop();
                                 },
@@ -681,10 +683,7 @@ class _PartsScreenState extends State<PartsScreen> {
                                   items: _types,
                                   selected: _selectedType,
                                   onPick: (v) {
-                                    setState(() {
-                                      _selectedType = v;
-                                      _setVisibleCount(0, immediate: true);
-                                    });
+                                    setState(() => _selectedType = v);
                                     Navigator.of(context).pop();
                                   },
                                   theme: theme,
@@ -705,10 +704,7 @@ class _PartsScreenState extends State<PartsScreen> {
                               builder: (_) => _PriceSheet(
                                 priceRange: _priceRange,
                                 onApply: (v) {
-                                  setState(() {
-                                    _priceRange = v;
-                                    _setVisibleCount(0, immediate: true);
-                                  });
+                                  setState(() => _priceRange = v);
                                   Navigator.of(context).pop();
                                 },
                                 theme: theme,
@@ -729,10 +725,7 @@ class _PartsScreenState extends State<PartsScreen> {
                                 items: _sorts,
                                 selected: _selectedSort,
                                 onPick: (v) {
-                                  setState(() {
-                                    _selectedSort = v;
-                                    _setVisibleCount(0, immediate: true);
-                                  });
+                                  setState(() => _selectedSort = v);
                                   Navigator.of(context).pop();
                                 },
                                 theme: theme,
@@ -744,145 +737,365 @@ class _PartsScreenState extends State<PartsScreen> {
                     ),
                   ),
                 ),
-                Expanded(
-                  child: StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
-                    stream: _partsQuery().snapshots(),
-                    builder: (context, snap) {
-                      if (snap.hasError) {
-                        _setVisibleCount(0);
-                        return _EmptyState(
-                          icon: Icons.error_outline_rounded,
-                          title: 'Error',
-                          subtitle: snap.error.toString(),
-                          theme: theme,
-                        );
-                      }
-
-                      if (!snap.hasData) {
-                        _setVisibleCount(0);
-                        return const Center(child: CircularProgressIndicator());
-                      }
-
-                      final docs = snap.data!.docs;
-                      final docIds = docs.map((d) => d.reference.path).toSet();
-                      _partIndexCache.removeWhere(
-                        (id, _) => !docIds.contains(id),
-                      );
-                      if (docs.isEmpty) {
-                        _setVisibleCount(0);
-                        return _EmptyState(
-                          icon: Icons.cloud_off_rounded,
-                          title: 'No data loaded',
-                          subtitle: _useCollectionGroup
-                              ? 'collectionGroup("parts") returned 0 docs.'
-                              : 'collection("parts") returned 0 docs.',
-                          theme: theme,
-                        );
-                      }
-
-                      final q = _searchQuery;
-                      final filtered = docs
-                          .map((d) {
-                            final data = d.data();
-                            final idx = _partIndexFor(d.reference.path, data);
-                            return (d.id, data, idx);
-                          })
-                          .where(
-                            (e) => _matchesSelectedTypeIdx(_selectedType, e.$3),
-                          )
-                          .where((e) => _matchesSearchIdx(q, e.$3))
-                          .where((e) => _matchesPrice(_priceRange, e.$3))
-                          .toList(growable: true);
-
-                      filtered.sort(
-                        (a, b) => _sortCompare(_selectedSort, a.$2, b.$2),
-                      );
-                      _setVisibleCount(filtered.length);
-
-                      if (filtered.isEmpty) {
-                        return _EmptyState(
-                          icon: Icons.search_off_rounded,
-                          title: 'No results',
-                          subtitle: 'Try adjusting filters or search.',
-                          theme: theme,
-                        );
-                      }
-
-                      return ListView.separated(
-                        padding: const EdgeInsets.fromLTRB(16, 2, 16, 16),
-                        itemCount: filtered.length,
-                        separatorBuilder: (_, _) => const SizedBox(height: 12),
-                        itemBuilder: (context, i) {
-                          final id = filtered[i].$1;
-                          final data = filtered[i].$2;
-                          final idx = filtered[i].$3;
-
-                          final title = _titleFor(data);
-                          final subtitle = _subtitleFor(data);
-                          final price = _money(data['price']);
-                          final type = idx.type;
-
-                          return _PartCard(
-                            theme: theme,
-                            icon: _iconForType(type),
-                            title: title,
-                            specs: subtitle,
-                            price: price,
-                            actionText: widget.returnSelection
-                                ? 'Add to Configuration'
-                                : 'View',
-                            secondaryActionText: widget.returnSelection
-                                ? 'View'
-                                : null,
-                            actionEnabled: true,
-                            onTapAction: () async {
-                              if (widget.returnSelection) {
-                                Navigator.of(context).pop(
-                                  PartSelection(
-                                    partId: id,
-                                    type: type,
-                                    title: title,
-                                    subtitle: subtitle,
-                                    price: _toDouble(data['price']).isNaN
-                                        ? null
-                                        : _toDouble(data['price']),
-                                    rawData: Map<String, dynamic>.from(data),
-                                  ),
-                                );
-                                return;
-                              }
-
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(
-                                  content: Text('Selected: $title'),
-                                  duration: const Duration(milliseconds: 900),
-                                ),
-                              );
-                              await FirebaseFirestore.instance
-                                  .collection('selected_parts')
-                                  .doc('current')
-                                  .collection('items')
-                                  .doc(id)
-                                  .set({
-                                    'partId': id,
-                                    'name': data['name'],
-                                    'type': type,
-                                    'price': data['price'],
-                                    'addedAt': FieldValue.serverTimestamp(),
-                                  }, SetOptions(merge: true));
-                            },
-                          );
-                        },
-                      );
-                    },
-                  ),
-                ),
+                Expanded(child: _buildPartsList(context, theme, cs)),
               ],
             ),
           ),
         ),
       ),
     );
+  }
+
+  // ── Parts list ─────────────────────────────────────────────────────────────
+
+  Widget _buildPartsList(BuildContext context, ThemeData theme, ColorScheme cs) {
+    if (_isLoading) {
+      return const Center(child: CircularProgressIndicator());
+    }
+
+    if (_loadError != null) {
+      return _EmptyState(
+        icon: Icons.error_outline_rounded,
+        title: 'Error',
+        subtitle: _loadError!,
+        theme: theme,
+      );
+    }
+
+    if (_allParts.isEmpty) {
+      return _EmptyState(
+        icon: Icons.cloud_off_rounded,
+        title: 'No data loaded',
+        subtitle: 'No parts found in any collection.',
+        theme: theme,
+      );
+    }
+
+    final filtered = _allParts
+        .map((p) => (p.$1, p.$2, _partIndexFor(p.$1, p.$2)))
+        .where((e) => _matchesSelectedTypeIdx(_selectedType, e.$3))
+        .where((e) => _matchesSearchIdx(_searchQuery, e.$3))
+        .where((e) => _matchesPrice(_priceRange, e.$3))
+        .toList();
+
+    filtered.sort((a, b) => _sortCompare(_selectedSort, a.$2, b.$2));
+
+    if (filtered.isEmpty) {
+      return _EmptyState(
+        icon: Icons.search_off_rounded,
+        title: 'No results',
+        subtitle: 'Try adjusting filters or search.',
+        theme: theme,
+      );
+    }
+
+    return ListView.separated(
+      padding: const EdgeInsets.fromLTRB(16, 2, 16, 16),
+      itemCount: filtered.length,
+      separatorBuilder: (_, _) => const SizedBox(height: 12),
+      itemBuilder: (context, i) {
+        final id = filtered[i].$1;
+        final data = filtered[i].$2;
+        final idx = filtered[i].$3;
+        final title = _titleFor(data);
+        final subtitle = _subtitleFor(data);
+        final price = _money(data['price']);
+        final type = idx.type;
+
+        return _PartCard(
+          theme: theme,
+          icon: _iconForType(type),
+          title: title,
+          specs: subtitle,
+          price: price,
+          actionText: widget.returnSelection ? 'Add to Configuration' : 'View',
+          secondaryActionText: widget.returnSelection ? 'View' : null,
+          actionEnabled: true,
+          onTapAction: () {
+            if (widget.returnSelection) {
+              Navigator.of(context).pop(
+                PartSelection(
+                  partId: id,
+                  type: type,
+                  title: title,
+                  subtitle: subtitle,
+                  price: _toDouble(data['price']).isNaN
+                      ? null
+                      : _toDouble(data['price']),
+                  rawData: Map<String, dynamic>.from(data),
+                ),
+              );
+            } else {
+              _showPartDetails(context, data, type, title);
+            }
+          },
+          onTapSecondary: widget.returnSelection
+              ? () => _showPartDetails(context, data, type, title)
+              : null,
+        );
+      },
+    );
+  }
+
+  // ── Detail bottom sheet ────────────────────────────────────────────────────
+
+  void _showPartDetails(
+    BuildContext context,
+    Map<String, dynamic> data,
+    String type,
+    String title,
+  ) {
+    final theme = Theme.of(context);
+    final cs = theme.colorScheme;
+    final specs = _detailSpecs(data);
+    final price = _money(data['price']);
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (_) => DraggableScrollableSheet(
+        initialChildSize: 0.6,
+        minChildSize: 0.4,
+        maxChildSize: 0.92,
+        builder: (_, scrollCtrl) => Container(
+          decoration: BoxDecoration(
+            color: cs.surface,
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
+          ),
+          child: Column(
+            children: [
+              // Drag handle
+              Padding(
+                padding: const EdgeInsets.only(top: 12, bottom: 4),
+                child: Container(
+                  width: 40,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: cs.outlineVariant,
+                    borderRadius: BorderRadius.circular(99),
+                  ),
+                ),
+              ),
+              // Header row
+              Padding(
+                padding: const EdgeInsets.fromLTRB(20, 10, 20, 4),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(10),
+                      decoration: BoxDecoration(
+                        color: cs.primaryContainer,
+                        borderRadius: BorderRadius.circular(14),
+                      ),
+                      child: Icon(
+                        _iconForType(type),
+                        color: cs.onPrimaryContainer,
+                        size: 26,
+                      ),
+                    ),
+                    const SizedBox(width: 14),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            title,
+                            style: theme.textTheme.titleMedium
+                                ?.copyWith(fontWeight: FontWeight.w900),
+                          ),
+                          const SizedBox(height: 4),
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 8, vertical: 3),
+                            decoration: BoxDecoration(
+                              color: cs.secondaryContainer
+                                  .withValues(alpha: 0.7),
+                              borderRadius: BorderRadius.circular(99),
+                            ),
+                            child: Text(
+                              _displayType(type),
+                              style: theme.textTheme.labelSmall?.copyWith(
+                                color: cs.onSecondaryContainer,
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    Text(
+                      price,
+                      style: theme.textTheme.titleLarge?.copyWith(
+                        fontWeight: FontWeight.w900,
+                        color: cs.primary,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const Divider(height: 24, indent: 20, endIndent: 20),
+              // Spec list
+              Expanded(
+                child: specs.isEmpty
+                    ? Center(
+                        child: Text(
+                          'No specs available.',
+                          style: theme.textTheme.bodyMedium?.copyWith(
+                            color: cs.onSurfaceVariant,
+                          ),
+                        ),
+                      )
+                    : ListView.separated(
+                        controller: scrollCtrl,
+                        padding:
+                            const EdgeInsets.fromLTRB(20, 0, 20, 32),
+                        itemCount: specs.length,
+                        separatorBuilder: (_, _) =>
+                            const Divider(height: 1),
+                        itemBuilder: (_, i) => Padding(
+                          padding:
+                              const EdgeInsets.symmetric(vertical: 10),
+                          child: Row(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              SizedBox(
+                                width: 150,
+                                child: Text(
+                                  specs[i].$1,
+                                  style: theme.textTheme.bodySmall
+                                      ?.copyWith(
+                                    color: cs.onSurfaceVariant,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                              ),
+                              Expanded(
+                                child: Text(
+                                  specs[i].$2,
+                                  style: theme.textTheme.bodyMedium
+                                      ?.copyWith(
+                                    fontWeight: FontWeight.w700,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  // ── Spec extraction ────────────────────────────────────────────────────────
+
+  // Human-readable labels for the raw snake_case field names from the dataset
+  static const _labelMap = <String, String>{
+    'core_count': 'Core Count',
+    'core_clock': 'Core Clock',
+    'boost_clock': 'Boost Clock',
+    'microarchitecture': 'Architecture',
+    'tdp': 'TDP',
+    'graphics': 'Integrated Graphics',
+    'socket': 'Socket',
+    'chipset': 'Chipset',
+    'memory': 'Memory',
+    'length': 'Length',
+    'form_factor': 'Form Factor',
+    'max_memory': 'Max Memory',
+    'memory_slots': 'Memory Slots',
+    'speed': 'Speed',
+    'modules': 'Modules',
+    'price_per_gb': 'Price / GB',
+    'first_word_latency': 'First Word Latency',
+    'cas_latency': 'CAS Latency',
+    'capacity': 'Capacity',
+    'interface': 'Interface',
+    'cache': 'Cache',
+    'type': 'Type',
+    'psu': 'Included PSU',
+    'side_panel': 'Side Panel',
+    'external_volume': 'External Volume',
+    'internal_35_bays': 'Internal 3.5" Bays',
+    'wattage': 'Wattage',
+    'efficiency': 'Efficiency',
+    'modular': 'Modular',
+    'rpm': 'RPM',
+    'noise_level': 'Noise Level',
+    'size': 'Size',
+    'airflow': 'Airflow',
+    'pwm': 'PWM',
+    'channels': 'Channels',
+    'channel_wattage': 'Channel Wattage',
+    'protocol': 'Protocol',
+    'snr': 'SNR',
+    'sample_rate': 'Sample Rate',
+    'digital_audio': 'Digital Audio',
+    'bd': 'Blu-ray Read',
+    'bd_write': 'Blu-ray Write',
+    'dvd': 'DVD Read',
+    'dvd_write': 'DVD Write',
+    'cd': 'CD Read',
+    'cd_write': 'CD Write',
+    'capacity_w': 'Capacity (W)',
+    'capacity_va': 'Capacity (VA)',
+    'amount': 'Amount',
+    'mode': 'Mode',
+    'color': 'Color',
+    'brand': 'Brand',
+  };
+
+  static const _skipFields = <String>{
+    'name', '_category', 'price', 'metadata', 'spec',
+  };
+
+  static String _prettyKey(String key) {
+    if (_labelMap.containsKey(key)) return _labelMap[key]!;
+    return key
+        .replaceAll('_', ' ')
+        .split(' ')
+        .map((w) => w.isEmpty ? w : w[0].toUpperCase() + w.substring(1))
+        .join(' ');
+  }
+
+  static String _formatValue(dynamic v) {
+    if (v == null) return '';
+    if (v is bool) return v ? 'Yes' : 'No';
+    if (v is List) {
+      final parts = v
+          .where((e) => e != null)
+          .map((e) => e.toString().trim())
+          .where((e) => e.isNotEmpty && e != 'null')
+          .toList();
+      return parts.join(' / ');
+    }
+    return v.toString().trim();
+  }
+
+  static List<(String, String)> _detailSpecs(Map<String, dynamic> data) {
+    final rows = <(String, String)>[];
+
+    // brand first
+    final brand = data['brand']?.toString().trim() ?? '';
+    if (brand.isNotEmpty && brand != 'null') {
+      rows.add(('Brand', brand));
+    }
+
+    for (final e in data.entries) {
+      final key = e.key;
+      if (_skipFields.contains(key) || key == 'brand') continue;
+      if (e.value is Map) continue; // skip nested objects
+      final formatted = _formatValue(e.value);
+      if (formatted.isEmpty || formatted == 'null') continue;
+      rows.add((_prettyKey(key), formatted));
+    }
+
+    return rows;
   }
 }
 
@@ -1050,6 +1263,7 @@ class _PartCard extends StatelessWidget {
   final String? secondaryActionText;
   final bool actionEnabled;
   final VoidCallback onTapAction;
+  final VoidCallback? onTapSecondary;
 
   const _PartCard({
     required this.theme,
@@ -1061,6 +1275,7 @@ class _PartCard extends StatelessWidget {
     required this.secondaryActionText,
     required this.actionEnabled,
     required this.onTapAction,
+    this.onTapSecondary,
   });
 
   @override
@@ -1171,7 +1386,7 @@ class _PartCard extends StatelessWidget {
               top: 12,
               right: 12,
               child: OutlinedButton(
-                onPressed: () {},
+                onPressed: onTapSecondary,
                 style: OutlinedButton.styleFrom(
                   padding: const EdgeInsets.symmetric(
                     horizontal: 16,
