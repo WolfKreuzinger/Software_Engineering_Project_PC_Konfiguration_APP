@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
 import '../l10n/l10n_ext.dart';
+import '../services/compatibility_checker.dart';
 import 'parts_screen.dart';
 
 class ConfigureScreen extends StatefulWidget {
@@ -125,6 +126,23 @@ class _ConfigureScreenState extends State<ConfigureScreen> {
       hasMotherboard: _selectedParts.containsKey('motherboard'),
       caseFans: _selectedParts.containsKey('caseFans') ? 1 : 0,
       hasCpuCooler: _selectedParts.containsKey('cpuCooler'),
+    );
+  }
+
+  void _showCompatDetails(
+    BuildContext context,
+    CompatibilityResult result,
+    int estimatedWatts,
+    int psuWatts,
+  ) {
+    Navigator.of(context).push<void>(
+      MaterialPageRoute(
+        builder: (_) => _CompatReportScreen(
+          result: result,
+          estimatedWatts: estimatedWatts,
+          psuWatts: psuWatts,
+        ),
+      ),
     );
   }
 
@@ -324,6 +342,13 @@ class _ConfigureScreenState extends State<ConfigureScreen> {
       hasCpuCooler: selection.hasCpuCooler,
     );
 
+    final compatResult = CompatibilityChecker.check(
+      parts: _selectedParts,
+      estimatedWatts: estWatts,
+    );
+    final psuWatts = _toInt(_selectedParts['psu']?.rawData['wattage']);
+    final showCompat = _selectedParts.isNotEmpty;
+
     return Stack(
       children: [
         CustomScrollView(
@@ -409,7 +434,7 @@ class _ConfigureScreenState extends State<ConfigureScreen> {
               ),
             ),
             SliverPadding(
-              padding: const EdgeInsets.fromLTRB(16, 16, 16, 92),
+              padding: const EdgeInsets.fromLTRB(16, 16, 16, 148),
               sliver: SliverList(
                 delegate: SliverChildBuilderDelegate((context, index) {
                   final p = parts[index];
@@ -444,44 +469,63 @@ class _ConfigureScreenState extends State<ConfigureScreen> {
                   top: BorderSide(color: theme.colorScheme.outlineVariant),
                 ),
               ),
-              padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
               child: Center(
                 child: ConstrainedBox(
                   constraints: const BoxConstraints(maxWidth: 560),
-                  child: Row(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
                     children: [
-                      Expanded(
-                        child: _BottomMetric(
-                          label: l10n.configureTotalPrice,
-                          value: '\$${totalPrice.toStringAsFixed(2)}',
+                      if (showCompat)
+                        _CompatBar(
+                          result: compatResult,
+                          onViewDetails: () => _showCompatDetails(
+                            context,
+                            compatResult,
+                            estWatts,
+                            psuWatts,
+                          ),
                         ),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: _BottomMetric(
-                          label: l10n.configureEstimatedWattage,
-                          value: '${estWatts}W',
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      SizedBox(
-                        width: 132,
-                        height: 44,
-                        child: FilledButton(
-                          onPressed: () {},
-                          style: FilledButton.styleFrom(
-                            shape: const StadiumBorder(),
-                            padding: const EdgeInsets.symmetric(horizontal: 10),
-                            textStyle: const TextStyle(
-                              fontWeight: FontWeight.w900,
-                              letterSpacing: 1.0,
-                              fontSize: 12,
+                      Padding(
+                        padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
+                        child: Row(
+                          children: [
+                            Expanded(
+                              child: _BottomMetric(
+                                label: l10n.configureTotalPrice,
+                                value: '\$${totalPrice.toStringAsFixed(2)}',
+                              ),
                             ),
-                          ),
-                          child: FittedBox(
-                            fit: BoxFit.scaleDown,
-                            child: Text(l10n.configureAddToBuilds),
-                          ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: _BottomMetric(
+                                label: l10n.configureEstimatedWattage,
+                                value: '${estWatts}W',
+                              ),
+                            ),
+                            const SizedBox(width: 12),
+                            SizedBox(
+                              width: 132,
+                              height: 44,
+                              child: FilledButton(
+                                onPressed: () {},
+                                style: FilledButton.styleFrom(
+                                  shape: const StadiumBorder(),
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 10,
+                                  ),
+                                  textStyle: const TextStyle(
+                                    fontWeight: FontWeight.w900,
+                                    letterSpacing: 1.0,
+                                    fontSize: 12,
+                                  ),
+                                ),
+                                child: FittedBox(
+                                  fit: BoxFit.scaleDown,
+                                  child: Text(l10n.configureAddToBuilds),
+                                ),
+                              ),
+                            ),
+                          ],
                         ),
                       ),
                     ],
@@ -680,6 +724,444 @@ class _SelectedPartCard extends StatelessWidget {
           ],
         ),
       ),
+    );
+  }
+}
+
+// ── Compatibility bar ──────────────────────────────────────────────────────────
+
+class _CompatBar extends StatelessWidget {
+  const _CompatBar({required this.result, required this.onViewDetails});
+
+  final CompatibilityResult result;
+  final VoidCallback onViewDetails;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = context.l10n;
+
+    final Color bgColor;
+    final Color fgColor;
+    final IconData icon;
+    final String label;
+
+    switch (result.overallLevel) {
+      case CompatIssueLevel.error:
+        bgColor = const Color(0xFFEF9A9A); // red 200
+        fgColor = const Color(0xFFB71C1C); // red 900
+        icon = Icons.cancel_rounded;
+        label = l10n.compatibilityError;
+      case CompatIssueLevel.warning:
+        bgColor = const Color(0xFFFFE082); // amber 200
+        fgColor = const Color(0xFFE65100); // deep-orange 900
+        icon = Icons.warning_amber_rounded;
+        label = l10n.compatibilityWarning;
+      case CompatIssueLevel.ok:
+        bgColor = const Color(0xFFA5D6A7); // green 200
+        fgColor = const Color(0xFF1B5E20); // green 900
+        icon = Icons.check_circle_rounded;
+        label = l10n.compatibilityOk;
+    }
+
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(12, 10, 12, 0),
+      child: Material(
+        color: bgColor,
+        borderRadius: BorderRadius.circular(14),
+        clipBehavior: Clip.antiAlias,
+        child: InkWell(
+          onTap: onViewDetails,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+            child: Row(
+              children: [
+                Icon(icon, color: fgColor, size: 18),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    label,
+                    style: TextStyle(
+                      color: fgColor,
+                      fontWeight: FontWeight.w900,
+                      fontSize: 12,
+                      letterSpacing: 0.8,
+                    ),
+                  ),
+                ),
+                Text(
+                  l10n.compatibilityViewDetails,
+                  style: TextStyle(
+                    color: fgColor,
+                    fontWeight: FontWeight.w900,
+                    fontSize: 11,
+                    letterSpacing: 1.0,
+                    decoration: TextDecoration.underline,
+                    decorationColor: fgColor,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+// ── Compatibility report screen ───────────────────────────────────────────────
+
+class _CompatReportScreen extends StatelessWidget {
+  const _CompatReportScreen({
+    required this.result,
+    required this.estimatedWatts,
+    required this.psuWatts,
+  });
+
+  final CompatibilityResult result;
+  final int estimatedWatts;
+  final int psuWatts;
+
+  // ── helpers ────────────────────────────────────────────────────────────────
+
+  static Color _sectionFg(CompatIssueLevel lvl) => switch (lvl) {
+    CompatIssueLevel.error   => const Color(0xFFB71C1C),
+    CompatIssueLevel.warning => const Color(0xFFE65100),
+    CompatIssueLevel.ok      => const Color(0xFF1B5E20),
+  };
+
+  static Color _sectionBg(CompatIssueLevel lvl) => switch (lvl) {
+    CompatIssueLevel.error   => const Color(0xFFEF9A9A), // same as _CompatBar
+    CompatIssueLevel.warning => const Color(0xFFFFE082),
+    CompatIssueLevel.ok      => const Color(0xFFA5D6A7),
+  };
+
+  static IconData _sectionIcon(CompatIssueLevel lvl) => switch (lvl) {
+    CompatIssueLevel.error   => Icons.cancel_rounded,
+    CompatIssueLevel.warning => Icons.warning_amber_rounded,
+    CompatIssueLevel.ok      => Icons.check_circle_rounded,
+  };
+
+  // ── build ──────────────────────────────────────────────────────────────────
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final l10n  = context.l10n;
+    final level = result.overallLevel;
+
+    final errors   = result.issues.where((i) => i.level == CompatIssueLevel.error).toList();
+    final warnings = result.issues.where((i) => i.level == CompatIssueLevel.warning).toList();
+    final oks      = result.issues.where((i) => i.level == CompatIssueLevel.ok).toList();
+
+    final headerBg = _sectionBg(level);
+    final headerFg = _sectionFg(level);
+    final headerIcon = _sectionIcon(level);
+
+    final String statusLabel;
+    final String statusSub;
+    if (errors.isNotEmpty) {
+      statusLabel = 'Inkompatibel';
+      statusSub = errors.length == 1
+          ? '1 kritischer Fehler'
+          : '${errors.length} kritische Fehler';
+    } else if (warnings.isNotEmpty) {
+      statusLabel = 'Warnung';
+      statusSub = warnings.length == 1
+          ? '1 Warnung erkannt'
+          : '${warnings.length} Warnungen erkannt';
+    } else {
+      statusLabel = 'Kompatibel';
+      statusSub = 'Alle Komponenten sind kompatibel';
+    }
+
+    final showPower = estimatedWatts > 0 && psuWatts > 0;
+    final loadPct   = showPower
+        ? (estimatedWatts / psuWatts).clamp(0.0, 1.0)
+        : 0.0;
+    final headroom  = psuWatts - estimatedWatts;
+    final Color powerBarColor = loadPct >= 0.9
+        ? const Color(0xFFB71C1C)
+        : loadPct >= 0.75
+            ? const Color(0xFFE65100)
+            : const Color(0xFF2E7D32);
+
+    return Scaffold(
+      backgroundColor: theme.colorScheme.surface,
+      appBar: AppBar(
+        backgroundColor: theme.colorScheme.surface,
+        surfaceTintColor: Colors.transparent,
+        elevation: 0,
+        leading: const BackButton(),
+        title: Text(
+          l10n.compatibilityDetails,
+          style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w900),
+        ),
+      ),
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.fromLTRB(16, 0, 16, 32),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+
+            // ── Status header card ──────────────────────────────────────────
+            Container(
+              decoration: BoxDecoration(
+                color: headerBg,
+                borderRadius: BorderRadius.circular(20),
+              ),
+              padding: const EdgeInsets.symmetric(vertical: 28, horizontal: 20),
+              child: Column(
+                children: [
+                  Container(
+                    width: 64,
+                    height: 64,
+                    decoration: BoxDecoration(
+                      color: headerFg.withValues(alpha: 0.12),
+                      shape: BoxShape.circle,
+                    ),
+                    child: Icon(headerIcon, color: headerFg, size: 36),
+                  ),
+                  const SizedBox(height: 12),
+                  Text(
+                    statusLabel,
+                    style: theme.textTheme.headlineSmall?.copyWith(
+                      fontWeight: FontWeight.w900,
+                      color: headerFg,
+                    ),
+                  ),
+                  const SizedBox(height: 6),
+                  Text(
+                    'GESAMTSTATUS',
+                    style: TextStyle(
+                      fontSize: 10,
+                      fontWeight: FontWeight.w900,
+                      letterSpacing: 1.4,
+                      color: headerFg.withValues(alpha: 0.7),
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    statusSub,
+                    style: theme.textTheme.bodyMedium?.copyWith(
+                      fontWeight: FontWeight.w700,
+                      color: headerFg,
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 16),
+
+            // ── Power usage card ────────────────────────────────────────────
+            if (showPower) ...[
+              Container(
+                decoration: BoxDecoration(
+                  color: theme.colorScheme.surfaceContainerLow,
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(
+                    color: theme.colorScheme.primary.withValues(alpha: 0.45),
+                  ),
+                ),
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Icon(Icons.bolt_rounded, color: powerBarColor, size: 18),
+                        const SizedBox(width: 6),
+                        Text(
+                          'Stromverbrauch',
+                          style: theme.textTheme.labelLarge?.copyWith(
+                            fontWeight: FontWeight.w900,
+                          ),
+                        ),
+                        const Spacer(),
+                        Text(
+                          '${estimatedWatts}W / ${psuWatts}W',
+                          style: theme.textTheme.labelLarge?.copyWith(
+                            fontWeight: FontWeight.w900,
+                            color: powerBarColor,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 10),
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(999),
+                      child: LinearProgressIndicator(
+                        value: loadPct,
+                        minHeight: 8,
+                        backgroundColor: theme.colorScheme.outlineVariant,
+                        valueColor: AlwaysStoppedAnimation<Color>(powerBarColor),
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Row(
+                      children: [
+                        Text(
+                          '${(loadPct * 100).round()}% Auslastung',
+                          style: theme.textTheme.bodySmall?.copyWith(
+                            color: theme.colorScheme.onSurfaceVariant,
+                          ),
+                        ),
+                        const Spacer(),
+                        Text(
+                          headroom >= 0
+                              ? '${headroom}W Puffer'
+                              : '${-headroom}W zu wenig',
+                          style: theme.textTheme.bodySmall?.copyWith(
+                            color: headroom >= 0
+                                ? theme.colorScheme.onSurfaceVariant
+                                : const Color(0xFFB71C1C),
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 16),
+            ],
+
+            // ── Issue sections ──────────────────────────────────────────────
+            if (errors.isNotEmpty) ...[
+              _IssueSection(
+                label: 'Kritische Fehler',
+                issues: errors,
+                level: CompatIssueLevel.error,
+              ),
+              const SizedBox(height: 12),
+            ],
+            if (warnings.isNotEmpty) ...[
+              _IssueSection(
+                label: 'Warnungen',
+                issues: warnings,
+                level: CompatIssueLevel.warning,
+              ),
+              const SizedBox(height: 12),
+            ],
+            if (oks.isNotEmpty)
+              _IssueSection(
+                label: 'Kompatibel',
+                issues: oks,
+                level: CompatIssueLevel.ok,
+              ),
+
+            if (result.issues.isEmpty)
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: 24),
+                child: Text(
+                  l10n.compatibilityNoIssues,
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    color: theme.colorScheme.onSurfaceVariant,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// ── Issue section (header + cards) ────────────────────────────────────────────
+
+class _IssueSection extends StatelessWidget {
+  const _IssueSection({
+    required this.label,
+    required this.issues,
+    required this.level,
+  });
+
+  final String label;
+  final List<CompatIssue> issues;
+  final CompatIssueLevel level;
+
+  static Color _fg(CompatIssueLevel l) => switch (l) {
+    CompatIssueLevel.error   => const Color(0xFFB71C1C),
+    CompatIssueLevel.warning => const Color(0xFFE65100),
+    CompatIssueLevel.ok      => const Color(0xFF1B5E20),
+  };
+
+  static IconData _icon(CompatIssueLevel l) => switch (l) {
+    CompatIssueLevel.error   => Icons.cancel_rounded,
+    CompatIssueLevel.warning => Icons.warning_amber_rounded,
+    CompatIssueLevel.ok      => Icons.check_circle_rounded,
+  };
+
+  @override
+  Widget build(BuildContext context) {
+    final theme   = Theme.of(context);
+    final fg      = _fg(level);
+    final icon    = _icon(level);
+    // Primary purple from app scheme (used as outline + icon tint)
+    final primary = theme.colorScheme.primary;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // Section header
+        Padding(
+          padding: const EdgeInsets.only(bottom: 8),
+          child: Row(
+            children: [
+              Icon(icon, color: fg, size: 16),
+              const SizedBox(width: 6),
+              Text(
+                label.toUpperCase(),
+                style: TextStyle(
+                  fontSize: 11,
+                  fontWeight: FontWeight.w900,
+                  letterSpacing: 1.2,
+                  color: fg,
+                ),
+              ),
+            ],
+          ),
+        ),
+        // Issue cards — surfaceContainerLow bg, purple outline (same as power card)
+        ...issues.map(
+          (issue) => Padding(
+            padding: const EdgeInsets.only(bottom: 8),
+            child: Container(
+              decoration: BoxDecoration(
+                color: theme.colorScheme.surfaceContainerLow,
+                borderRadius: BorderRadius.circular(14),
+                border: Border.all(color: primary.withValues(alpha: 0.45)),
+              ),
+              padding: const EdgeInsets.all(14),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Container(
+                    margin: const EdgeInsets.only(top: 1),
+                    width: 28,
+                    height: 28,
+                    decoration: BoxDecoration(
+                      color: primary.withValues(alpha: 0.10),
+                      shape: BoxShape.circle,
+                    ),
+                    child: Icon(icon, color: fg, size: 16),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Text(
+                      issue.message,
+                      style: theme.textTheme.bodyMedium?.copyWith(
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ],
     );
   }
 }

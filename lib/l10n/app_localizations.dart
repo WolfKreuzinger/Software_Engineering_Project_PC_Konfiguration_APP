@@ -1075,6 +1075,42 @@ abstract class AppLocalizations {
   /// In de, this message translates to:
   /// **'Stand: Februar 2026'**
   String get termsDate;
+
+  /// No description provided for @compatibilityOk.
+  ///
+  /// In de, this message translates to:
+  /// **'KOMPATIBILITÄT: OK'**
+  String get compatibilityOk;
+
+  /// No description provided for @compatibilityWarning.
+  ///
+  /// In de, this message translates to:
+  /// **'KOMPATIBILITÄTS-WARNUNG'**
+  String get compatibilityWarning;
+
+  /// No description provided for @compatibilityError.
+  ///
+  /// In de, this message translates to:
+  /// **'KOMPATIBILITÄTSFEHLER'**
+  String get compatibilityError;
+
+  /// No description provided for @compatibilityViewDetails.
+  ///
+  /// In de, this message translates to:
+  /// **'DETAILS'**
+  String get compatibilityViewDetails;
+
+  /// No description provided for @compatibilityDetails.
+  ///
+  /// In de, this message translates to:
+  /// **'Kompatibilitäts-Details'**
+  String get compatibilityDetails;
+
+  /// No description provided for @compatibilityNoIssues.
+  ///
+  /// In de, this message translates to:
+  /// **'Alle geprüften Komponenten sind kompatibel.'**
+  String get compatibilityNoIssues;
 }
 
 class _AppLocalizationsDelegate

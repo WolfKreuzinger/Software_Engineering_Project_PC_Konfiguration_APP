@@ -526,4 +526,23 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get termsDate => 'Stand: Februar 2026';
+
+  @override
+  String get compatibilityOk => 'KOMPATIBILITÄT: OK';
+
+  @override
+  String get compatibilityWarning => 'KOMPATIBILITÄTS-WARNUNG';
+
+  @override
+  String get compatibilityError => 'KOMPATIBILITÄTSFEHLER';
+
+  @override
+  String get compatibilityViewDetails => 'DETAILS';
+
+  @override
+  String get compatibilityDetails => 'Kompatibilitäts-Details';
+
+  @override
+  String get compatibilityNoIssues =>
+      'Alle geprüften Komponenten sind kompatibel.';
 }

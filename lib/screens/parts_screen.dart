@@ -34,7 +34,7 @@ class _PartsScreenState extends State<PartsScreen> {
   String _searchQuery = '';
   final Map<String, _PartIndex> _partIndexCache = <String, _PartIndex>{};
 
-  static const int _kLimitPerCategory = 10;
+  // static const int _kLimitPerCategory = 10;
   bool _isLoading = true;
   String? _loadError;
   List<(String, Map<String, dynamic>)> _allParts = [];
@@ -83,7 +83,7 @@ class _PartsScreenState extends State<PartsScreen> {
     _loadParts();
   }
 
-  /// Load up to [_kLimitPerCategory] items from each per-type collection.
+  /// Load all items from each per-type collection.
   /// Each document gets a synthetic `_category` field so type-detection works
   /// without relying on stored `metadata.datasetType`.
   Future<void> _loadParts() async {
@@ -105,7 +105,7 @@ class _PartsScreenState extends State<PartsScreen> {
 
     for (final cat in categories) {
       try {
-        final snap = await db.collection(cat).limit(_kLimitPerCategory).get();
+        final snap = await db.collection(cat).get(); // .limit(_kLimitPerCategory)
         for (final d in snap.docs) {
           final data = Map<String, dynamic>.from(d.data());
           data['_category'] = cat;

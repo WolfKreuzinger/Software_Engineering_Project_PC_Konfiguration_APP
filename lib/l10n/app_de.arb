@@ -188,5 +188,12 @@
   "termsSection7Body": "Wir behalten uns das Recht vor, diese Nutzungsbedingungen jederzeit zu ändern. Über wesentliche Änderungen werden registrierte Nutzer informiert. Die fortgesetzte Nutzung der App gilt als Zustimmung zu den geänderten Bedingungen.",
   "termsSection8Title": "8. Kontakt",
   "termsSection8Body": "Bei Fragen zu diesen Nutzungsbedingungen wende dich an:\nbuildmypc@gmx.de",
-  "termsDate": "Stand: Februar 2026"
+  "termsDate": "Stand: Februar 2026",
+
+  "compatibilityOk": "KOMPATIBILITÄT: OK",
+  "compatibilityWarning": "KOMPATIBILITÄTS-WARNUNG",
+  "compatibilityError": "KOMPATIBILITÄTSFEHLER",
+  "compatibilityViewDetails": "DETAILS",
+  "compatibilityDetails": "Kompatibilitäts-Details",
+  "compatibilityNoIssues": "Alle geprüften Komponenten sind kompatibel."
 }
