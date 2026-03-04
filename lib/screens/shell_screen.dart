@@ -4,7 +4,6 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
 import '../widgets/bottom_nav.dart';
-import '../widgets/top_profile_app_bar.dart';
 
 class ShellScreen extends StatelessWidget {
   const ShellScreen({super.key, required this.child});
@@ -79,9 +78,6 @@ class ShellScreen extends StatelessWidget {
     final currentIndex = _indexForLocation(location, authed);
 
     return Scaffold(
-      appBar: authed
-          ? const TopProfileAppBar(title: 'BuildMyPC', subtitle: 'PRO BUILDER')
-          : null,
       body: child,
       bottomNavigationBar: BottomNav(
         mode: authed ? BottomNavMode.authed : BottomNavMode.public,
