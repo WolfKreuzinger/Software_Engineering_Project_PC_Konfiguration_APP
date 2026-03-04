@@ -171,7 +171,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
   Widget _buildAppearanceCard(
       BuildContext context, ThemeData theme, AppLocalizations l10n) {
-    final isDark = themeController.mode == ThemeMode.dark;
+    final isDark = theme.brightness == Brightness.dark;
     return Card(
       child: _SettingsTile(
         icon: Icons.brightness_6_outlined,
@@ -648,4 +648,3 @@ class _EditAccountSheetState extends State<_EditAccountSheet> {
     );
   }
 }
-
