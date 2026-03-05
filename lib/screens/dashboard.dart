@@ -1,11 +1,14 @@
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
 import '../l10n/l10n_ext.dart';
-import '../widgets/build_placeholder_card.dart';
+import '../models/saved_build.dart';
+import '../services/builds_repository.dart';
+import '../widgets/build_list_card.dart';
 import '../widgets/guided_configurator_card.dart';
-import '../widgets/start_new_build_tile.dart';
 import '../widgets/section_header.dart';
+import '../widgets/start_new_build_tile.dart';
 
 class Dashboard extends StatelessWidget {
   const Dashboard({super.key});
@@ -14,6 +17,9 @@ class Dashboard extends StatelessWidget {
   Widget build(BuildContext context) {
     final l10n = context.l10n;
     final theme = Theme.of(context);
+    final user = FirebaseAuth.instance.currentUser;
+    final repo = BuildsRepository();
+
     return CustomScrollView(
       slivers: [
         SliverAppBar(
@@ -93,57 +99,103 @@ class Dashboard extends StatelessWidget {
           actions: const [SizedBox(width: 8)],
         ),
         const SliverToBoxAdapter(child: SizedBox(height: 16)),
-
-        /// My Builds Header
         SliverToBoxAdapter(
           child: SectionHeader(
             title: l10n.dashboardMyBuilds,
             trailingText: l10n.dashboardViewAll,
+            onTrailingTap: () => context.go('/my-builds'),
           ),
         ),
-
         const SliverToBoxAdapter(child: SizedBox(height: 12)),
-
-        /// Horizontal Builds
-        SliverToBoxAdapter(
-          child: SizedBox(
-            height: 220,
-            child: ListView.separated(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              scrollDirection: Axis.horizontal,
-              itemCount: 2,
-              separatorBuilder: (_, _) => const SizedBox(width: 14),
-              itemBuilder: (context, index) {
-                return BuildPlaceholderCard(
-                  title: index == 0 ? "Gaming Beast" : "Work Rig",
-                  subtitle: index == 0
-                      ? "RTX 4090 • i9-14900K"
-                      : "RTX 4070 • R9 7900X",
-                  price: index == 0 ? 3420 : 1850,
-                  progress: index == 0 ? 1.0 : 0.85,
-                  compatible: index == 0,
+        if (user == null || user.isAnonymous)
+          const SliverToBoxAdapter(
+            child: Padding(
+              padding: EdgeInsets.symmetric(horizontal: 16),
+              child: Text('Sign in to see saved builds.'),
+            ),
+          )
+        else
+          SliverToBoxAdapter(
+            child: StreamBuilder<List<SavedBuild>>(
+              stream: repo.watchBuilds(user.uid),
+              builder: (context, snap) {
+                final builds = snap.data ?? const <SavedBuild>[];
+                if (!snap.hasData) {
+                  return const Padding(
+                    padding: EdgeInsets.symmetric(vertical: 18),
+                    child: Center(child: CircularProgressIndicator()),
+                  );
+                }
+                if (builds.isEmpty) {
+                  return _DashboardEmptyState(
+                    onStart: () => context.go('/configure'),
+                  );
+                }
+                final shown = builds.take(3).toList(growable: false);
+                return SizedBox(
+                  height: 170,
+                  child: ListView.separated(
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    scrollDirection: Axis.horizontal,
+                    itemCount: shown.length,
+                    separatorBuilder: (_, _) => const SizedBox(width: 12),
+                    itemBuilder: (context, index) {
+                      final build = shown[index];
+                      return SizedBox(
+                        width: 340,
+                        child: BuildListCard(
+                          savedBuild: build,
+                          compact: true,
+                          onTap: () => context.go('/configure', extra: build),
+                          onResume: () => context.go('/configure', extra: build),
+                        ),
+                      );
+                    },
+                  ),
                 );
               },
             ),
           ),
-        ),
-
         const SliverToBoxAdapter(child: SizedBox(height: 24)),
-
-        /// Guided Configurator
-        const SliverToBoxAdapter(
-          child: GuidedConfiguratorCard(),
-        ),
-
+        const SliverToBoxAdapter(child: GuidedConfiguratorCard()),
         const SliverToBoxAdapter(child: SizedBox(height: 16)),
-
-        /// Start New Build
-        const SliverToBoxAdapter(
-          child: StartNewBuildTile(),
-        ),
-
+        const SliverToBoxAdapter(child: StartNewBuildTile()),
         const SliverToBoxAdapter(child: SizedBox(height: 24)),
       ],
+    );
+  }
+}
+
+class _DashboardEmptyState extends StatelessWidget {
+  const _DashboardEmptyState({required this.onStart});
+
+  final VoidCallback onStart;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      child: Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.4),
+          borderRadius: BorderRadius.circular(14),
+        ),
+        child: Row(
+          children: [
+            Expanded(
+              child: Text(
+                'No builds saved yet',
+                style: theme.textTheme.titleMedium?.copyWith(
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+            ),
+            OutlinedButton(onPressed: onStart, child: const Text('Start new build')),
+          ],
+        ),
+      ),
     );
   }
 }
