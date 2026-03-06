@@ -35,6 +35,7 @@ class ShellScreen extends StatelessWidget {
       if (location == '/settings') return 2;
       return 0;
     } else {
+      if (location.startsWith('/my-builds')) return 0;
       if (location == '/parts') return 1;
       if (location == '/settings') return 2;
       return 0;

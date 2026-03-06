@@ -3,11 +3,13 @@ import 'package:flutter/material.dart';
 class SectionHeader extends StatelessWidget {
   final String title;
   final String? trailingText;
+  final VoidCallback? onTrailingTap;
 
   const SectionHeader({
     super.key,
     required this.title,
     this.trailingText,
+    this.onTrailingTap,
   });
 
   @override
@@ -27,7 +29,7 @@ class SectionHeader extends StatelessWidget {
           ),
           if (trailingText != null)
             TextButton(
-              onPressed: () {},
+              onPressed: onTrailingTap,
               child: Text(trailingText!),
             ),
         ],

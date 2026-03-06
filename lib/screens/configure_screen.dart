@@ -1,12 +1,18 @@
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
 import '../l10n/l10n_ext.dart';
+import '../models/saved_build.dart';
 import '../services/compatibility_checker.dart';
+import '../services/builds_repository.dart';
+import '../services/pending_build_save_service.dart';
 import 'parts_screen.dart';
 
 class ConfigureScreen extends StatefulWidget {
-  const ConfigureScreen({super.key});
+  const ConfigureScreen({super.key, this.initialBuild});
+
+  final SavedBuild? initialBuild;
 
   @override
   State<ConfigureScreen> createState() => _ConfigureScreenState();
@@ -14,6 +20,79 @@ class ConfigureScreen extends StatefulWidget {
 
 class _ConfigureScreenState extends State<ConfigureScreen> {
   final Map<String, PartSelection> _selectedParts = <String, PartSelection>{};
+  final BuildsRepository _buildsRepository = BuildsRepository();
+  String? _editingBuildId;
+  String? _editingBuildTitle;
+  DateTime? _editingCreatedAt;
+  bool _isSaving = false;
+
+  void _goNextFrame(String route) {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      context.go(route);
+    });
+  }
+
+  static const Map<String, String> _slotTypeByKey = <String, String>{
+    'cpu': 'cpu',
+    'cpuCooler': 'cpu-cooler',
+    'thermalPaste': 'thermal-paste',
+    'motherboard': 'motherboard',
+    'ram': 'memory',
+    'gpu': 'video-card',
+    'storage': 'internal-hard-drive',
+    'case': 'case',
+    'caseFans': 'case-fan',
+    'fanController': 'fan-controller',
+    'caseAccessories': 'case-accessory',
+    'psu': 'power-supply',
+    'wifi': 'wireless-network-card',
+    'ethernet': 'wired-network-card',
+    'soundCard': 'sound-card',
+    'opticalDrive': 'optical-drive',
+    'externalHdd': 'external-hard-drive',
+    'ups': 'ups',
+    'os': 'os',
+  };
+
+  @override
+  void initState() {
+    super.initState();
+    _loadInitialBuild();
+  }
+
+  void _loadInitialBuild() {
+    final build = widget.initialBuild;
+    if (build == null) return;
+    _editingBuildId = build.buildId;
+    _editingBuildTitle = build.title;
+    _editingCreatedAt = build.createdAt;
+    for (final key in buildSlotKeys) {
+      final raw = build.selectedParts[key];
+      if (raw is! Map) continue;
+      final name = (raw['name'] ?? '').toString().trim();
+      if (name.isEmpty) continue;
+      final rawData = <String, dynamic>{};
+      if (raw['specSnippet'] is Map) {
+        rawData['spec'] = Map<String, dynamic>.from(raw['specSnippet']);
+      }
+      if (raw['wattage'] != null) rawData['wattage'] = raw['wattage'];
+      if (raw['tdp'] != null) rawData['tdp'] = raw['tdp'];
+      if (raw['chipset'] != null) rawData['chipset'] = raw['chipset'];
+      if (raw['modules'] != null) rawData['modules'] = raw['modules'];
+
+      _selectedParts[key] = PartSelection(
+        partId: (raw['partId'] ?? '').toString(),
+        type: (raw['type'] ?? _slotTypeByKey[key] ?? '').toString(),
+        title: name,
+        subtitle: (raw['subtitle'] ?? '').toString(),
+        price: raw['price'] is num
+            ? (raw['price'] as num).toDouble()
+            : double.tryParse(raw['price']?.toString() ?? ''),
+        rawData: rawData,
+      );
+    }
+  }
 
   int _gpuFallbackWattsFromChipset(String chipset) {
     final s = chipset.toLowerCase();
@@ -160,6 +239,157 @@ class _ConfigureScreenState extends State<ConfigureScreen> {
   String _priceLabel(double? price) {
     if (price == null) return '-';
     return '\$${price.toStringAsFixed(2)}';
+  }
+
+  Map<String, dynamic> _serializeSelectedParts() {
+    final payload = <String, dynamic>{};
+    for (final key in buildSlotKeys) {
+      final part = _selectedParts[key];
+      if (part == null) {
+        payload[key] = null;
+        continue;
+      }
+      final spec = part.rawData['spec'];
+      payload[key] = <String, dynamic>{
+        'partId': part.partId,
+        'name': part.title,
+        'price': part.price,
+        'type': part.type,
+        'subtitle': part.subtitle,
+        'specSnippet': spec is Map ? Map<String, dynamic>.from(spec) : null,
+        'wattage': part.rawData['wattage'],
+        'tdp': part.rawData['tdp'],
+        'chipset': part.rawData['chipset'],
+        'modules': part.rawData['modules'],
+      };
+    }
+    return payload;
+  }
+
+  Future<void> _saveToBuilds({
+    required double totalPrice,
+    required int estimatedWattage,
+  }) async {
+    if (_selectedParts.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          behavior: SnackBarBehavior.floating,
+          content: Text('Select at least one component to save a build.'),
+        ),
+      );
+      return;
+    }
+    final buildName = await _promptBuildName(
+      initial: (_editingBuildTitle ?? '').trim(),
+    );
+    if (!mounted) return;
+    if (buildName == null) return;
+    await Future<void>.delayed(const Duration(milliseconds: 220));
+    if (!mounted) return;
+
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null || user.isAnonymous) {
+      final selectedParts = _serializeSelectedParts();
+      final status = _buildsRepository.computeStatusFromSelectedParts(
+        selectedParts,
+      );
+      PendingBuildSaveService.instance.setPending(
+        PendingBuildSave(
+          selectedParts: selectedParts,
+          totalPrice: totalPrice,
+          estimatedWattage: estimatedWattage,
+          status: status,
+          title: buildName,
+          existingBuildId: _editingBuildId,
+          existingTitle: _editingBuildTitle,
+          existingCreatedAt: _editingCreatedAt,
+        ),
+      );
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          behavior: SnackBarBehavior.floating,
+          content: Text('Please sign in. Your build will be saved automatically.'),
+        ),
+      );
+      _goNextFrame('/login');
+      return;
+    }
+
+    setState(() => _isSaving = true);
+    try {
+      final selectedParts = _serializeSelectedParts();
+      final status = _buildsRepository.computeStatusFromSelectedParts(
+        selectedParts,
+      );
+      final buildId = await _buildsRepository.saveBuild(
+        uid: user.uid,
+        existingBuildId: _editingBuildId,
+        title: buildName,
+        existingTitle: _editingBuildTitle,
+        existingCreatedAt: _editingCreatedAt,
+        selectedParts: selectedParts,
+        totalPrice: totalPrice,
+        estimatedWattage: estimatedWattage,
+        status: status,
+      );
+      if (!mounted) return;
+      setState(() {
+        _editingBuildId = buildId;
+        _editingCreatedAt ??= DateTime.now();
+        _editingBuildTitle = buildName;
+      });
+      _goNextFrame('/my-builds');
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          behavior: SnackBarBehavior.floating,
+          content: Text('Could not save build: $e'),
+        ),
+      );
+    } finally {
+      if (mounted) setState(() => _isSaving = false);
+    }
+  }
+
+  Future<String?> _promptBuildName({required String initial}) async {
+    final ctrl = TextEditingController(text: initial);
+    final result = await showDialog<String>(
+      context: context,
+      useRootNavigator: true,
+      builder: (ctx) {
+        return AlertDialog(
+          title: const Text('Build Name'),
+          content: TextField(
+            controller: ctrl,
+            autofocus: true,
+            decoration: const InputDecoration(
+              hintText: 'Enter build name',
+              border: OutlineInputBorder(),
+            ),
+            textInputAction: TextInputAction.done,
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(ctx, rootNavigator: true).pop(),
+              child: const Text('Cancel'),
+            ),
+            FilledButton(
+              onPressed: () {
+                final trimmed = ctrl.text.trim();
+                Navigator.of(
+                  ctx,
+                  rootNavigator: true,
+                ).pop(trimmed.isEmpty ? null : trimmed);
+              },
+              child: const Text('Save'),
+            ),
+          ],
+        );
+      },
+    );
+    ctrl.dispose();
+    return result;
   }
 
   List<_PartSlot> _slots(BuildContext context) {
@@ -507,7 +737,12 @@ class _ConfigureScreenState extends State<ConfigureScreen> {
                               width: 132,
                               height: 44,
                               child: FilledButton(
-                                onPressed: () {},
+                                onPressed: _isSaving
+                                    ? null
+                                    : () => _saveToBuilds(
+                                        totalPrice: totalPrice,
+                                        estimatedWattage: estWatts,
+                                      ),
                                 style: FilledButton.styleFrom(
                                   shape: const StadiumBorder(),
                                   padding: const EdgeInsets.symmetric(
@@ -521,7 +756,9 @@ class _ConfigureScreenState extends State<ConfigureScreen> {
                                 ),
                                 child: FittedBox(
                                   fit: BoxFit.scaleDown,
-                                  child: Text(l10n.configureAddToBuilds),
+                                  child: Text(
+                                    _isSaving ? 'SAVING...' : l10n.configureAddToBuilds,
+                                  ),
                                 ),
                               ),
                             ),

@@ -9,12 +9,15 @@ import 'screens/auth_screen.dart';
 import 'screens/configure_screen.dart';
 import 'screens/dashboard.dart';
 import 'screens/home_screen.dart';
+import 'screens/my_builds_screen.dart';
 import 'screens/parts_screen.dart';
 import 'screens/privacy_policy_screen.dart';
 import 'screens/settings_screen.dart';
 import 'screens/shell_screen.dart';
 import 'screens/support_screen.dart';
 import 'screens/terms_screen.dart';
+import 'models/saved_build.dart';
+import 'services/pending_build_save_service.dart';
 
 class AuthListenable extends ChangeNotifier {
   StreamSubscription<User?>? _sub;
@@ -27,7 +30,8 @@ class AuthListenable extends ChangeNotifier {
     if (_sub != null) return;
     try {
       if (Firebase.apps.isEmpty) return;
-      _sub = FirebaseAuth.instance.authStateChanges().listen((_) {
+      _sub = FirebaseAuth.instance.authStateChanges().listen((user) {
+        unawaited(PendingBuildSaveService.instance.flushForUser(user));
         notifyListeners();
       });
     } catch (_) {}
@@ -64,7 +68,10 @@ final router = GoRouter(
     final authed = _isAuthed(user);
     final loc = state.matchedLocation;
 
-    final isPrivate = loc == '/dashboard' || loc == '/parts';
+    final isPrivate =
+        loc == '/dashboard' ||
+        loc == '/parts' ||
+        loc == '/my-builds';
     final isAuthPage = loc == '/login';
 
     if (!authed && isPrivate) return '/';
@@ -98,7 +105,11 @@ final router = GoRouter(
         ),
         GoRoute(
           path: '/configure',
-          pageBuilder: (_, _) => _noAnim(const ConfigureScreen()),
+          pageBuilder: (_, state) {
+            final extra = state.extra;
+            final initialBuild = extra is SavedBuild ? extra : null;
+            return _noAnim(ConfigureScreen(initialBuild: initialBuild));
+          },
         ),
         GoRoute(
           path: '/settings',
@@ -111,6 +122,10 @@ final router = GoRouter(
         GoRoute(
           path: '/parts',
           pageBuilder: (_, _) => _noAnim(const PartsScreen()),
+        ),
+        GoRoute(
+          path: '/my-builds',
+          pageBuilder: (_, _) => _noAnim(const MyBuildsScreen()),
         ),
       ],
     ),
