@@ -226,6 +226,7 @@ class _AuthScreenState extends State<AuthScreen> {
                                 controller: _emailCtrl,
                                 keyboardType: TextInputType.emailAddress,
                                 autofillHints: const [AutofillHints.email],
+                                textInputAction: TextInputAction.next,
                                 decoration: InputDecoration(
                                   prefixIcon: const Icon(Icons.alternate_email),
                                   hintText: l10n.authEmailHint,
@@ -267,6 +268,10 @@ class _AuthScreenState extends State<AuthScreen> {
                                 controller: _pwCtrl,
                                 obscureText: !_pwVisible,
                                 autofillHints: const [AutofillHints.password],
+                                textInputAction: TextInputAction.done,
+                                onFieldSubmitted: (_) {
+                                  if (!_loading) _submit();
+                                },
                                 decoration: InputDecoration(
                                   prefixIcon: const Icon(Icons.lock_outline),
                                   border: const OutlineInputBorder(),
