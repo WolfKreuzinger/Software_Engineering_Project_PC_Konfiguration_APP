@@ -143,6 +143,9 @@ class AppLocalizationsDe extends AppLocalizations {
   String get configureChange => 'Ändern';
 
   @override
+  String get configureRemove => 'Entfernen';
+
+  @override
   String get configureCatCpu => 'Prozessor (CPU)';
 
   @override
