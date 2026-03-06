@@ -356,6 +356,12 @@ abstract class AppLocalizations {
   /// **'Ändern'**
   String get configureChange;
 
+  /// No description provided for @configureRemove.
+  ///
+  /// In de, this message translates to:
+  /// **'Entfernen'**
+  String get configureRemove;
+
   /// No description provided for @configureCatCpu.
   ///
   /// In de, this message translates to:

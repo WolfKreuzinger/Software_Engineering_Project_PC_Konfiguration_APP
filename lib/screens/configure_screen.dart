@@ -80,6 +80,12 @@ class _ConfigureScreenState extends State<ConfigureScreen> {
       if (raw['tdp'] != null) rawData['tdp'] = raw['tdp'];
       if (raw['chipset'] != null) rawData['chipset'] = raw['chipset'];
       if (raw['modules'] != null) rawData['modules'] = raw['modules'];
+      // Restore compatibility checker fields
+      rawData['name'] = name;
+      if (raw['socket'] != null) rawData['socket'] = raw['socket'];
+      if (raw['form_factor'] != null) rawData['form_factor'] = raw['form_factor'];
+      if (raw['speed'] != null) rawData['speed'] = raw['speed'];
+      if (raw['case_type'] != null) rawData['type'] = raw['case_type'];
 
       _selectedParts[key] = PartSelection(
         partId: (raw['partId'] ?? '').toString(),
@@ -261,6 +267,11 @@ class _ConfigureScreenState extends State<ConfigureScreen> {
         'tdp': part.rawData['tdp'],
         'chipset': part.rawData['chipset'],
         'modules': part.rawData['modules'],
+        // Compatibility checker fields
+        'socket': part.rawData['socket'],
+        'form_factor': part.rawData['form_factor'],
+        'speed': part.rawData['speed'],
+        'case_type': part.rawData['type'], // physical case type (e.g. "ATX Mid Tower")
       };
     }
     return payload;
@@ -547,6 +558,9 @@ class _ConfigureScreenState extends State<ConfigureScreen> {
             price: _priceLabel(selected?.price),
             isSelected: selected != null,
             onChange: () => _choosePart(slot),
+            onRemove: selected != null
+                ? () => setState(() => _selectedParts.remove(slot.key))
+                : null,
           );
         })
         .toList(growable: false);
@@ -678,6 +692,7 @@ class _ConfigureScreenState extends State<ConfigureScreen> {
                       title: p.title,
                       price: p.price,
                       onChange: p.onChange,
+                      onRemove: p.onRemove,
                       isEmpty: !p.isSelected,
                     ),
                   );
@@ -821,6 +836,7 @@ class _PartTile {
     required this.price,
     required this.isSelected,
     required this.onChange,
+    this.onRemove,
   });
 
   final IconData icon;
@@ -829,6 +845,7 @@ class _PartTile {
   final String price;
   final bool isSelected;
   final VoidCallback onChange;
+  final VoidCallback? onRemove;
 }
 
 class _BottomMetric extends StatelessWidget {
@@ -877,6 +894,7 @@ class _SelectedPartCard extends StatelessWidget {
     required this.title,
     required this.price,
     required this.onChange,
+    this.onRemove,
     this.isEmpty = false,
   });
 
@@ -885,6 +903,7 @@ class _SelectedPartCard extends StatelessWidget {
   final String title;
   final String price;
   final VoidCallback onChange;
+  final VoidCallback? onRemove;
   final bool isEmpty;
 
   @override
@@ -916,16 +935,43 @@ class _SelectedPartCard extends StatelessWidget {
                     ),
                   ),
                 ),
-                TextButton(
-                  onPressed: onChange,
-                  child: Text(
-                    isEmpty ? l10n.configureChoose : l10n.configureChange,
-                    style: TextStyle(
-                      fontWeight: FontWeight.w900,
-                      color: theme.colorScheme.primary,
+                if (isEmpty)
+                  TextButton(
+                    onPressed: onChange,
+                    child: Text(
+                      l10n.configureChoose,
+                      style: TextStyle(
+                        fontWeight: FontWeight.w900,
+                        color: theme.colorScheme.primary,
+                      ),
                     ),
+                  )
+                else
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    children: [
+                      TextButton(
+                        onPressed: onChange,
+                        child: Text(
+                          l10n.configureChange,
+                          style: TextStyle(
+                            fontWeight: FontWeight.w900,
+                            color: theme.colorScheme.primary,
+                          ),
+                        ),
+                      ),
+                      TextButton(
+                        onPressed: onRemove,
+                        child: Text(
+                          l10n.configureRemove,
+                          style: TextStyle(
+                            fontWeight: FontWeight.w900,
+                            color: theme.colorScheme.error,
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
-                ),
               ],
             ),
             const SizedBox(height: 10),

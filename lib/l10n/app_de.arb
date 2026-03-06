@@ -53,6 +53,7 @@
   "configureAddToBuilds": "ZU BUILDS HINZUFÜGEN",
   "configureChoose": "Auswählen",
   "configureChange": "Ändern",
+  "configureRemove": "Entfernen",
   "configureCatCpu": "Prozessor (CPU)",
   "configureCatCpuCooler": "CPU-Kühler",
   "configureCatThermalPaste": "Wärmeleitpaste",
