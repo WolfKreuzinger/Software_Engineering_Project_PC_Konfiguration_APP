@@ -46,17 +46,31 @@ class HomeScreen extends StatelessWidget {
                     const SizedBox(height: 56),
 
                     // ── Logo ──────────────────────────────────────
-                    Image.asset(
-                      isDark
-                          ? 'assets/images/logo.png'
-                          : 'assets/images/logo_light.png',
-                      width: 200,
-                      height: 200,
-                      fit: BoxFit.contain,
-                      errorBuilder: (_, _, _) => Icon(
-                        Icons.computer_rounded,
-                        size: 120,
-                        color: theme.colorScheme.primary,
+                    Container(
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        boxShadow: [
+                          BoxShadow(
+                            color: theme.colorScheme.primary.withValues(
+                              alpha: isDark ? 0.35 : 0.32,
+                            ),
+                            blurRadius: 64,
+                            spreadRadius: 8,
+                          ),
+                        ],
+                      ),
+                      child: Image.asset(
+                        isDark
+                            ? 'assets/images/logo.png'
+                            : 'assets/images/logo_light.png',
+                        width: 200,
+                        height: 200,
+                        fit: BoxFit.contain,
+                        errorBuilder: (_, _, _) => Icon(
+                          Icons.computer_rounded,
+                          size: 120,
+                          color: theme.colorScheme.primary,
+                        ),
                       ),
                     ),
 

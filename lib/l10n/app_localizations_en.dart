@@ -141,6 +141,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get configureChange => 'Change';
 
   @override
+  String get configureRemove => 'Remove';
+
+  @override
   String get configureCatCpu => 'Processor (CPU)';
 
   @override

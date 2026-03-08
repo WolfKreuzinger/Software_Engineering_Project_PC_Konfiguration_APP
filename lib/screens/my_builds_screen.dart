@@ -203,11 +203,23 @@ class _MyBuildsScreenState extends State<MyBuildsScreen> {
         return ListView(
           padding: const EdgeInsets.fromLTRB(16, 12, 16, 120),
           children: [
-            Text(
-              'My Builds',
-              style: theme.textTheme.headlineSmall?.copyWith(
-                fontWeight: FontWeight.w900,
-              ),
+            Row(
+              children: [
+                IconButton(
+                  onPressed: () => context.go('/dashboard'),
+                  icon: const Icon(Icons.arrow_back_rounded),
+                  splashRadius: 22,
+                  padding: EdgeInsets.zero,
+                  constraints: const BoxConstraints(),
+                ),
+                const SizedBox(width: 8),
+                Text(
+                  'My Builds',
+                  style: theme.textTheme.headlineSmall?.copyWith(
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+              ],
             ),
             const SizedBox(height: 14),
             TextField(

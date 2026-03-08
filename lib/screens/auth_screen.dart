@@ -95,6 +95,7 @@ class _AuthScreenState extends State<AuthScreen> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final l10n = context.l10n;
+    final isDark = theme.brightness == Brightness.dark;
 
     return Scaffold(
       body: SafeArea(
@@ -107,25 +108,32 @@ class _AuthScreenState extends State<AuthScreen> {
                 children: [
                   const SizedBox(height: 16),
 
-                  // Logo/Icon
+                  // Logo
                   Container(
-                    width: 56,
-                    height: 56,
                     decoration: BoxDecoration(
-                      color: theme.colorScheme.primaryContainer,
-                      borderRadius: BorderRadius.circular(14),
+                      shape: BoxShape.circle,
                       boxShadow: [
                         BoxShadow(
-                          color: Colors.black.withValues(alpha: 0.08),
-                          blurRadius: 18,
-                          offset: const Offset(0, 8),
+                          color: theme.colorScheme.primary.withValues(
+                            alpha: isDark ? 0.35 : 0.32,
+                          ),
+                          blurRadius: 64,
+                          spreadRadius: 8,
                         ),
                       ],
                     ),
-                    child: Icon(
-                      Icons.memory,
-                      color: theme.colorScheme.primary,
-                      size: 28,
+                    child: Image.asset(
+                      isDark
+                          ? 'assets/images/logo.png'
+                          : 'assets/images/logo_light.png',
+                      width: 160,
+                      height: 160,
+                      fit: BoxFit.contain,
+                      errorBuilder: (_, _, _) => Icon(
+                        Icons.memory,
+                        color: theme.colorScheme.primary,
+                        size: 48,
+                      ),
                     ),
                   ),
                   const SizedBox(height: 14),
@@ -226,6 +234,7 @@ class _AuthScreenState extends State<AuthScreen> {
                                 controller: _emailCtrl,
                                 keyboardType: TextInputType.emailAddress,
                                 autofillHints: const [AutofillHints.email],
+                                textInputAction: TextInputAction.next,
                                 decoration: InputDecoration(
                                   prefixIcon: const Icon(Icons.alternate_email),
                                   hintText: l10n.authEmailHint,
@@ -267,6 +276,10 @@ class _AuthScreenState extends State<AuthScreen> {
                                 controller: _pwCtrl,
                                 obscureText: !_pwVisible,
                                 autofillHints: const [AutofillHints.password],
+                                textInputAction: TextInputAction.done,
+                                onFieldSubmitted: (_) {
+                                  if (!_loading) _submit();
+                                },
                                 decoration: InputDecoration(
                                   prefixIcon: const Icon(Icons.lock_outline),
                                   border: const OutlineInputBorder(),

@@ -43,7 +43,11 @@ class BuildsRepository {
 
   BuildStatus computeStatusFromSelectedParts(Map<String, dynamic> selectedParts) {
     final selectedKeys = selectedParts.entries
-        .where((e) => e.value != null)
+        .where((e) {
+          if (e.value is! Map) return false;
+          final name = (e.value as Map)['name']?.toString().trim() ?? '';
+          return name.isNotEmpty;
+        })
         .map((e) => e.key)
         .toSet();
     if (selectedKeys.isEmpty) return BuildStatus.draft;
@@ -107,7 +111,7 @@ class BuildsRepository {
       'estimatedWattage': estimatedWattage,
     };
 
-    await ref.set(payload, SetOptions(merge: true));
+    await ref.set(payload);
     return buildId;
   }
 
