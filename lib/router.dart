@@ -15,6 +15,7 @@ import 'screens/privacy_policy_screen.dart';
 import 'screens/settings_screen.dart';
 import 'screens/shell_screen.dart';
 import 'screens/support_screen.dart';
+import 'screens/shared_build_screen.dart';
 import 'screens/terms_screen.dart';
 import 'models/saved_build.dart';
 import 'services/pending_build_save_service.dart';
@@ -80,6 +81,13 @@ final router = GoRouter(
     return null;
   },
   routes: [
+    GoRoute(
+      path: '/build/:id',
+      pageBuilder: (_, state) {
+        final buildId = state.pathParameters['id'] ?? '';
+        return _noAnim(SharedBuildScreen(buildId: buildId));
+      },
+    ),
     GoRoute(
       path: '/login',
       pageBuilder: (_, _) => _noAnim(const AuthScreen()),
