@@ -94,74 +94,102 @@ class _SettingsScreenState extends State<SettingsScreen> {
   ) {
     final displayName =
         user?.displayName ?? user?.email?.split('@').first ?? l10n.settingsGuest;
-    final initial = displayName.isNotEmpty ? displayName[0].toUpperCase() : 'G';
 
     return Card(
       child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-        child: Row(
-          children: [
-            // Avatar
-            Container(
-              width: 56,
-              height: 56,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                border: Border.all(color: theme.colorScheme.primary, width: 2),
-              ),
-              child: CircleAvatar(
-                backgroundColor:
-                    theme.colorScheme.primary.withValues(alpha: 0.12),
-                child: Text(
-                  initial,
-                  style: theme.textTheme.titleLarge?.copyWith(
-                    color: theme.colorScheme.primary,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-              ),
+        padding: const EdgeInsets.fromLTRB(8, 14, 16, 14),
+        child: Container(
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              colors: [
+                theme.colorScheme.primary,
+                theme.colorScheme.tertiary,
+              ],
             ),
-            const SizedBox(width: 16),
-
-            // Name + E-Mail
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    authed ? displayName : l10n.settingsGuest,
-                    style: theme.textTheme.titleMedium
-                        ?.copyWith(fontWeight: FontWeight.bold),
-                  ),
-                  const SizedBox(height: 2),
-                  Text(
-                    authed ? (user?.email ?? '') : l10n.settingsNotLoggedIn,
-                    style: theme.textTheme.bodySmall?.copyWith(
-                      color: theme.colorScheme.onSurfaceVariant,
+            borderRadius: BorderRadius.circular(999),
+          ),
+          padding: const EdgeInsets.all(1),
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            decoration: BoxDecoration(
+              color: theme.colorScheme.surface,
+              borderRadius: BorderRadius.circular(998),
+            ),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                SizedBox(
+                  width: 56,
+                  height: 56,
+                  child: Container(
+                    width: 56,
+                    height: 56,
+                    padding: const EdgeInsets.all(2),
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      gradient: LinearGradient(
+                        colors: [
+                          theme.colorScheme.primary,
+                          theme.colorScheme.tertiary,
+                        ],
+                      ),
+                    ),
+                    child: CircleAvatar(
+                      backgroundColor: theme.colorScheme.primaryContainer,
+                      child: Icon(
+                        Icons.person,
+                        size: 30,
+                        color: theme.colorScheme.onPrimaryContainer,
+                      ),
                     ),
                   ),
-                ],
-              ),
-            ),
-
-            // Action button
-            if (authed)
-              TextButton(
-                onPressed: () => _showEditAccountSheet(context, user!),
-                child: Text(
-                  l10n.settingsEdit,
-                  style: TextStyle(
-                    color: theme.colorScheme.primary,
-                    fontWeight: FontWeight.w600,
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        authed ? displayName : l10n.settingsGuest,
+                        style: theme.textTheme.titleMedium
+                            ?.copyWith(fontWeight: FontWeight.w900),
+                        overflow: TextOverflow.ellipsis,
+                        maxLines: 1,
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        authed ? (user?.email ?? '') : l10n.settingsNotLoggedIn,
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          color: theme.colorScheme.onSurfaceVariant,
+                        ),
+                        overflow: TextOverflow.ellipsis,
+                        maxLines: 1,
+                      ),
+                    ],
                   ),
                 ),
-              )
-            else
-              FilledButton(
-                onPressed: () => context.go('/login'),
-                child: Text(l10n.settingsLogin),
-              ),
-          ],
+                const SizedBox(width: 8),
+
+                // Action button
+                if (authed)
+                  TextButton(
+                    onPressed: () => _showEditAccountSheet(context, user!),
+                    child: Text(
+                      l10n.settingsEdit,
+                      style: TextStyle(
+                        color: theme.colorScheme.primary,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  )
+                else
+                  FilledButton(
+                    onPressed: () => context.go('/login'),
+                    child: Text(l10n.settingsLogin),
+                  ),
+              ],
+            ),
+          ),
         ),
       ),
     );
