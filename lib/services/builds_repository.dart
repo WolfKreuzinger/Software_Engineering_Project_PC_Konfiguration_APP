@@ -134,4 +134,31 @@ class BuildsRepository {
   }) async {
     await _buildsRef(uid).doc(buildId).delete();
   }
+
+  // ── Sharing ──────────────────────────────────────────────────────────────
+
+  static const String shareBaseUrl = 'https://buildmypc-9ddd0.web.app';
+
+  /// Writes a snapshot of [build] to the public `publicBuilds` collection
+  /// and returns the shareable URL.
+  Future<String> publishBuild(SavedBuild build) async {
+    await _firestore.collection('publicBuilds').doc(build.buildId).set({
+      'buildId': build.buildId,
+      'title': build.title,
+      'status': buildStatusToString(build.status),
+      'selectedParts': build.selectedParts,
+      'totalPrice': build.totalPrice,
+      'estimatedWattage': build.estimatedWattage,
+      'publishedAt': FieldValue.serverTimestamp(),
+    });
+    return '$shareBaseUrl/build/${build.buildId}';
+  }
+
+  /// Reads a previously published build from the `publicBuilds` collection.
+  Future<Map<String, dynamic>?> getPublicBuild(String buildId) async {
+    final doc =
+        await _firestore.collection('publicBuilds').doc(buildId).get();
+    if (!doc.exists) return null;
+    return doc.data();
+  }
 }

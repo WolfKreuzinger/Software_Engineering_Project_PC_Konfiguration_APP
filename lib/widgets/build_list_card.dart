@@ -11,6 +11,7 @@ class BuildListCard extends StatelessWidget {
     this.isCurrent = false,
     this.compact = false,
     this.onMore,
+    this.onShare,
   });
 
   final SavedBuild savedBuild;
@@ -19,6 +20,7 @@ class BuildListCard extends StatelessWidget {
   final bool isCurrent;
   final bool compact;
   final VoidCallback? onMore;
+  final VoidCallback? onShare;
 
   String _priceLabel(double value) => '\$${value.toStringAsFixed(2)}';
 
@@ -148,7 +150,7 @@ class BuildListCard extends StatelessWidget {
               Column(
                 children: [
                   IconButton(
-                    onPressed: () {},
+                    onPressed: onShare,
                     icon: const Icon(Icons.share_outlined),
                     tooltip: 'Share',
                   ),

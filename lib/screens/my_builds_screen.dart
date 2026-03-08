@@ -1,6 +1,9 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:go_router/go_router.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../models/saved_build.dart';
 import '../services/builds_repository.dart';
@@ -88,6 +91,51 @@ class _MyBuildsScreenState extends State<MyBuildsScreen> {
       final titleHit = q.isEmpty || b.title.toLowerCase().contains(q);
       return titleHit && _matchesFilter(b);
     }).toList(growable: false);
+  }
+
+  Future<void> _shareBuild(SavedBuild build) async {
+    // Show loading while publishing
+    showDialog<void>(
+      context: context,
+      useRootNavigator: true,
+      barrierDismissible: false,
+      builder: (_) => const Center(
+        child: Card(
+          child: Padding(
+            padding: EdgeInsets.all(28),
+            child: CircularProgressIndicator(),
+          ),
+        ),
+      ),
+    );
+
+    String url;
+    try {
+      url = await _repo.publishBuild(build);
+    } catch (e) {
+      if (!mounted) return;
+      Navigator.of(context, rootNavigator: true).pop();
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          behavior: SnackBarBehavior.floating,
+          content: Text('Fehler beim Erstellen des Links: $e'),
+        ),
+      );
+      return;
+    }
+
+    if (!mounted) return;
+    Navigator.of(context, rootNavigator: true).pop(); // dismiss loading
+
+    showModalBottomSheet<void>(
+      context: context,
+      showDragHandle: true,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (_) => _ShareBuildSheet(buildTitle: build.title, shareUrl: url),
+    );
   }
 
   Future<void> _renameBuild(User user, SavedBuild build) async {
@@ -298,12 +346,255 @@ class _MyBuildsScreenState extends State<MyBuildsScreen> {
                     onTap: () => context.go('/configure', extra: build),
                     onResume: () => context.go('/configure', extra: build),
                     onMore: () => _openBuildActions(user, build),
+                    onShare: () => _shareBuild(build),
                   ),
                 );
               }),
           ],
         );
       },
+    );
+  }
+}
+
+// ── Share sheet ───────────────────────────────────────────────────────────────
+
+class _ShareBuildSheet extends StatelessWidget {
+  const _ShareBuildSheet({required this.buildTitle, required this.shareUrl});
+
+  final String buildTitle;
+  final String shareUrl;
+
+  Future<void> _launch(BuildContext context, String url) async {
+    final uri = Uri.parse(url);
+    if (!await launchUrl(uri, mode: LaunchMode.externalApplication)) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            behavior: SnackBarBehavior.floating,
+            content: Text('Konnte nicht geöffnet werden.'),
+          ),
+        );
+      }
+    }
+  }
+
+  Future<void> _copy(BuildContext context) async {
+    await Clipboard.setData(ClipboardData(text: shareUrl));
+    if (context.mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          behavior: SnackBarBehavior.floating,
+          content: Text('Link kopiert!'),
+        ),
+      );
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final encodedText = Uri.encodeComponent(
+      'Schau dir meinen PC-Build "$buildTitle" an: $shareUrl',
+    );
+    final encodedSubject = Uri.encodeComponent('BuildMyPC – $buildTitle');
+
+    // (label, iconWidget, bgWidget, url, copyFirst)
+    // bgWidget fills the 52×52 ClipRRect — use ColoredBox for solid, Stack for Instagram
+    // Instagram DM has no URL intent → copy link then open inbox
+    final channels = <(String, Widget, Widget, String, bool)>[
+      (
+        'WhatsApp',
+        const FaIcon(FontAwesomeIcons.whatsapp, color: Colors.white, size: 26),
+        const ColoredBox(color: Color(0xFF25D366)),
+        'https://wa.me/?text=$encodedText',
+        false,
+      ),
+      (
+        'Instagram',
+        const FaIcon(FontAwesomeIcons.instagram, color: Colors.white, size: 26),
+        // Two-layer gradient: warm radial from bottom-left + purple overlay top-left
+        const Stack(
+          fit: StackFit.expand,
+          children: [
+            DecoratedBox(
+              decoration: BoxDecoration(
+                gradient: RadialGradient(
+                  center: Alignment(-0.6, 1.0),
+                  radius: 2.2,
+                  colors: [
+                    Color(0xFFFFDC80), // yellow
+                    Color(0xFFF77737), // orange
+                    Color(0xFFF56040), // orange-red
+                    Color(0xFFE1306C), // hot pink
+                    Color(0xFFCE2085), // magenta (top-right area)
+                  ],
+                  stops: [0.0, 0.20, 0.35, 0.55, 1.0],
+                ),
+              ),
+              child: SizedBox.expand(),
+            ),
+            DecoratedBox(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment(0.8, 0.6),
+                  colors: [
+                    Color(0xCC7B1FA2), // ~80% purple
+                    Color(0x007B1FA2), // transparent
+                  ],
+                ),
+              ),
+              child: SizedBox.expand(),
+            ),
+          ],
+        ),
+        'instagram://direct-inbox',
+        true,
+      ),
+      (
+        'X',
+        const FaIcon(FontAwesomeIcons.xTwitter, color: Colors.white, size: 24),
+        const ColoredBox(color: Colors.black),
+        'https://twitter.com/intent/tweet?text=$encodedText',
+        false,
+      ),
+      (
+        'E-Mail',
+        const Icon(Icons.email_rounded, color: Colors.white, size: 26),
+        const ColoredBox(color: Color(0xFF78909C)),
+        'mailto:?subject=$encodedSubject&body=$encodedText',
+        false,
+      ),
+      (
+        'SMS',
+        const Icon(Icons.sms_rounded, color: Colors.white, size: 26),
+        const ColoredBox(color: Color(0xFF34AADC)),
+        'sms:?&body=$encodedText',
+        false,
+      ),
+    ];
+
+    return SafeArea(
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(20, 4, 20, 24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Build teilen',
+              style: theme.textTheme.titleLarge?.copyWith(
+                fontWeight: FontWeight.w800,
+              ),
+            ),
+            const SizedBox(height: 16),
+            // Link row
+            Container(
+              padding: const EdgeInsets.fromLTRB(14, 8, 8, 8),
+              decoration: BoxDecoration(
+                color: theme.colorScheme.surfaceContainerLow,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(
+                  color: theme.colorScheme.primary.withValues(alpha: 0.4),
+                ),
+              ),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      shareUrl,
+                      overflow: TextOverflow.ellipsis,
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: theme.colorScheme.primary,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  FilledButton.icon(
+                    onPressed: () => _copy(context),
+                    icon: const Icon(Icons.copy_rounded, size: 16),
+                    label: const Text('Kopieren'),
+                    style: FilledButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 8,
+                      ),
+                      minimumSize: Size.zero,
+                      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 24),
+            Text(
+              'DIREKT TEILEN',
+              style: theme.textTheme.labelSmall?.copyWith(
+                fontWeight: FontWeight.w900,
+                letterSpacing: 1.2,
+                color: theme.colorScheme.onSurfaceVariant,
+              ),
+            ),
+            const SizedBox(height: 12),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceAround,
+              children: channels.map((c) {
+                final (label, iconWidget, bgWidget, url, copyFirst) = c;
+                return InkWell(
+                  onTap: () async {
+                    if (copyFirst) {
+                      await Clipboard.setData(ClipboardData(text: shareUrl));
+                      if (!context.mounted) return;
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          behavior: SnackBarBehavior.floating,
+                          content: Text('Link kopiert – füge ihn in Instagram DM ein.'),
+                        ),
+                      );
+                    }
+                    if (context.mounted) _launch(context, url);
+                  },
+                  borderRadius: BorderRadius.circular(12),
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 4,
+                    ),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        ClipRRect(
+                          borderRadius: BorderRadius.circular(14),
+                          child: SizedBox(
+                            width: 52,
+                            height: 52,
+                            child: Stack(
+                              fit: StackFit.expand,
+                              children: [
+                                bgWidget,
+                                Center(child: iconWidget),
+                              ],
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 6),
+                        Text(
+                          label,
+                          style: theme.textTheme.labelSmall?.copyWith(
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                );
+              }).toList(),
+            ),
+            const SizedBox(height: 14),
+          ],
+        ),
+      ),
     );
   }
 }
