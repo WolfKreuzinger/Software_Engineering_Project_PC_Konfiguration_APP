@@ -20,7 +20,7 @@
   "authPasswordLabel": "Passwort",
   "authForgot": "Vergessen?",
   "authPasswordRequired": "Bitte Passwort eingeben.",
-  "authPasswordMinLength": "Mind. 6 Zeichen.",
+  "authPasswordMinLength": "Mind. 8 Zeichen, 1 Sonderzeichen, 1 Großbuchstabe und 1 Zahl.",
   "authConfirmPasswordHint": "Passwort bestätigen",
   "authConfirmPasswordRequired": "Bitte Passwort bestätigen.",
   "authPasswordMismatch": "Passwörter stimmen nicht überein.",
@@ -36,6 +36,7 @@
   "authGuestSuccess": "Als Gast fortgefahren",
   "authForgotPasswordValid": "Bitte gib oben eine gültige E-Mail ein.",
   "authForgotPasswordSent": "Wenn ein Konto existiert, wurde eine E-Mail gesendet.",
+  "authResetRequiredAfterFailedLogins": "Zu viele falsche Passwortversuche. Bitte nutze \"Vergessen?\", um dein Passwort zurückzusetzen.",
 
   "configureTitle": "PC konfigurieren",
   "configurePlaceholder": "Hier kommt euer Wizard / Konfigurator rein.",

@@ -203,7 +203,7 @@ abstract class AppLocalizations {
   /// No description provided for @authPasswordMinLength.
   ///
   /// In de, this message translates to:
-  /// **'Mind. 6 Zeichen.'**
+  /// **'Mind. 8 Zeichen, 1 Sonderzeichen, 1 Großbuchstabe und 1 Zahl.'**
   String get authPasswordMinLength;
 
   /// No description provided for @authConfirmPasswordHint.
@@ -295,6 +295,12 @@ abstract class AppLocalizations {
   /// In de, this message translates to:
   /// **'Wenn ein Konto existiert, wurde eine E-Mail gesendet.'**
   String get authForgotPasswordSent;
+
+  /// No description provided for @authResetRequiredAfterFailedLogins.
+  ///
+  /// In de, this message translates to:
+  /// **'Zu viele falsche Passwortversuche. Bitte nutze \"Vergessen?\", um dein Passwort zurückzusetzen.'**
+  String get authResetRequiredAfterFailedLogins;
 
   /// No description provided for @configureTitle.
   ///

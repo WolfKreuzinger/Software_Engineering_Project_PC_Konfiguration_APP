@@ -16,10 +16,19 @@ class _AuthScreenState extends State<AuthScreen> {
   final _pwCtrl = TextEditingController();
   final _pw2Ctrl = TextEditingController();
   final _auth = AuthService();
+  final Map<String, int> _failedLoginAttempts = <String, int>{};
+  final Set<String> _resetRequiredEmails = <String>{};
 
   bool _isLogin = true;
   bool _pwVisible = false;
   bool _loading = false;
+  final RegExp _specialCharRegex = RegExp(r'[^A-Za-z0-9]');
+  final RegExp _uppercaseRegex = RegExp(r'[A-Z]');
+  final RegExp _digitRegex = RegExp(r'\d');
+  static const int _maxPasswordAttempts = 3;
+
+  bool _isInvalidCredentialCode(String code) =>
+      code == 'wrong-password' || code == 'invalid-credential';
 
   @override
   void dispose() {
@@ -32,14 +41,23 @@ class _AuthScreenState extends State<AuthScreen> {
   Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) return;
 
-    setState(() => _loading = true);
     final l10n = context.l10n;
-    try {
-      final email = _emailCtrl.text.trim();
-      final pw = _pwCtrl.text;
+    final email = _emailCtrl.text.trim().toLowerCase();
+    final pw = _pwCtrl.text;
 
+    if (_isLogin && _resetRequiredEmails.contains(email)) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(l10n.authResetRequiredAfterFailedLogins)),
+      );
+      return;
+    }
+
+    setState(() => _loading = true);
+    try {
       if (_isLogin) {
         await _auth.signInWithEmailPassword(email: email, password: pw);
+        _failedLoginAttempts.remove(email);
+        _resetRequiredEmails.remove(email);
       } else {
         await _auth.registerWithEmailPassword(email: email, password: pw);
       }
@@ -55,8 +73,26 @@ class _AuthScreenState extends State<AuthScreen> {
       context.go('/dashboard');
     } catch (e) {
       if (!mounted) return;
+
+      if (_isLogin &&
+          e is AuthServiceException &&
+          _isInvalidCredentialCode(e.code)) {
+        _pwCtrl.clear();
+        final failedAttempts = (_failedLoginAttempts[email] ?? 0) + 1;
+        _failedLoginAttempts[email] = failedAttempts;
+
+        if (failedAttempts >= _maxPasswordAttempts) {
+          _resetRequiredEmails.add(email);
+          if (!mounted) return;
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(l10n.authResetRequiredAfterFailedLogins)),
+          );
+          return;
+        }
+      }
+
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(e.toString().replaceFirst('Exception: ', ''))),
+        SnackBar(content: Text(e.toString())),
       );
     } finally {
       if (mounted) setState(() => _loading = false);
@@ -64,7 +100,7 @@ class _AuthScreenState extends State<AuthScreen> {
   }
 
   Future<void> _forgotPassword() async {
-    final email = _emailCtrl.text.trim();
+    final email = _emailCtrl.text.trim().toLowerCase();
     final l10n = context.l10n;
 
     if (email.isEmpty || !email.contains('@')) {
@@ -77,6 +113,8 @@ class _AuthScreenState extends State<AuthScreen> {
     setState(() => _loading = true);
     try {
       await _auth.sendPasswordResetEmail(email: email);
+      _failedLoginAttempts.remove(email);
+      _resetRequiredEmails.remove(email);
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(l10n.authForgotPasswordSent)),
@@ -84,7 +122,7 @@ class _AuthScreenState extends State<AuthScreen> {
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(e.toString().replaceFirst('Exception: ', ''))),
+        SnackBar(content: Text(e.toString())),
       );
     } finally {
       if (mounted) setState(() => _loading = false);
@@ -283,6 +321,7 @@ class _AuthScreenState extends State<AuthScreen> {
                                 decoration: InputDecoration(
                                   prefixIcon: const Icon(Icons.lock_outline),
                                   border: const OutlineInputBorder(),
+                                  errorMaxLines: 3,
                                   suffixIcon: IconButton(
                                     onPressed: _loading
                                         ? null
@@ -301,7 +340,11 @@ class _AuthScreenState extends State<AuthScreen> {
                                   if (value.isEmpty) {
                                     return l10n.authPasswordRequired;
                                   }
-                                  if (value.length < 6) {
+                                  if (!_isLogin &&
+                                      (value.length < 8 ||
+                                          !_specialCharRegex.hasMatch(value) ||
+                                          !_uppercaseRegex.hasMatch(value) ||
+                                          !_digitRegex.hasMatch(value))) {
                                     return l10n.authPasswordMinLength;
                                   }
                                   return null;
