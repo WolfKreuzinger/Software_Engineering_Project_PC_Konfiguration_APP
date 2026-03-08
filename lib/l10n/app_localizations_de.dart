@@ -60,7 +60,8 @@ class AppLocalizationsDe extends AppLocalizations {
   String get authPasswordRequired => 'Bitte Passwort eingeben.';
 
   @override
-  String get authPasswordMinLength => 'Mind. 6 Zeichen.';
+  String get authPasswordMinLength =>
+      'Mind. 8 Zeichen, 1 Sonderzeichen, 1 Großbuchstabe und 1 Zahl.';
 
   @override
   String get authConfirmPasswordHint => 'Passwort bestätigen';
@@ -108,6 +109,10 @@ class AppLocalizationsDe extends AppLocalizations {
   @override
   String get authForgotPasswordSent =>
       'Wenn ein Konto existiert, wurde eine E-Mail gesendet.';
+
+  @override
+  String get authResetRequiredAfterFailedLogins =>
+      'Zu viele falsche Passwortversuche. Bitte nutze \"Vergessen?\", um dein Passwort zurückzusetzen.';
 
   @override
   String get configureTitle => 'PC konfigurieren';

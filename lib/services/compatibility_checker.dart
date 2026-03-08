@@ -90,6 +90,27 @@ class CompatibilityChecker {
     final psu = parts['psu'];
     final pcCase = parts['case'];
 
+    // ── 0. Pflichtteile vollständig? ─────────────────────────────────────────
+    const requiredSlots = <String, String>{
+      'cpu':         'CPU',
+      'cpuCooler':   'CPU-Kühler',
+      'motherboard': 'Mainboard',
+      'ram':         'RAM',
+      'storage':     'Speicher (SSD/HDD)',
+      'case':        'Gehäuse',
+      'psu':         'Netzteil',
+    };
+    final missing = requiredSlots.entries
+        .where((e) => parts[e.key] == null)
+        .map((e) => e.value)
+        .toList();
+    if (missing.isNotEmpty) {
+      issues.add(CompatIssue(
+        'Fehlende Pflichtteile: ${missing.join(', ')}',
+        CompatIssueLevel.warning,
+      ));
+    }
+
     // ── A. CPU ↔ Motherboard socket ─────────────────────────────────────────
     if (cpu != null && mb != null) {
       final cpuSocket = cpu.rawData['socket']?.toString().trim();

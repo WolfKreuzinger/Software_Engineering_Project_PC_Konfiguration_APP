@@ -20,7 +20,7 @@
   "authPasswordLabel": "Password",
   "authForgot": "Forgot?",
   "authPasswordRequired": "Please enter a password.",
-  "authPasswordMinLength": "Min. 6 characters.",
+  "authPasswordMinLength": "Min. 8 characters, 1 special character, 1 uppercase letter, and 1 number.",
   "authConfirmPasswordHint": "Confirm password",
   "authConfirmPasswordRequired": "Please confirm your password.",
   "authPasswordMismatch": "Passwords do not match.",
@@ -36,6 +36,7 @@
   "authGuestSuccess": "Continued as guest",
   "authForgotPasswordValid": "Please enter a valid email above.",
   "authForgotPasswordSent": "If an account exists, an email has been sent.",
+  "authResetRequiredAfterFailedLogins": "Too many incorrect password attempts. Please use \"Forgot?\" to reset your password.",
 
   "configureTitle": "Configure PC",
   "configurePlaceholder": "Your configurator wizard goes here.",

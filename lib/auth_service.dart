@@ -2,6 +2,16 @@ import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 
+class AuthServiceException implements Exception {
+  const AuthServiceException({required this.code, required this.message});
+
+  final String code;
+  final String message;
+
+  @override
+  String toString() => message;
+}
+
 class AuthService {
   final FirebaseAuth _auth = FirebaseAuth.instance;
   final GoogleSignIn _googleSignIn = GoogleSignIn();
@@ -19,7 +29,7 @@ class AuthService {
         password: password,
       );
     } on FirebaseAuthException catch (e) {
-      throw Exception(_mapAuthError(e));
+      throw AuthServiceException(code: e.code, message: _mapAuthError(e));
     }
   }
 
@@ -33,7 +43,7 @@ class AuthService {
         password: password,
       );
     } on FirebaseAuthException catch (e) {
-      throw Exception(_mapAuthError(e));
+      throw AuthServiceException(code: e.code, message: _mapAuthError(e));
     }
   }
 
@@ -41,7 +51,7 @@ class AuthService {
     try {
       await _auth.sendPasswordResetEmail(email: email.trim());
     } on FirebaseAuthException catch (e) {
-      throw Exception(_mapAuthError(e));
+      throw AuthServiceException(code: e.code, message: _mapAuthError(e));
     }
   }
 
@@ -49,7 +59,7 @@ class AuthService {
     try {
       return await _auth.signInAnonymously();
     } on FirebaseAuthException catch (e) {
-      throw Exception(_mapAuthError(e));
+      throw AuthServiceException(code: e.code, message: _mapAuthError(e));
     }
   }
 
@@ -79,7 +89,7 @@ class AuthService {
 
       return await _auth.signInWithCredential(credential);
     } on FirebaseAuthException catch (e) {
-      throw Exception(_mapAuthError(e));
+      throw AuthServiceException(code: e.code, message: _mapAuthError(e));
     } catch (e) {
       throw Exception('Google Login fehlgeschlagen: $e');
     }
@@ -114,7 +124,7 @@ class AuthService {
       case 'email-already-in-use':
         return 'Diese E-Mail wird bereits verwendet.';
       case 'weak-password':
-        return 'Passwort zu schwach (mindestens 6 Zeichen).';
+        return 'Passwort zu schwach (mindestens 8 Zeichen, ein Sonderzeichen, ein Großbuchstabe und eine Zahl).';
       case 'network-request-failed':
         return 'Keine Internetverbindung.';
       case 'too-many-requests':
