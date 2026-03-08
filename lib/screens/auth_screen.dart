@@ -494,7 +494,7 @@ class _AuthScreenState extends State<AuthScreen> {
                         ),
                       ),
                       TextButton(
-                        onPressed: () => context.go('/terms'),
+                        onPressed: () => context.push('/terms'),
                         child: Text(l10n.authTermsLink),
                       ),
                     ],
