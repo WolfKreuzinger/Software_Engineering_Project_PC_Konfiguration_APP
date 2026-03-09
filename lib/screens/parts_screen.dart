@@ -1,6 +1,53 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 
+String _typeDisplayName(String value) {
+  switch (value.trim().toLowerCase().replaceAll('_', '-')) {
+    case 'cpu':
+      return 'CPU';
+    case 'motherboard':
+      return 'Motherboard';
+    case 'video-card':
+      return 'GPU';
+    case 'memory':
+      return 'RAM';
+    case 'internal-hard-drive':
+      return 'Storage';
+    case 'power-supply':
+      return 'Power Supply';
+    case 'case':
+      return 'Case';
+    case 'cpu-cooler':
+      return 'CPU Cooler';
+    case 'case-fan':
+      return 'Case Fan';
+    case 'wired-network-card':
+      return 'Ethernet Card';
+    case 'wireless-network-card':
+      return 'Wi-Fi Card';
+    case 'sound-card':
+      return 'Sound Card';
+    case 'optical-drive':
+      return 'Optical Drive';
+    case 'fan-controller':
+      return 'Fan Controller';
+    case 'thermal-paste':
+      return 'Thermal Paste';
+    case 'external-hard-drive':
+      return 'External Storage';
+    case 'ups':
+      return 'UPS';
+    case 'case-accessory':
+      return 'Case Accessory';
+    case 'os':
+      return 'OS';
+    case 'all components':
+      return 'All Components';
+    default:
+      return value;
+  }
+}
+
 class PartSelection {
   const PartSelection({
     required this.partId,
@@ -45,25 +92,25 @@ class _PartsScreenState extends State<PartsScreen> {
 
   static const _types = <String>[
     'All Components',
-    'cpu',
-    'motherboard',
-    'video-card',
-    'memory',
-    'internal-hard-drive',
-    'power-supply',
-    'case',
-    'cpu-cooler',
-    'case-fan',
-    'wired-network-card',
-    'wireless-network-card',
-    'sound-card',
-    'optical-drive',
-    'fan-controller',
-    'thermal-paste',
-    'external-hard-drive',
-    'ups',
-    'case-accessory',
-    'os',
+    'case',           // Case
+    'case-accessory', // Case Accessory
+    'case-fan',       // Case Fan
+    'cpu',            // CPU
+    'cpu-cooler',     // CPU Cooler
+    'wired-network-card',   // Ethernet Card
+    'external-hard-drive',  // External Storage
+    'fan-controller', // Fan Controller
+    'video-card',     // GPU
+    'motherboard',    // Motherboard
+    'optical-drive',  // Optical Drive
+    'os',             // OS
+    'power-supply',   // Power Supply
+    'memory',         // RAM
+    'sound-card',     // Sound Card
+    'internal-hard-drive',  // Storage
+    'thermal-paste',  // Thermal Paste
+    'ups',            // UPS
+    'wireless-network-card', // Wi-Fi Card
   ];
 
   static const _sorts = <String>[
@@ -215,50 +262,7 @@ class _PartsScreenState extends State<PartsScreen> {
     return '';
   }
 
-  static String _displayType(String value) {
-    switch (_canonicalType(value)) {
-      case 'cpu':
-        return 'CPU';
-      case 'motherboard':
-        return 'Motherboard';
-      case 'video-card':
-        return 'GPU';
-      case 'memory':
-        return 'RAM';
-      case 'internal-hard-drive':
-        return 'Storage';
-      case 'power-supply':
-        return 'Power Supply';
-      case 'case':
-        return 'Case';
-      case 'cpu-cooler':
-        return 'CPU Cooler';
-      case 'case-fan':
-        return 'Case Fan';
-      case 'wired-network-card':
-        return 'Ethernet Card';
-      case 'wireless-network-card':
-        return 'Wi-Fi Card';
-      case 'sound-card':
-        return 'Sound Card';
-      case 'optical-drive':
-        return 'Optical Drive';
-      case 'fan-controller':
-        return 'Fan Controller';
-      case 'thermal-paste':
-        return 'Thermal Paste';
-      case 'external-hard-drive':
-        return 'External Storage';
-      case 'ups':
-        return 'UPS';
-      case 'case-accessory':
-        return 'Case Accessory';
-      case 'os':
-        return 'OS';
-      default:
-        return value;
-    }
-  }
+  static String _displayType(String value) => _typeDisplayName(_canonicalType(value));
 
   static double _toDouble(dynamic v) {
     if (v == null) return double.nan;
@@ -682,7 +686,7 @@ class _PartsScreenState extends State<PartsScreen> {
                           _LockedPill(label: _displayType(_selectedType))
                         else
                           _Pill(
-                            label: _selectedType,
+                            label: _typeDisplayName(_selectedType),
                             selected: true,
                             onTap: () {
                               showModalBottomSheet(
@@ -697,6 +701,7 @@ class _PartsScreenState extends State<PartsScreen> {
                                     Navigator.of(context).pop();
                                   },
                                   theme: theme,
+                                  labelFor: _typeDisplayName,
                                 ),
                               );
                             },
@@ -1562,7 +1567,7 @@ class _FiltersSheetState extends State<_FiltersSheet> {
                           ),
                         ),
                         child: Text(
-                          t,
+                          _typeDisplayName(t),
                           style: theme.textTheme.bodyMedium?.copyWith(
                             color: selected ? cs.onPrimary : cs.onSurface,
                             fontWeight: FontWeight.w800,
@@ -1663,6 +1668,7 @@ class _SimplePickerSheet extends StatelessWidget {
   final String selected;
   final ValueChanged<String> onPick;
   final ThemeData theme;
+  final String Function(String)? labelFor;
 
   const _SimplePickerSheet({
     required this.title,
@@ -1670,6 +1676,7 @@ class _SimplePickerSheet extends StatelessWidget {
     required this.selected,
     required this.onPick,
     required this.theme,
+    this.labelFor,
   });
 
   @override
@@ -1691,7 +1698,7 @@ class _SimplePickerSheet extends StatelessWidget {
           return ListTile(
             onTap: () => onPick(e),
             title: Text(
-              e,
+              labelFor != null ? labelFor!(e) : e,
               style: theme.textTheme.bodyLarge?.copyWith(
                 fontWeight: FontWeight.w800,
               ),
