@@ -44,7 +44,7 @@ class BuildListCard extends StatelessWidget {
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
       child: InkWell(
         borderRadius: BorderRadius.circular(18),
-        onTap: onTap,
+        onTap: () {},
         child: Padding(
           padding: EdgeInsets.all(cardPadding),
           child: Row(
@@ -142,6 +142,18 @@ class BuildListCard extends StatelessWidget {
                           padding: const EdgeInsets.symmetric(horizontal: 14),
                         ),
                         child: const Text('Resume Build'),
+                      ),
+                    ],
+                    if (!compact &&
+                        savedBuild.status == BuildStatus.completed) ...[
+                      const SizedBox(height: 10),
+                      FilledButton(
+                        onPressed: onResume,
+                        style: FilledButton.styleFrom(
+                          minimumSize: const Size(0, 34),
+                          padding: const EdgeInsets.symmetric(horizontal: 14),
+                        ),
+                        child: const Text('Edit'),
                       ),
                     ],
                   ],
