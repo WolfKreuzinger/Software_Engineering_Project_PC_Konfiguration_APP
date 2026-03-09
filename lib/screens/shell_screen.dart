@@ -6,9 +6,10 @@ import 'package:go_router/go_router.dart';
 import '../widgets/bottom_nav.dart';
 
 class ShellScreen extends StatelessWidget {
-  const ShellScreen({super.key, required this.child});
+  const ShellScreen({super.key, required this.child, this.navigatorKey});
 
   final Widget child;
+  final GlobalKey<NavigatorState>? navigatorKey;
 
   bool _isAuthed(User? u) => u != null && !u.isAnonymous;
 
@@ -43,6 +44,9 @@ class ShellScreen extends StatelessWidget {
   }
 
   void _goForIndex(BuildContext context, int index, bool authed) {
+    // Pop any manually pushed pages (e.g. PartsScreen sub-selection) before navigating.
+    navigatorKey?.currentState?.popUntil((route) => route.isFirst);
+
     if (!authed) {
       switch (index) {
         case 0:

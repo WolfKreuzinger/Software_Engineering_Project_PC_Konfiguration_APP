@@ -53,6 +53,8 @@ bool _isAuthed(User? u) => u != null && !u.isAnonymous;
 
 NoTransitionPage<T> _noAnim<T>(Widget child) => NoTransitionPage<T>(child: child);
 
+final _shellNavigatorKey = GlobalKey<NavigatorState>();
+
 final router = GoRouter(
   initialLocation: '/',
   refreshListenable: _authListenable,
@@ -105,7 +107,8 @@ final router = GoRouter(
       pageBuilder: (_, _) => _noAnim(const SupportScreen()),
     ),
     ShellRoute(
-      builder: (context, state, child) => ShellScreen(child: child),
+      navigatorKey: _shellNavigatorKey,
+      builder: (context, state, child) => ShellScreen(navigatorKey: _shellNavigatorKey, child: child),
       routes: [
         GoRoute(
           path: '/',
