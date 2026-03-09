@@ -70,7 +70,7 @@ class _SupportScreenState extends State<SupportScreen> {
       l10n.supportSubjectFeature,
       l10n.supportSubjectGeneral,
       l10n.supportSubjectFeedback,
-    ];
+    ]..sort();
     return Scaffold(
       appBar: AppBar(
         title: Text(l10n.supportTitle),
