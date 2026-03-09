@@ -59,7 +59,7 @@ class _MyBuildsScreenState extends State<MyBuildsScreen> {
               },
             ),
             ListTile(
-              title: const Text('Draft'),
+              title: const Text('Importiert'),
               onTap: () {
                 Navigator.of(context).pop();
                 setState(() => _filter = _BuildFilter.draft);
@@ -317,7 +317,7 @@ class _MyBuildsScreenState extends State<MyBuildsScreen> {
                   ),
                   const SizedBox(width: 8),
                   FilterChip(
-                    label: const Text('Draft'),
+                    label: const Text('Importiert'),
                     selected: _filter == _BuildFilter.draft,
                     onSelected: (_) => setState(() => _filter = _BuildFilter.draft),
                   ),
