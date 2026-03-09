@@ -98,6 +98,33 @@ class _ConfigureScreenState extends State<ConfigureScreen> {
         rawData: rawData,
       );
     }
+    // Restore extra multi-select entries (storage_1, ram_1, caseFans_1, …)
+    for (final entry in build.selectedParts.entries) {
+      if (buildSlotKeys.contains(entry.key)) continue;
+      final raw = entry.value;
+      if (raw is! Map) continue;
+      final name = (raw['name'] ?? '').toString().trim();
+      if (name.isEmpty) continue;
+      final rawData = <String, dynamic>{'name': name};
+      if (raw['specSnippet'] is Map) {
+        rawData['spec'] = Map<String, dynamic>.from(raw['specSnippet'] as Map);
+      }
+      for (final f in ['wattage', 'tdp', 'chipset', 'modules', 'socket',
+                        'form_factor', 'speed']) {
+        if (raw[f] != null) rawData[f] = raw[f];
+      }
+      if (raw['case_type'] != null) rawData['type'] = raw['case_type'];
+      _selectedParts[entry.key] = PartSelection(
+        partId: (raw['partId'] ?? '').toString(),
+        type: (raw['type'] ?? '').toString(),
+        title: name,
+        subtitle: (raw['subtitle'] ?? '').toString(),
+        price: raw['price'] is num
+            ? (raw['price'] as num).toDouble()
+            : double.tryParse(raw['price']?.toString() ?? ''),
+        rawData: rawData,
+      );
+    }
   }
 
   int _gpuFallbackWattsFromChipset(String chipset) {
@@ -207,9 +234,9 @@ class _ConfigureScreenState extends State<ConfigureScreen> {
       cpuTdp: cpuTdp,
       gpuChipset: gpuChipset.isEmpty ? null : gpuChipset,
       ramModules: ramModules,
-      ssdCount: _selectedParts.containsKey('storage') ? 1 : 0,
+      ssdCount: _keysForSlot('storage').length,
       hasMotherboard: _selectedParts.containsKey('motherboard'),
-      caseFans: _selectedParts.containsKey('caseFans') ? 1 : 0,
+      caseFans: _keysForSlot('caseFans').length,
       hasCpuCooler: _selectedParts.containsKey('cpuCooler'),
     );
   }
@@ -231,7 +258,42 @@ class _ConfigureScreenState extends State<ConfigureScreen> {
     );
   }
 
-  Future<void> _choosePart(_PartSlot slot) async {
+  // ── Multi-select slots ─────────────────────────────────────────────────────
+  static const _multiSelectSlots = {'storage', 'ram', 'caseFans'};
+
+  List<String> _keysForSlot(String base) {
+    final keys = <String>[];
+    if (_selectedParts.containsKey(base)) keys.add(base);
+    var i = 1;
+    while (_selectedParts.containsKey('${base}_$i')) {
+      keys.add('${base}_$i');
+      i++;
+    }
+    return keys;
+  }
+
+  String _nextKey(String base) {
+    if (!_selectedParts.containsKey(base)) return base;
+    var i = 1;
+    while (_selectedParts.containsKey('${base}_$i')) i++;
+    return '${base}_$i';
+  }
+
+  void _removeSlotEntry(String removedKey, String base) {
+    final allKeys = _keysForSlot(base);
+    final remaining = [
+      for (final k in allKeys)
+        if (k != removedKey) _selectedParts[k]!,
+    ];
+    for (final k in allKeys) _selectedParts.remove(k);
+    for (var i = 0; i < remaining.length; i++) {
+      _selectedParts[i == 0 ? base : '${base}_$i'] = remaining[i];
+    }
+  }
+
+  // ── Part picking ───────────────────────────────────────────────────────────
+
+  Future<void> _choosePart(_PartSlot slot, {String? overrideKey}) async {
     final picked = await Navigator.of(context).push<PartSelection>(
       MaterialPageRoute(
         builder: (_) =>
@@ -239,40 +301,54 @@ class _ConfigureScreenState extends State<ConfigureScreen> {
       ),
     );
     if (picked == null || !mounted) return;
-    setState(() => _selectedParts[slot.key] = picked);
+    setState(() => _selectedParts[overrideKey ?? slot.key] = picked);
   }
 
-  String _priceLabel(double? price) {
-    if (price == null) return '-';
-    return '\$${price.toStringAsFixed(2)}';
+  Future<void> _addPart(_PartSlot slot) async {
+    await _choosePart(slot, overrideKey: _nextKey(slot.key));
+  }
+
+  void _viewPart(PartSelection part) {
+    PartsScreen.showDetailSheet(
+      context,
+      <String, dynamic>{...part.rawData, 'name': part.title, 'price': part.price},
+      part.type,
+      part.title,
+    );
+  }
+
+  Map<String, dynamic> _serializePart(PartSelection part) {
+    final spec = part.rawData['spec'];
+    return <String, dynamic>{
+      'partId': part.partId,
+      'name': part.title,
+      'price': part.price,
+      'type': part.type,
+      'subtitle': part.subtitle,
+      'specSnippet': spec is Map ? Map<String, dynamic>.from(spec) : null,
+      'wattage': part.rawData['wattage'],
+      'tdp': part.rawData['tdp'],
+      'chipset': part.rawData['chipset'],
+      'modules': part.rawData['modules'],
+      'socket': part.rawData['socket'],
+      'form_factor': part.rawData['form_factor'],
+      'speed': part.rawData['speed'],
+      'case_type': part.rawData['type'],
+    };
   }
 
   Map<String, dynamic> _serializeSelectedParts() {
     final payload = <String, dynamic>{};
+    // Standard slots
     for (final key in buildSlotKeys) {
       final part = _selectedParts[key];
-      if (part == null) {
-        payload[key] = null;
-        continue;
+      payload[key] = part == null ? null : _serializePart(part);
+    }
+    // Extra multi-select entries (e.g. storage_1, ram_1)
+    for (final entry in _selectedParts.entries) {
+      if (!buildSlotKeys.contains(entry.key)) {
+        payload[entry.key] = _serializePart(entry.value);
       }
-      final spec = part.rawData['spec'];
-      payload[key] = <String, dynamic>{
-        'partId': part.partId,
-        'name': part.title,
-        'price': part.price,
-        'type': part.type,
-        'subtitle': part.subtitle,
-        'specSnippet': spec is Map ? Map<String, dynamic>.from(spec) : null,
-        'wattage': part.rawData['wattage'],
-        'tdp': part.rawData['tdp'],
-        'chipset': part.rawData['chipset'],
-        'modules': part.rawData['modules'],
-        // Compatibility checker fields
-        'socket': part.rawData['socket'],
-        'form_factor': part.rawData['form_factor'],
-        'speed': part.rawData['speed'],
-        'case_type': part.rawData['type'], // physical case type (e.g. "ATX Mid Tower")
-      };
     }
     return payload;
   }
@@ -548,26 +624,52 @@ class _ConfigureScreenState extends State<ConfigureScreen> {
     final l10n = context.l10n;
     final slots = _slots(context);
 
-    final parts = slots
-        .map((slot) {
-          final selected = _selectedParts[slot.key];
-          return _PartTile(
-            icon: slot.icon,
-            label: slot.label,
-            title: selected?.title ?? slot.emptyTitle,
-            price: _priceLabel(selected?.price),
-            isSelected: selected != null,
-            onChange: () => _choosePart(slot),
-            onRemove: selected != null
-                ? () => setState(() => _selectedParts.remove(slot.key))
-                : null,
-          );
-        })
-        .toList(growable: false);
+    final displayParts = <_PartTile>[];
+    for (final slot in slots) {
+      if (_multiSelectSlots.contains(slot.key)) {
+        final keys = _keysForSlot(slot.key);
+        displayParts.add(_PartTile(
+          icon: slot.icon,
+          label: slot.label,
+          emptyTitle: slot.emptyTitle,
+          onChoose: () => _choosePart(slot),
+          selectedEntries: [
+            for (final key in keys)
+              _SelectedEntry(
+                part: _selectedParts[key]!,
+                onView: () => _viewPart(_selectedParts[key]!),
+                onChange: () => _choosePart(slot, overrideKey: key),
+                onRemove: () => setState(() => _removeSlotEntry(key, slot.key)),
+              ),
+          ],
+          isMultiSelect: true,
+          onAdd: () => _addPart(slot),
+        ));
+      } else {
+        final selected = _selectedParts[slot.key];
+        displayParts.add(_PartTile(
+          icon: slot.icon,
+          label: slot.label,
+          emptyTitle: slot.emptyTitle,
+          onChoose: () => _choosePart(slot),
+          selectedEntries: selected == null
+              ? []
+              : [
+                  _SelectedEntry(
+                    part: selected,
+                    onView: () => _viewPart(selected),
+                    onChange: () => _choosePart(slot),
+                    onRemove: () =>
+                        setState(() => _selectedParts.remove(slot.key)),
+                  ),
+                ],
+        ));
+      }
+    }
 
     final selection = _buildSelection();
-    final partsDone = parts.where((p) => p.isSelected).length;
-    final partsTotal = parts.length;
+    final partsDone = slots.where((s) => _selectedParts.containsKey(s.key)).length;
+    final partsTotal = slots.length;
     final progress = partsTotal == 0
         ? 0.0
         : (partsDone / partsTotal).clamp(0.0, 1.0);
@@ -681,22 +783,22 @@ class _ConfigureScreenState extends State<ConfigureScreen> {
               padding: const EdgeInsets.fromLTRB(16, 16, 16, 148),
               sliver: SliverList(
                 delegate: SliverChildBuilderDelegate((context, index) {
-                  final p = parts[index];
+                  final p = displayParts[index];
                   return Padding(
                     padding: EdgeInsets.only(
-                      bottom: index == parts.length - 1 ? 0 : 12,
+                      bottom: index == displayParts.length - 1 ? 0 : 12,
                     ),
                     child: _SelectedPartCard(
                       categoryIcon: p.icon,
                       categoryLabel: p.label,
-                      title: p.title,
-                      price: p.price,
-                      onChange: p.onChange,
-                      onRemove: p.onRemove,
-                      isEmpty: !p.isSelected,
+                      emptyTitle: p.emptyTitle,
+                      onChoose: p.onChoose,
+                      selectedEntries: p.selectedEntries,
+                      isMultiSelect: p.isMultiSelect,
+                      onAdd: p.onAdd,
                     ),
                   );
-                }, childCount: parts.length),
+                }, childCount: displayParts.length),
               ),
             ),
           ],
@@ -828,24 +930,40 @@ class _PartSlot {
   final String emptyTitle;
 }
 
+class _SelectedEntry {
+  const _SelectedEntry({
+    required this.part,
+    required this.onView,
+    required this.onChange,
+    required this.onRemove,
+  });
+
+  final PartSelection part;
+  final VoidCallback onView;
+  final VoidCallback onChange;
+  final VoidCallback onRemove;
+}
+
 class _PartTile {
   const _PartTile({
     required this.icon,
     required this.label,
-    required this.title,
-    required this.price,
-    required this.isSelected,
-    required this.onChange,
-    this.onRemove,
+    required this.emptyTitle,
+    required this.onChoose,
+    this.selectedEntries = const [],
+    this.isMultiSelect = false,
+    this.onAdd,
   });
 
   final IconData icon;
   final String label;
-  final String title;
-  final String price;
-  final bool isSelected;
-  final VoidCallback onChange;
-  final VoidCallback? onRemove;
+  final String emptyTitle;
+  final VoidCallback onChoose;
+  final List<_SelectedEntry> selectedEntries;
+  final bool isMultiSelect;
+  final VoidCallback? onAdd;
+
+  bool get isSelected => selectedEntries.isNotEmpty;
 }
 
 class _BottomMetric extends StatelessWidget {
@@ -891,25 +1009,29 @@ class _SelectedPartCard extends StatelessWidget {
   const _SelectedPartCard({
     required this.categoryIcon,
     required this.categoryLabel,
-    required this.title,
-    required this.price,
-    required this.onChange,
-    this.onRemove,
-    this.isEmpty = false,
+    required this.emptyTitle,
+    required this.onChoose,
+    required this.selectedEntries,
+    this.isMultiSelect = false,
+    this.onAdd,
   });
 
   final IconData categoryIcon;
   final String categoryLabel;
-  final String title;
-  final String price;
-  final VoidCallback onChange;
-  final VoidCallback? onRemove;
-  final bool isEmpty;
+  final String emptyTitle;
+  final VoidCallback onChoose;
+  final List<_SelectedEntry> selectedEntries;
+  final bool isMultiSelect;
+  final VoidCallback? onAdd;
+
+  String _priceLabel(double? price) =>
+      price == null ? '-' : '\$${price.toStringAsFixed(2)}';
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final l10n = context.l10n;
+    final isEmpty = selectedEntries.isEmpty;
 
     return DecoratedBox(
       decoration: BoxDecoration(
@@ -920,24 +1042,42 @@ class _SelectedPartCard extends StatelessWidget {
       child: Padding(
         padding: const EdgeInsets.all(14),
         child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            // ── Category header ──────────────────────────────────────────────
             Row(
               children: [
                 Icon(categoryIcon, color: theme.colorScheme.primary),
                 const SizedBox(width: 8),
-                Expanded(
-                  child: Text(
-                    categoryLabel.toUpperCase(),
-                    style: theme.textTheme.labelSmall?.copyWith(
-                      fontWeight: FontWeight.w900,
-                      letterSpacing: 1.0,
-                      color: theme.colorScheme.onSurfaceVariant,
-                    ),
+                Text(
+                  categoryLabel.toUpperCase(),
+                  style: theme.textTheme.labelSmall?.copyWith(
+                    fontWeight: FontWeight.w900,
+                    letterSpacing: 1.0,
+                    color: theme.colorScheme.onSurfaceVariant,
                   ),
                 ),
-                if (isEmpty)
+              ],
+            ),
+
+            if (isEmpty) ...[
+              // ── Empty state ─────────────────────────────────────────────────
+              const SizedBox(height: 12),
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  Expanded(
+                    child: Text(
+                      emptyTitle,
+                      style: theme.textTheme.bodyMedium?.copyWith(
+                        color: theme.colorScheme.onSurfaceVariant,
+                      ),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
                   TextButton(
-                    onPressed: onChange,
+                    onPressed: onChoose,
                     child: Text(
                       l10n.configureChoose,
                       style: TextStyle(
@@ -945,65 +1085,97 @@ class _SelectedPartCard extends StatelessWidget {
                         color: theme.colorScheme.primary,
                       ),
                     ),
-                  )
-                else
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.end,
-                    children: [
-                      TextButton(
-                        onPressed: onChange,
-                        child: Text(
-                          l10n.configureChange,
-                          style: TextStyle(
-                            fontWeight: FontWeight.w900,
-                            color: theme.colorScheme.primary,
-                          ),
-                        ),
-                      ),
-                      TextButton(
-                        onPressed: onRemove,
-                        child: Text(
-                          l10n.configureRemove,
-                          style: TextStyle(
-                            fontWeight: FontWeight.w900,
-                            color: theme.colorScheme.error,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-              ],
-            ),
-            const SizedBox(height: 10),
-            Align(
-              alignment: Alignment.centerLeft,
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    title,
-                    style: theme.textTheme.bodyLarge?.copyWith(
-                      fontWeight: FontWeight.w900,
-                      height: 1.12,
-                    ),
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    price,
-                    style: theme.textTheme.bodyLarge?.copyWith(
-                      fontWeight: FontWeight.w900,
-                      color: isEmpty
-                          ? theme.colorScheme.onSurfaceVariant
-                          : theme.colorScheme.primary,
-                    ),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
                   ),
                 ],
               ),
-            ),
+            ] else ...[
+              // ── Selected items ───────────────────────────────────────────────
+              for (final entry in selectedEntries) ...[
+                const Divider(height: 20),
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: [
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            entry.part.title,
+                            style: theme.textTheme.bodyLarge?.copyWith(
+                              fontWeight: FontWeight.w900,
+                              height: 1.12,
+                            ),
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                          const SizedBox(height: 6),
+                          Text(
+                            _priceLabel(entry.part.price),
+                            style: theme.textTheme.bodyLarge?.copyWith(
+                              fontWeight: FontWeight.w900,
+                              color: theme.colorScheme.primary,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.end,
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        TextButton(
+                          onPressed: entry.onView,
+                          child: Text(
+                            'Ansehen',
+                            style: TextStyle(
+                              fontWeight: FontWeight.w900,
+                              color: theme.colorScheme.primary,
+                            ),
+                          ),
+                        ),
+                        TextButton(
+                          onPressed: entry.onChange,
+                          child: Text(
+                            l10n.configureChange,
+                            style: TextStyle(
+                              fontWeight: FontWeight.w900,
+                              color: theme.colorScheme.primary,
+                            ),
+                          ),
+                        ),
+                        TextButton(
+                          onPressed: entry.onRemove,
+                          child: Text(
+                            l10n.configureRemove,
+                            style: TextStyle(
+                              fontWeight: FontWeight.w900,
+                              color: theme.colorScheme.error,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ],
+              // ── Hinzufügen (multi-select only) ───────────────────────────────
+              if (isMultiSelect && onAdd != null) ...[
+                const Divider(height: 20),
+                Align(
+                  alignment: Alignment.centerRight,
+                  child: TextButton(
+                    onPressed: onAdd,
+                    child: Text(
+                      'Hinzufügen',
+                      style: TextStyle(
+                        fontWeight: FontWeight.w900,
+                        color: theme.colorScheme.primary,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ],
           ],
         ),
       ),

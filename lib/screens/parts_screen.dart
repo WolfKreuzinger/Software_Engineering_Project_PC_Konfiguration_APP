@@ -25,6 +25,17 @@ class PartsScreen extends StatefulWidget {
   final String? lockedType;
   final bool returnSelection;
 
+  /// Opens the spec detail bottom sheet for a given part.
+  /// [data] should be the part's raw data map (PartSelection.rawData + price).
+  static void showDetailSheet(
+    BuildContext context,
+    Map<String, dynamic> data,
+    String type,
+    String title,
+  ) {
+    _PartsScreenState._showDetailSheetImpl(context, data, type, title);
+  }
+
   @override
   State<PartsScreen> createState() => _PartsScreenState();
 }
@@ -840,11 +851,11 @@ class _PartsScreenState extends State<PartsScreen> {
                 ),
               );
             } else {
-              _showPartDetails(context, data, type, title);
+              _showDetailSheetImpl(context, data, type, title);
             }
           },
           onTapSecondary: widget.returnSelection
-              ? () => _showPartDetails(context, data, type, title)
+              ? () => _showDetailSheetImpl(context, data, type, title)
               : null,
         );
       },
@@ -853,7 +864,7 @@ class _PartsScreenState extends State<PartsScreen> {
 
   // ── Detail bottom sheet ────────────────────────────────────────────────────
 
-  void _showPartDetails(
+  static void _showDetailSheetImpl(
     BuildContext context,
     Map<String, dynamic> data,
     String type,
