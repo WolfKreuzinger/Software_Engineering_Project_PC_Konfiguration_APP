@@ -172,11 +172,12 @@ class _SharedBuildScreenState extends State<SharedBuildScreen> {
     return result;
   }
 
-  void _viewPart(String type) {
-    Navigator.of(context).push<void>(
-      MaterialPageRoute(
-        builder: (_) => PartsScreen(lockedType: type, returnSelection: false),
-      ),
+  void _viewPart(PartSelection part) {
+    PartsScreen.showDetailSheet(
+      context,
+      <String, dynamic>{...part.rawData, 'name': part.title, 'price': part.price},
+      part.type,
+      part.title,
     );
   }
 
@@ -352,7 +353,7 @@ class _SharedBuildScreenState extends State<SharedBuildScreen> {
                         label: meta.label,
                         part: part,
                         onView: part != null
-                            ? () => _viewPart(meta.type)
+                            ? () => _viewPart(part)
                             : null,
                       ),
                     );
