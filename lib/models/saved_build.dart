@@ -114,7 +114,7 @@ class SavedBuild {
       case BuildStatus.completed:
         return 'COMPLETED';
       case BuildStatus.draft:
-        return 'DRAFT';
+        return 'IMPORTIERT';
       case BuildStatus.archived:
         return 'ARCHIVED';
       case BuildStatus.inProgress:
