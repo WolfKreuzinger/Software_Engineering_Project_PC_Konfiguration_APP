@@ -33,6 +33,17 @@ class _ConfigureScreenState extends State<ConfigureScreen> {
     });
   }
 
+  static const Set<String> _mandatorySlots = <String>{
+    'cpu',
+    'cpuCooler',
+    'motherboard',
+    'ram',
+    'gpu',
+    'storage',
+    'case',
+    'psu',
+  };
+
   static const Map<String, String> _slotTypeByKey = <String, String>{
     'cpu': 'cpu',
     'cpuCooler': 'cpu-cooler',
@@ -83,7 +94,8 @@ class _ConfigureScreenState extends State<ConfigureScreen> {
       // Restore compatibility checker fields
       rawData['name'] = name;
       if (raw['socket'] != null) rawData['socket'] = raw['socket'];
-      if (raw['form_factor'] != null) rawData['form_factor'] = raw['form_factor'];
+      if (raw['form_factor'] != null)
+        rawData['form_factor'] = raw['form_factor'];
       if (raw['speed'] != null) rawData['speed'] = raw['speed'];
       if (raw['case_type'] != null) rawData['type'] = raw['case_type'];
 
@@ -109,8 +121,15 @@ class _ConfigureScreenState extends State<ConfigureScreen> {
       if (raw['specSnippet'] is Map) {
         rawData['spec'] = Map<String, dynamic>.from(raw['specSnippet'] as Map);
       }
-      for (final f in ['wattage', 'tdp', 'chipset', 'modules', 'socket',
-                        'form_factor', 'speed']) {
+      for (final f in [
+        'wattage',
+        'tdp',
+        'chipset',
+        'modules',
+        'socket',
+        'form_factor',
+        'speed',
+      ]) {
         if (raw[f] != null) rawData[f] = raw[f];
       }
       if (raw['case_type'] != null) rawData['type'] = raw['case_type'];
@@ -275,7 +294,9 @@ class _ConfigureScreenState extends State<ConfigureScreen> {
   String _nextKey(String base) {
     if (!_selectedParts.containsKey(base)) return base;
     var i = 1;
-    while (_selectedParts.containsKey('${base}_$i')) i++;
+    while (_selectedParts.containsKey('${base}_$i')) {
+      i++;
+    }
     return '${base}_$i';
   }
 
@@ -285,7 +306,9 @@ class _ConfigureScreenState extends State<ConfigureScreen> {
       for (final k in allKeys)
         if (k != removedKey) _selectedParts[k]!,
     ];
-    for (final k in allKeys) _selectedParts.remove(k);
+    for (final k in allKeys) {
+      _selectedParts.remove(k);
+    }
     for (var i = 0; i < remaining.length; i++) {
       _selectedParts[i == 0 ? base : '${base}_$i'] = remaining[i];
     }
@@ -311,7 +334,11 @@ class _ConfigureScreenState extends State<ConfigureScreen> {
   void _viewPart(PartSelection part) {
     PartsScreen.showDetailSheet(
       context,
-      <String, dynamic>{...part.rawData, 'name': part.title, 'price': part.price},
+      <String, dynamic>{
+        ...part.rawData,
+        'name': part.title,
+        'price': part.price,
+      },
       part.type,
       part.title,
     );
@@ -395,7 +422,9 @@ class _ConfigureScreenState extends State<ConfigureScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           behavior: SnackBarBehavior.floating,
-          content: Text('Please sign in. Your build will be saved automatically.'),
+          content: Text(
+            'Please sign in. Your build will be saved automatically.',
+          ),
         ),
       );
       _goNextFrame('/login');
@@ -624,11 +653,13 @@ class _ConfigureScreenState extends State<ConfigureScreen> {
     final l10n = context.l10n;
     final slots = _slots(context);
 
-    final displayParts = <_PartTile>[];
+    final mandatoryParts = <_PartTile>[];
+    final optionalParts = <_PartTile>[];
     for (final slot in slots) {
+      _PartTile tile;
       if (_multiSelectSlots.contains(slot.key)) {
         final keys = _keysForSlot(slot.key);
-        displayParts.add(_PartTile(
+        tile = _PartTile(
           icon: slot.icon,
           label: slot.label,
           emptyTitle: slot.emptyTitle,
@@ -644,10 +675,10 @@ class _ConfigureScreenState extends State<ConfigureScreen> {
           ],
           isMultiSelect: true,
           onAdd: () => _addPart(slot),
-        ));
+        );
       } else {
         final selected = _selectedParts[slot.key];
-        displayParts.add(_PartTile(
+        tile = _PartTile(
           icon: slot.icon,
           label: slot.label,
           emptyTitle: slot.emptyTitle,
@@ -663,16 +694,32 @@ class _ConfigureScreenState extends State<ConfigureScreen> {
                         setState(() => _selectedParts.remove(slot.key)),
                   ),
                 ],
-        ));
+        );
+      }
+      if (_mandatorySlots.contains(slot.key)) {
+        mandatoryParts.add(tile);
+      } else {
+        optionalParts.add(tile);
       }
     }
 
     final selection = _buildSelection();
-    final partsDone = slots.where((s) => _selectedParts.containsKey(s.key)).length;
+    final mandatoryDone = slots
+        .where((s) => _mandatorySlots.contains(s.key) && _selectedParts.containsKey(s.key))
+        .length;
+    final mandatoryTotal = _mandatorySlots.length;
+    final optionalDone = slots
+        .where((s) => !_mandatorySlots.contains(s.key) && _selectedParts.containsKey(s.key))
+        .length;
+    final optionalTotal = slots.length - mandatoryTotal;
+    final partsDone = mandatoryDone + optionalDone;
     final partsTotal = slots.length;
-    final progress = partsTotal == 0
+    final mandatoryProgress = mandatoryTotal == 0
         ? 0.0
-        : (partsDone / partsTotal).clamp(0.0, 1.0);
+        : (mandatoryDone / mandatoryTotal).clamp(0.0, 1.0);
+    final optionalProgress = optionalTotal == 0
+        ? 0.0
+        : (optionalDone / optionalTotal).clamp(0.0, 1.0);
     final totalPrice = _selectedParts.values.fold<double>(
       0,
       (sum, part) => sum + (part.price ?? 0),
@@ -760,19 +807,69 @@ class _ConfigureScreenState extends State<ConfigureScreen> {
                         ],
                       ),
                       const SizedBox(height: 8),
-                      ClipRRect(
-                        borderRadius: BorderRadius.circular(999),
-                        child: SizedBox(
-                          height: 8,
-                          child: LinearProgressIndicator(
-                            value: progress,
-                            backgroundColor:
-                                theme.colorScheme.surfaceContainerHighest,
-                            valueColor: AlwaysStoppedAnimation<Color>(
-                              theme.colorScheme.primary,
-                            ),
-                          ),
-                        ),
+                      LayoutBuilder(
+                        builder: (context, constraints) {
+                          final totalWidth = constraints.maxWidth;
+                          final junctionX = totalWidth *
+                              mandatoryTotal /
+                              (mandatoryTotal + optionalTotal);
+                          final slashColor = theme.brightness == Brightness.dark
+                              ? Colors.white
+                              : Colors.black;
+                          return Stack(
+                            clipBehavior: Clip.none,
+                            children: [
+                              SizedBox(
+                                height: 8,
+                                child: Row(
+                                  children: [
+                                    Flexible(
+                                      flex: mandatoryTotal,
+                                      child: ClipRRect(
+                                        borderRadius: const BorderRadius.horizontal(
+                                          left: Radius.circular(999),
+                                        ),
+                                        child: LinearProgressIndicator(
+                                          value: mandatoryProgress,
+                                          backgroundColor: theme.colorScheme.surfaceContainerHighest,
+                                          valueColor: AlwaysStoppedAnimation<Color>(
+                                            theme.colorScheme.primary,
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                    Flexible(
+                                      flex: optionalTotal,
+                                      child: ClipRRect(
+                                        borderRadius: const BorderRadius.horizontal(
+                                          right: Radius.circular(999),
+                                        ),
+                                        child: LinearProgressIndicator(
+                                          value: optionalProgress,
+                                          backgroundColor: theme.colorScheme.surfaceContainerHighest,
+                                          valueColor: const AlwaysStoppedAnimation<Color>(
+                                            Color(0xFFE8A020),
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              Positioned(
+                                left: junctionX - 5,
+                                top: -5,
+                                child: SizedBox(
+                                  width: 10,
+                                  height: 18,
+                                  child: CustomPaint(
+                                    painter: _SlashDividerPainter(color: slashColor),
+                                  ),
+                                ),
+                              ),
+                            ],
+                          );
+                        },
                       ),
                     ],
                   ),
@@ -783,22 +880,24 @@ class _ConfigureScreenState extends State<ConfigureScreen> {
               padding: const EdgeInsets.fromLTRB(16, 16, 16, 148),
               sliver: SliverList(
                 delegate: SliverChildBuilderDelegate((context, index) {
-                  final p = displayParts[index];
-                  return Padding(
-                    padding: EdgeInsets.only(
-                      bottom: index == displayParts.length - 1 ? 0 : 12,
-                    ),
-                    child: _SelectedPartCard(
-                      categoryIcon: p.icon,
-                      categoryLabel: p.label,
-                      emptyTitle: p.emptyTitle,
-                      onChoose: p.onChoose,
-                      selectedEntries: p.selectedEntries,
-                      isMultiSelect: p.isMultiSelect,
-                      onAdd: p.onAdd,
-                    ),
-                  );
-                }, childCount: displayParts.length),
+                  if (index < mandatoryParts.length) {
+                    final p = mandatoryParts[index];
+                    return Padding(
+                      padding: const EdgeInsets.only(bottom: 12),
+                      child: _SelectedPartCard(
+                        categoryIcon: p.icon,
+                        categoryLabel: p.label,
+                        emptyTitle: p.emptyTitle,
+                        onChoose: p.onChoose,
+                        selectedEntries: p.selectedEntries,
+                        isMultiSelect: p.isMultiSelect,
+                        onAdd: p.onAdd,
+                      ),
+                    );
+                  } else {
+                    return _OptionalComponentsSection(parts: optionalParts);
+                  }
+                }, childCount: mandatoryParts.length + 1),
               ),
             ),
           ],
@@ -874,7 +973,9 @@ class _ConfigureScreenState extends State<ConfigureScreen> {
                                 child: FittedBox(
                                   fit: BoxFit.scaleDown,
                                   child: Text(
-                                    _isSaving ? 'SAVING...' : l10n.configureAddToBuilds,
+                                    _isSaving
+                                        ? 'SAVING...'
+                                        : l10n.configureAddToBuilds,
                                   ),
                                 ),
                               ),
@@ -912,6 +1013,30 @@ class _BuildSelection {
   final bool hasMotherboard;
   final int caseFans;
   final bool hasCpuCooler;
+}
+
+class _SlashDividerPainter extends CustomPainter {
+  const _SlashDividerPainter({required this.color});
+
+  final Color color;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..color = color
+      ..strokeWidth = 1.8
+      ..strokeCap = StrokeCap.round;
+    // "/" forward slash: bottom-left → top-right, with inset
+    const inset = 2.5;
+    canvas.drawLine(
+      Offset(0, size.height - inset),
+      Offset(size.width, inset),
+      paint,
+    );
+  }
+
+  @override
+  bool shouldRepaint(_SlashDividerPainter old) => old.color != color;
 }
 
 class _PartSlot {
@@ -1014,6 +1139,7 @@ class _SelectedPartCard extends StatelessWidget {
     required this.selectedEntries,
     this.isMultiSelect = false,
     this.onAdd,
+    this.accentColor,
   });
 
   final IconData categoryIcon;
@@ -1023,6 +1149,7 @@ class _SelectedPartCard extends StatelessWidget {
   final List<_SelectedEntry> selectedEntries;
   final bool isMultiSelect;
   final VoidCallback? onAdd;
+  final Color? accentColor;
 
   String _priceLabel(double? price) =>
       price == null ? '-' : '\$${price.toStringAsFixed(2)}';
@@ -1032,6 +1159,7 @@ class _SelectedPartCard extends StatelessWidget {
     final theme = Theme.of(context);
     final l10n = context.l10n;
     final isEmpty = selectedEntries.isEmpty;
+    final accent = accentColor ?? theme.colorScheme.primary;
 
     return DecoratedBox(
       decoration: BoxDecoration(
@@ -1047,7 +1175,7 @@ class _SelectedPartCard extends StatelessWidget {
             // ── Category header ──────────────────────────────────────────────
             Row(
               children: [
-                Icon(categoryIcon, color: theme.colorScheme.primary),
+                Icon(categoryIcon, color: accent),
                 const SizedBox(width: 8),
                 Text(
                   categoryLabel.toUpperCase(),
@@ -1082,7 +1210,7 @@ class _SelectedPartCard extends StatelessWidget {
                       l10n.configureChoose,
                       style: TextStyle(
                         fontWeight: FontWeight.w900,
-                        color: theme.colorScheme.primary,
+                        color: accent,
                       ),
                     ),
                   ),
@@ -1113,7 +1241,7 @@ class _SelectedPartCard extends StatelessWidget {
                             _priceLabel(entry.part.price),
                             style: theme.textTheme.bodyLarge?.copyWith(
                               fontWeight: FontWeight.w900,
-                              color: theme.colorScheme.primary,
+                              color: accent,
                             ),
                           ),
                         ],
@@ -1129,7 +1257,7 @@ class _SelectedPartCard extends StatelessWidget {
                             'Ansehen',
                             style: TextStyle(
                               fontWeight: FontWeight.w900,
-                              color: theme.colorScheme.primary,
+                              color: accent,
                             ),
                           ),
                         ),
@@ -1139,7 +1267,7 @@ class _SelectedPartCard extends StatelessWidget {
                             l10n.configureChange,
                             style: TextStyle(
                               fontWeight: FontWeight.w900,
-                              color: theme.colorScheme.primary,
+                              color: accent,
                             ),
                           ),
                         ),
@@ -1169,7 +1297,7 @@ class _SelectedPartCard extends StatelessWidget {
                       'Hinzufügen',
                       style: TextStyle(
                         fontWeight: FontWeight.w900,
-                        color: theme.colorScheme.primary,
+                        color: accent,
                       ),
                     ),
                   ),
@@ -1178,6 +1306,113 @@ class _SelectedPartCard extends StatelessWidget {
             ],
           ],
         ),
+      ),
+    );
+  }
+}
+
+// ── Optional components section ────────────────────────────────────────────────
+
+class _OptionalComponentsSection extends StatefulWidget {
+  const _OptionalComponentsSection({required this.parts});
+
+  final List<_PartTile> parts;
+
+  @override
+  State<_OptionalComponentsSection> createState() =>
+      _OptionalComponentsSectionState();
+}
+
+class _OptionalComponentsSectionState
+    extends State<_OptionalComponentsSection> {
+  bool _expanded = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    const accentColor = Color(0xFFE8A020);
+    final selectedCount = widget.parts.where((p) => p.isSelected).length;
+
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: theme.colorScheme.surface,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: theme.colorScheme.outlineVariant),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // ── Header ────────────────────────────────────────────────────────
+          InkWell(
+            onTap: () => setState(() => _expanded = !_expanded),
+            borderRadius: BorderRadius.circular(18),
+            child: Padding(
+              padding: const EdgeInsets.all(14),
+              child: Row(
+                children: [
+                  Icon(
+                    Icons.add_circle_outline_rounded,
+                    color: accentColor,
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'EXTRAS',
+                          style: theme.textTheme.labelSmall?.copyWith(
+                            fontWeight: FontWeight.w900,
+                            letterSpacing: 1.0,
+                            color: theme.colorScheme.onSurfaceVariant,
+                          ),
+                        ),
+                        if (selectedCount > 0) ...[
+                          const SizedBox(height: 2),
+                          Text(
+                            '$selectedCount ausgewählt',
+                            style: theme.textTheme.bodySmall?.copyWith(
+                              color: accentColor,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                        ],
+                      ],
+                    ),
+                  ),
+                  Icon(
+                    _expanded
+                        ? Icons.keyboard_arrow_up_rounded
+                        : Icons.keyboard_arrow_down_rounded,
+                    color: theme.colorScheme.onSurfaceVariant,
+                  ),
+                ],
+              ),
+            ),
+          ),
+          // ── Expanded content ──────────────────────────────────────────────
+          if (_expanded)
+            Padding(
+              padding: const EdgeInsets.fromLTRB(14, 0, 14, 14),
+              child: Column(
+                children: [
+                  for (final p in widget.parts) ...[
+                    const SizedBox(height: 10),
+                    _SelectedPartCard(
+                      categoryIcon: p.icon,
+                      categoryLabel: p.label,
+                      emptyTitle: p.emptyTitle,
+                      onChoose: p.onChoose,
+                      selectedEntries: p.selectedEntries,
+                      isMultiSelect: p.isMultiSelect,
+                      onAdd: p.onAdd,
+                      accentColor: accentColor,
+                    ),
+                  ],
+                ],
+              ),
+            ),
+        ],
       ),
     );
   }
@@ -1279,21 +1514,21 @@ class _CompatReportScreen extends StatelessWidget {
   // ── helpers ────────────────────────────────────────────────────────────────
 
   static Color _sectionFg(CompatIssueLevel lvl) => switch (lvl) {
-    CompatIssueLevel.error   => const Color(0xFFB71C1C),
+    CompatIssueLevel.error => const Color(0xFFB71C1C),
     CompatIssueLevel.warning => const Color(0xFFE65100),
-    CompatIssueLevel.ok      => const Color(0xFF1B5E20),
+    CompatIssueLevel.ok => const Color(0xFF1B5E20),
   };
 
   static Color _sectionBg(CompatIssueLevel lvl) => switch (lvl) {
-    CompatIssueLevel.error   => const Color(0xFFEF9A9A), // same as _CompatBar
+    CompatIssueLevel.error => const Color(0xFFEF9A9A), // same as _CompatBar
     CompatIssueLevel.warning => const Color(0xFFFFE082),
-    CompatIssueLevel.ok      => const Color(0xFFA5D6A7),
+    CompatIssueLevel.ok => const Color(0xFFA5D6A7),
   };
 
   static IconData _sectionIcon(CompatIssueLevel lvl) => switch (lvl) {
-    CompatIssueLevel.error   => Icons.cancel_rounded,
+    CompatIssueLevel.error => Icons.cancel_rounded,
     CompatIssueLevel.warning => Icons.warning_amber_rounded,
-    CompatIssueLevel.ok      => Icons.check_circle_rounded,
+    CompatIssueLevel.ok => Icons.check_circle_rounded,
   };
 
   // ── build ──────────────────────────────────────────────────────────────────
@@ -1301,12 +1536,18 @@ class _CompatReportScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final l10n  = context.l10n;
+    final l10n = context.l10n;
     final level = result.overallLevel;
 
-    final errors   = result.issues.where((i) => i.level == CompatIssueLevel.error).toList();
-    final warnings = result.issues.where((i) => i.level == CompatIssueLevel.warning).toList();
-    final oks      = result.issues.where((i) => i.level == CompatIssueLevel.ok).toList();
+    final errors = result.issues
+        .where((i) => i.level == CompatIssueLevel.error)
+        .toList();
+    final warnings = result.issues
+        .where((i) => i.level == CompatIssueLevel.warning)
+        .toList();
+    final oks = result.issues
+        .where((i) => i.level == CompatIssueLevel.ok)
+        .toList();
 
     final headerBg = _sectionBg(level);
     final headerFg = _sectionFg(level);
@@ -1330,15 +1571,15 @@ class _CompatReportScreen extends StatelessWidget {
     }
 
     final showPower = estimatedWatts > 0 && psuWatts > 0;
-    final loadPct   = showPower
+    final loadPct = showPower
         ? (estimatedWatts / psuWatts).clamp(0.0, 1.0)
         : 0.0;
-    final headroom  = psuWatts - estimatedWatts;
+    final headroom = psuWatts - estimatedWatts;
     final Color powerBarColor = loadPct >= 0.9
         ? const Color(0xFFB71C1C)
         : loadPct >= 0.75
-            ? const Color(0xFFE65100)
-            : const Color(0xFF2E7D32);
+        ? const Color(0xFFE65100)
+        : const Color(0xFF2E7D32);
 
     return Scaffold(
       backgroundColor: theme.colorScheme.surface,
@@ -1349,7 +1590,9 @@ class _CompatReportScreen extends StatelessWidget {
         leading: const BackButton(),
         title: Text(
           l10n.compatibilityDetails,
-          style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w900),
+          style: theme.textTheme.titleMedium?.copyWith(
+            fontWeight: FontWeight.w900,
+          ),
         ),
       ),
       body: SingleChildScrollView(
@@ -1357,7 +1600,6 @@ class _CompatReportScreen extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-
             // ── Status header card ──────────────────────────────────────────
             Container(
               decoration: BoxDecoration(
@@ -1424,7 +1666,11 @@ class _CompatReportScreen extends StatelessWidget {
                   children: [
                     Row(
                       children: [
-                        Icon(Icons.bolt_rounded, color: powerBarColor, size: 18),
+                        Icon(
+                          Icons.bolt_rounded,
+                          color: powerBarColor,
+                          size: 18,
+                        ),
                         const SizedBox(width: 6),
                         Text(
                           'Stromverbrauch',
@@ -1449,7 +1695,9 @@ class _CompatReportScreen extends StatelessWidget {
                         value: loadPct,
                         minHeight: 8,
                         backgroundColor: theme.colorScheme.outlineVariant,
-                        valueColor: AlwaysStoppedAnimation<Color>(powerBarColor),
+                        valueColor: AlwaysStoppedAnimation<Color>(
+                          powerBarColor,
+                        ),
                       ),
                     ),
                     const SizedBox(height: 8),
@@ -1537,22 +1785,22 @@ class _IssueSection extends StatelessWidget {
   final CompatIssueLevel level;
 
   static Color _fg(CompatIssueLevel l) => switch (l) {
-    CompatIssueLevel.error   => const Color(0xFFB71C1C),
+    CompatIssueLevel.error => const Color(0xFFB71C1C),
     CompatIssueLevel.warning => const Color(0xFFE65100),
-    CompatIssueLevel.ok      => const Color(0xFF1B5E20),
+    CompatIssueLevel.ok => const Color(0xFF1B5E20),
   };
 
   static IconData _icon(CompatIssueLevel l) => switch (l) {
-    CompatIssueLevel.error   => Icons.cancel_rounded,
+    CompatIssueLevel.error => Icons.cancel_rounded,
     CompatIssueLevel.warning => Icons.warning_amber_rounded,
-    CompatIssueLevel.ok      => Icons.check_circle_rounded,
+    CompatIssueLevel.ok => Icons.check_circle_rounded,
   };
 
   @override
   Widget build(BuildContext context) {
-    final theme   = Theme.of(context);
-    final fg      = _fg(level);
-    final icon    = _icon(level);
+    final theme = Theme.of(context);
+    final fg = _fg(level);
+    final icon = _icon(level);
     // Primary purple from app scheme (used as outline + icon tint)
     final primary = theme.colorScheme.primary;
 
