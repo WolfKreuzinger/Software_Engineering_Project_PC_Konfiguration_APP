@@ -64,9 +64,10 @@ class _ConfigureScreenState extends State<ConfigureScreen> {
   void _loadInitialBuild() {
     final build = widget.initialBuild;
     if (build == null) return;
-    _editingBuildId = build.buildId;
-    _editingBuildTitle = build.title;
-    _editingCreatedAt = build.createdAt;
+    final isTemplate = build.buildId.isEmpty;
+    _editingBuildId = isTemplate ? null : build.buildId;
+    _editingBuildTitle = build.title.isEmpty ? null : build.title;
+    _editingCreatedAt = isTemplate ? null : build.createdAt;
     for (final key in buildSlotKeys) {
       final raw = build.selectedParts[key];
       if (raw is! Map) continue;
