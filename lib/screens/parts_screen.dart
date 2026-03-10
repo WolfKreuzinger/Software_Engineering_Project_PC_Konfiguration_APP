@@ -100,6 +100,7 @@ class _PartsScreenState extends State<PartsScreen> {
   String _selectedType = 'All Components';
   String _selectedSort = 'Price: Low to High';
   RangeValues _priceRange = const RangeValues(0, 5000);
+  Map<String, RangeValues> _specFilters = {};
 
   static const _types = <String>[
     'All Components',
@@ -506,6 +507,32 @@ class _PartsScreenState extends State<PartsScreen> {
     return p >= r.start && p <= r.end;
   }
 
+  bool _matchesSpecs(
+    Map<String, RangeValues> specFilters,
+    Map<String, dynamic> data,
+  ) {
+    if (specFilters.isEmpty) return true;
+    final defs = _typeSpecDefs[_selectedType] ?? [];
+    for (final def in defs) {
+      final filterRange = specFilters[def.dataKey];
+      if (filterRange == null) continue;
+      if (filterRange.start == def.min && filterRange.end == def.max) continue;
+      final spec = data['spec'];
+      dynamic rawVal;
+      if (spec is Map) {
+        rawVal = spec[def.specKey] ?? spec[def.dataKey] ?? data[def.dataKey];
+      } else {
+        rawVal = data[def.dataKey];
+      }
+      final numVal = _toDouble(rawVal);
+      if (!numVal.isNaN &&
+          (numVal < filterRange.start || numVal > filterRange.end)) {
+        return false;
+      }
+    }
+    return true;
+  }
+
   static IconData _iconForType(String type) {
     switch (_normType(type)) {
       case 'cpu':
@@ -687,7 +714,9 @@ class _PartsScreenState extends State<PartsScreen> {
                     onSearchTap: _applySearch,
                   ),
                 ),
-                Padding(
+                Align(
+                  alignment: Alignment.centerLeft,
+                  child: Padding(
                   padding: const EdgeInsets.fromLTRB(16, 0, 16, 10),
                   child: SingleChildScrollView(
                     scrollDirection: Axis.horizontal,
@@ -708,7 +737,10 @@ class _PartsScreenState extends State<PartsScreen> {
                                   items: _types,
                                   selected: _selectedType,
                                   onPick: (v) {
-                                    setState(() => _selectedType = v);
+                                    setState(() {
+                                      _selectedType = v;
+                                      _specFilters = {};
+                                    });
                                     Navigator.of(context).pop();
                                   },
                                   theme: theme,
@@ -717,41 +749,53 @@ class _PartsScreenState extends State<PartsScreen> {
                               );
                             },
                           ),
+                        if (_selectedType != 'All Components' &&
+                            (_typeSpecDefs[_selectedType]?.isNotEmpty ??
+                                false)) ...[
+                          const SizedBox(width: 10),
+                          _Pill(
+                            label: _specFilters.isEmpty
+                                ? 'Specs'
+                                : 'Specs (${_specFilters.length})',
+                            selected: _specFilters.isNotEmpty,
+                            onTap: () {
+                              showModalBottomSheet(
+                                context: context,
+                                isScrollControlled: true,
+                                showDragHandle: true,
+                                builder: (_) => _SpecsSheet(
+                                  selectedType: _selectedType,
+                                  specFilters: Map.from(_specFilters),
+                                  onApply: (filters) {
+                                    setState(() => _specFilters = filters);
+                                    Navigator.of(context).pop();
+                                  },
+                                  theme: theme,
+                                ),
+                              );
+                            },
+                          ),
+                        ],
                         const SizedBox(width: 10),
                         _Pill(
-                          label:
-                              'Price ${_priceRange.start.toStringAsFixed(0)}–${_priceRange.end.toStringAsFixed(0)}',
-                          selected: false,
+                          label: 'Sort',
+                          selected: _selectedSort != _sorts[0] ||
+                              _priceRange.start > 0 ||
+                              _priceRange.end < 5000,
                           onTap: () {
                             showModalBottomSheet(
                               context: context,
                               isScrollControlled: true,
                               showDragHandle: true,
-                              builder: (_) => _PriceSheet(
+                              builder: (_) => _SortSheet(
+                                sorts: _sorts,
+                                selectedSort: _selectedSort,
                                 priceRange: _priceRange,
-                                onApply: (v) {
-                                  setState(() => _priceRange = v);
-                                  Navigator.of(context).pop();
-                                },
-                                theme: theme,
-                              ),
-                            );
-                          },
-                        ),
-                        const SizedBox(width: 10),
-                        _Pill(
-                          label: _selectedSort,
-                          selected: false,
-                          onTap: () {
-                            showModalBottomSheet(
-                              context: context,
-                              showDragHandle: true,
-                              builder: (_) => _SimplePickerSheet(
-                                title: 'Sort',
-                                items: _sorts,
-                                selected: _selectedSort,
-                                onPick: (v) {
-                                  setState(() => _selectedSort = v);
+                                onApply: (sort, range) {
+                                  setState(() {
+                                    _selectedSort = sort;
+                                    _priceRange = range;
+                                  });
                                   Navigator.of(context).pop();
                                 },
                                 theme: theme,
@@ -761,6 +805,7 @@ class _PartsScreenState extends State<PartsScreen> {
                         ),
                       ],
                     ),
+                  ),
                   ),
                 ),
                 Expanded(child: _buildPartsList(context, theme, cs)),
@@ -806,6 +851,7 @@ class _PartsScreenState extends State<PartsScreen> {
         .where((e) => _matchesSelectedTypeIdx(_selectedType, e.$3))
         .where((e) => _matchesSearchIdx(_searchQuery, e.$3))
         .where((e) => _matchesPrice(_priceRange, e.$3))
+        .where((e) => _matchesSpecs(_specFilters, e.$2))
         .toList();
 
     filtered.sort((a, b) => _sortCompare(_selectedSort, a.$2, b.$2));
@@ -1724,27 +1770,258 @@ class _SimplePickerSheet extends StatelessWidget {
   }
 }
 
-class _PriceSheet extends StatefulWidget {
+// ── Spec definitions per component type ────────────────────────────────────
+
+class _SpecDef {
+  final String specKey;
+  final String dataKey;
+  final String label;
+  final double min;
+  final double max;
+  final String unit;
+  final int divisions;
+
+  const _SpecDef({
+    required this.specKey,
+    required this.dataKey,
+    required this.label,
+    required this.min,
+    required this.max,
+    required this.unit,
+    this.divisions = 50,
+  });
+}
+
+const Map<String, List<_SpecDef>> _typeSpecDefs = {
+  'cpu': [
+    _SpecDef(
+      specKey: 'coreCount',
+      dataKey: 'core_count',
+      label: 'Core Count',
+      min: 1,
+      max: 64,
+      unit: '',
+      divisions: 63,
+    ),
+    _SpecDef(
+      specKey: 'threadCount',
+      dataKey: 'thread_count',
+      label: 'Thread Count',
+      min: 1,
+      max: 128,
+      unit: '',
+      divisions: 127,
+    ),
+    _SpecDef(
+      specKey: 'boostClock',
+      dataKey: 'boost_clock',
+      label: 'Boost Clock',
+      min: 1000,
+      max: 7000,
+      unit: 'MHz',
+      divisions: 60,
+    ),
+    _SpecDef(
+      specKey: 'tdp',
+      dataKey: 'tdp',
+      label: 'TDP',
+      min: 0,
+      max: 300,
+      unit: 'W',
+      divisions: 60,
+    ),
+  ],
+  'video-card': [
+    _SpecDef(
+      specKey: 'memory',
+      dataKey: 'memory',
+      label: 'VRAM',
+      min: 2,
+      max: 24,
+      unit: 'GB',
+      divisions: 11,
+    ),
+    _SpecDef(
+      specKey: 'boostClock',
+      dataKey: 'boost_clock',
+      label: 'Boost Clock',
+      min: 500,
+      max: 3000,
+      unit: 'MHz',
+      divisions: 50,
+    ),
+    _SpecDef(
+      specKey: 'tdp',
+      dataKey: 'tdp',
+      label: 'TDP',
+      min: 50,
+      max: 500,
+      unit: 'W',
+      divisions: 90,
+    ),
+    _SpecDef(
+      specKey: 'length',
+      dataKey: 'length',
+      label: 'Length',
+      min: 100,
+      max: 420,
+      unit: 'mm',
+      divisions: 64,
+    ),
+  ],
+  'memory': [
+    _SpecDef(
+      specKey: 'casLatency',
+      dataKey: 'cas_latency',
+      label: 'CAS Latency',
+      min: 10,
+      max: 48,
+      unit: 'CL',
+      divisions: 38,
+    ),
+    _SpecDef(
+      specKey: 'firstWordLatency',
+      dataKey: 'first_word_latency',
+      label: 'First Word Latency',
+      min: 1,
+      max: 20,
+      unit: 'ns',
+      divisions: 38,
+    ),
+  ],
+  'internal-hard-drive': [
+    _SpecDef(
+      specKey: 'capacityGb',
+      dataKey: 'capacity',
+      label: 'Capacity',
+      min: 100,
+      max: 20000,
+      unit: 'GB',
+      divisions: 100,
+    ),
+    _SpecDef(
+      specKey: 'cache',
+      dataKey: 'cache',
+      label: 'Cache',
+      min: 0,
+      max: 2000,
+      unit: 'MB',
+      divisions: 100,
+    ),
+  ],
+  'motherboard': [
+    _SpecDef(
+      specKey: 'maxMemory',
+      dataKey: 'max_memory',
+      label: 'Max Memory',
+      min: 8,
+      max: 256,
+      unit: 'GB',
+      divisions: 31,
+    ),
+    _SpecDef(
+      specKey: 'memorySlots',
+      dataKey: 'memory_slots',
+      label: 'Memory Slots',
+      min: 2,
+      max: 8,
+      unit: '',
+      divisions: 6,
+    ),
+  ],
+  'power-supply': [
+    _SpecDef(
+      specKey: 'wattage',
+      dataKey: 'wattage',
+      label: 'Wattage',
+      min: 300,
+      max: 1600,
+      unit: 'W',
+      divisions: 65,
+    ),
+  ],
+  'case': [
+    _SpecDef(
+      specKey: 'internal35Bays',
+      dataKey: 'internal_35_bays',
+      label: '3.5" Bays',
+      min: 0,
+      max: 10,
+      unit: '',
+      divisions: 10,
+    ),
+  ],
+  'cpu-cooler': [
+    _SpecDef(
+      specKey: 'noiseLevelDb',
+      dataKey: 'noise_level',
+      label: 'Noise Level',
+      min: 0,
+      max: 50,
+      unit: 'dBA',
+      divisions: 50,
+    ),
+  ],
+  'case-fan': [
+    _SpecDef(
+      specKey: 'sizeMm',
+      dataKey: 'size',
+      label: 'Size',
+      min: 80,
+      max: 200,
+      unit: 'mm',
+      divisions: 12,
+    ),
+    _SpecDef(
+      specKey: 'noiseLevelDb',
+      dataKey: 'noise_level',
+      label: 'Noise Level',
+      min: 0,
+      max: 50,
+      unit: 'dBA',
+      divisions: 50,
+    ),
+    _SpecDef(
+      specKey: 'airflow',
+      dataKey: 'airflow',
+      label: 'Airflow',
+      min: 0,
+      max: 100,
+      unit: 'CFM',
+      divisions: 50,
+    ),
+  ],
+};
+
+// ── Sort sheet (sort order + price range) ───────────────────────────────────
+
+class _SortSheet extends StatefulWidget {
+  final List<String> sorts;
+  final String selectedSort;
   final RangeValues priceRange;
-  final ValueChanged<RangeValues> onApply;
+  final void Function(String sort, RangeValues range) onApply;
   final ThemeData theme;
 
-  const _PriceSheet({
+  const _SortSheet({
+    required this.sorts,
+    required this.selectedSort,
     required this.priceRange,
     required this.onApply,
     required this.theme,
   });
 
   @override
-  State<_PriceSheet> createState() => _PriceSheetState();
+  State<_SortSheet> createState() => _SortSheetState();
 }
 
-class _PriceSheetState extends State<_PriceSheet> {
+class _SortSheetState extends State<_SortSheet> {
+  late String _sort = widget.selectedSort;
   late RangeValues _range = widget.priceRange;
 
   @override
   Widget build(BuildContext context) {
     final theme = widget.theme;
+    final cs = theme.colorScheme;
 
     return SafeArea(
       top: false,
@@ -1755,20 +2032,69 @@ class _PriceSheetState extends State<_PriceSheet> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              'Price Range',
+              'Sort',
               style: theme.textTheme.titleLarge?.copyWith(
                 fontWeight: FontWeight.w900,
               ),
             ),
-            const SizedBox(height: 12),
+            const SizedBox(height: 14),
+            Text(
+              'Order',
+              style: theme.textTheme.labelLarge?.copyWith(
+                fontWeight: FontWeight.w800,
+                color: cs.onSurfaceVariant,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Wrap(
+              spacing: 10,
+              runSpacing: 10,
+              children: widget.sorts.map((s) {
+                final selected = s == _sort;
+                return InkWell(
+                  onTap: () => setState(() => _sort = s),
+                  borderRadius: BorderRadius.circular(999),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 10,
+                    ),
+                    decoration: BoxDecoration(
+                      color: selected
+                          ? cs.primary
+                          : cs.surfaceContainerHighest.withOpacity(0.65),
+                      borderRadius: BorderRadius.circular(999),
+                      border: Border.all(
+                        color: cs.outlineVariant.withOpacity(0.35),
+                      ),
+                    ),
+                    child: Text(
+                      s,
+                      style: theme.textTheme.bodyMedium?.copyWith(
+                        color: selected ? cs.onPrimary : cs.onSurface,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                  ),
+                );
+              }).toList(),
+            ),
+            const SizedBox(height: 16),
+            Text(
+              'Price Range',
+              style: theme.textTheme.labelLarge?.copyWith(
+                fontWeight: FontWeight.w800,
+                color: cs.onSurfaceVariant,
+              ),
+            ),
             RangeSlider(
               values: _range,
               min: 0,
               max: 5000,
               divisions: 100,
               labels: RangeLabels(
-                _range.start.toStringAsFixed(0),
-                _range.end.toStringAsFixed(0),
+                '\$${_range.start.toStringAsFixed(0)}',
+                '\$${_range.end.toStringAsFixed(0)}',
               ),
               onChanged: (v) => setState(() => _range = v),
             ),
@@ -1777,7 +2103,111 @@ class _PriceSheetState extends State<_PriceSheet> {
               width: double.infinity,
               height: 52,
               child: FilledButton(
-                onPressed: () => widget.onApply(_range),
+                onPressed: () => widget.onApply(_sort, _range),
+                style: FilledButton.styleFrom(
+                  shape: const StadiumBorder(),
+                  textStyle: theme.textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+                child: const Text('Apply'),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// ── Specs sheet (component-specific spec range filters) ─────────────────────
+
+class _SpecsSheet extends StatefulWidget {
+  final String selectedType;
+  final Map<String, RangeValues> specFilters;
+  final void Function(Map<String, RangeValues> filters) onApply;
+  final ThemeData theme;
+
+  const _SpecsSheet({
+    required this.selectedType,
+    required this.specFilters,
+    required this.onApply,
+    required this.theme,
+  });
+
+  @override
+  State<_SpecsSheet> createState() => _SpecsSheetState();
+}
+
+class _SpecsSheetState extends State<_SpecsSheet> {
+  late Map<String, RangeValues> _filters = Map.from(widget.specFilters);
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = widget.theme;
+    final cs = theme.colorScheme;
+    final defs = _typeSpecDefs[widget.selectedType] ?? [];
+
+    return SafeArea(
+      top: false,
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(16, 6, 16, 16),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  'Specs',
+                  style: theme.textTheme.titleLarge?.copyWith(
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+                if (_filters.isNotEmpty)
+                  TextButton(
+                    onPressed: () => setState(() => _filters.clear()),
+                    child: const Text('Reset'),
+                  ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            ...defs.map((def) {
+              final current =
+                  _filters[def.dataKey] ?? RangeValues(def.min, def.max);
+              final unitStr = def.unit.isNotEmpty ? ' ${def.unit}' : '';
+              return Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    def.label,
+                    style: theme.textTheme.labelLarge?.copyWith(
+                      fontWeight: FontWeight.w800,
+                      color: cs.onSurfaceVariant,
+                    ),
+                  ),
+                  RangeSlider(
+                    values: current,
+                    min: def.min,
+                    max: def.max,
+                    divisions: def.divisions,
+                    labels: RangeLabels(
+                      '${current.start.toStringAsFixed(0)}$unitStr',
+                      '${current.end.toStringAsFixed(0)}$unitStr',
+                    ),
+                    onChanged: (v) =>
+                        setState(() => _filters[def.dataKey] = v),
+                  ),
+                ],
+              );
+            }),
+            const SizedBox(height: 8),
+            SizedBox(
+              width: double.infinity,
+              height: 52,
+              child: FilledButton(
+                onPressed: () => widget.onApply(_filters),
                 style: FilledButton.styleFrom(
                   shape: const StadiumBorder(),
                   textStyle: theme.textTheme.titleMedium?.copyWith(
