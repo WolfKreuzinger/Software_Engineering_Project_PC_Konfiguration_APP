@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 
 class GuidedConfiguratorCard extends StatelessWidget {
   const GuidedConfiguratorCard({super.key});
@@ -39,14 +40,14 @@ class GuidedConfiguratorCard extends StatelessWidget {
                         Row(
                           children: [
                             Icon(
-                              Icons.auto_awesome,
+                              Icons.layers_rounded,
                               size: 18,
                               color: theme.colorScheme.onPrimary,
                             ),
                             const SizedBox(width: 8),
                             Flexible(
                               child: Text(
-                                "GUIDED CONFIGURATOR",
+                                'BUILD-VORLAGEN',
                                 maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
                                 style: TextStyle(
@@ -61,19 +62,19 @@ class GuidedConfiguratorCard extends StatelessWidget {
                         ),
                         const SizedBox(height: 12),
                         Text(
-                          "Smart Mode – Build based on your budget & specific needs.",
+                          'Starte mit einer vorkonfigurierten Vorlage – Budget Gaming, Office, High-End oder Workstation.',
                           maxLines: 3,
                           overflow: TextOverflow.ellipsis,
                           style: TextStyle(
-                            color: theme.colorScheme.onPrimary.withValues(alpha: 0.92),
+                            color: theme.colorScheme.onPrimary
+                                .withValues(alpha: 0.92),
                             height: 1.25,
                             fontSize: 14.5,
                           ),
                         ),
                         const SizedBox(height: 16),
                         FilledButton(
-                          onPressed: () {
-                          },
+                          onPressed: () => context.go('/templates'),
                           style: FilledButton.styleFrom(
                             backgroundColor: theme.colorScheme.onPrimary,
                             foregroundColor: theme.colorScheme.primary,
@@ -89,7 +90,7 @@ class GuidedConfiguratorCard extends StatelessWidget {
                             mainAxisSize: MainAxisSize.min,
                             children: const [
                               Text(
-                                "Start Smart Build",
+                                'Vorlage auswählen',
                                 style: TextStyle(fontWeight: FontWeight.w800),
                               ),
                               SizedBox(width: 10),
@@ -127,10 +128,11 @@ class GuidedConfiguratorCard extends StatelessWidget {
                         height: 54,
                         decoration: BoxDecoration(
                           borderRadius: BorderRadius.circular(18),
-                          color: theme.colorScheme.onPrimary.withValues(alpha: 0.18),
+                          color:
+                              theme.colorScheme.onPrimary.withValues(alpha: 0.18),
                         ),
                         child: Icon(
-                          Icons.dashboard_customize,
+                          Icons.layers_rounded,
                           size: 30,
                           color: theme.colorScheme.onPrimary.withValues(alpha: 0.96),
                         ),
