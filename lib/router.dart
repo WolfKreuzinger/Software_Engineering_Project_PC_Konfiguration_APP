@@ -16,6 +16,7 @@ import 'screens/settings_screen.dart';
 import 'screens/shell_screen.dart';
 import 'screens/support_screen.dart';
 import 'screens/shared_build_screen.dart';
+import 'screens/template_selection_screen.dart';
 import 'screens/terms_screen.dart';
 import 'models/saved_build.dart';
 import 'services/pending_build_save_service.dart';
@@ -118,6 +119,12 @@ final router = GoRouter(
           path: '/configure',
           pageBuilder: (_, state) {
             final extra = state.extra;
+            if (extra is ConfigureScreenArgs) {
+              return _noAnim(ConfigureScreen(
+                initialBuild: extra.build,
+                readOnly: extra.readOnly,
+              ));
+            }
             final initialBuild = extra is SavedBuild ? extra : null;
             return _noAnim(ConfigureScreen(initialBuild: initialBuild));
           },
@@ -137,6 +144,10 @@ final router = GoRouter(
         GoRoute(
           path: '/my-builds',
           pageBuilder: (_, _) => _noAnim(const MyBuildsScreen()),
+        ),
+        GoRoute(
+          path: '/templates',
+          pageBuilder: (_, _) => _noAnim(const TemplateSelectionScreen()),
         ),
       ],
     ),
