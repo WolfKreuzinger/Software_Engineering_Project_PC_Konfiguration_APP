@@ -92,13 +92,14 @@ class CompatibilityChecker {
 
     // ── 0. Pflichtteile vollständig? ─────────────────────────────────────────
     const requiredSlots = <String, String>{
-      'cpu':         'CPU',
+      'cpu':         'Prozessor (CPU)',
       'cpuCooler':   'CPU-Kühler',
       'motherboard': 'Mainboard',
-      'ram':         'RAM',
-      'storage':     'Speicher (SSD/HDD)',
+      'ram':         'Arbeitsspeicher (RAM)',
+      'gpu':         'Grafikkarte (GPU)',
+      'storage':     'Speicher (SSD / HDD)',
       'case':        'Gehäuse',
-      'psu':         'Netzteil',
+      'psu':         'Netzteil (PSU)',
     };
     final missing = requiredSlots.entries
         .where((e) => parts[e.key] == null)
@@ -106,7 +107,7 @@ class CompatibilityChecker {
         .toList();
     if (missing.isNotEmpty) {
       issues.add(CompatIssue(
-        'Fehlende Pflichtteile: ${missing.join(', ')}',
+        'Fehlende Pflichtteile: ${missing.join(', ')}.',
         CompatIssueLevel.warning,
       ));
     }
@@ -120,12 +121,12 @@ class CompatibilityChecker {
           mbSocket  != null && mbSocket.isNotEmpty) {
         if (cpuSocket != mbSocket) {
           issues.add(CompatIssue(
-            'CPU-Sockel $cpuSocket ≠ Mainboard-Sockel $mbSocket',
+            'Der Sockel des Prozessors ($cpuSocket) passt nicht zum Mainboard ($mbSocket).',
             CompatIssueLevel.error,
           ));
         } else {
           issues.add(CompatIssue(
-            'CPU-Sockel: $cpuSocket ✓',
+            'Prozessor und Mainboard sind sockelkompatibel ($cpuSocket).',
             CompatIssueLevel.ok,
           ));
         }
@@ -145,19 +146,19 @@ class CompatibilityChecker {
       if (ddrGen != null && ddrGen > 0) {
         if (mbSocket == 'AM5' && ddrGen != 5) {
           issues.add(CompatIssue(
-            'AM5-Mainboard benötigt DDR5, ausgewählt: DDR$ddrGen',
+            'Das Mainboard ($mbSocket) unterstützt nur DDR5-RAM – ausgewählt ist DDR$ddrGen.',
             CompatIssueLevel.error,
           ));
         } else if (mbSocket == 'AM4' && ddrGen != 4) {
           issues.add(CompatIssue(
-            'AM4-Mainboard benötigt DDR4, ausgewählt: DDR$ddrGen',
+            'Das Mainboard ($mbSocket) unterstützt nur DDR4-RAM – ausgewählt ist DDR$ddrGen.',
             CompatIssueLevel.error,
           ));
         } else if (mbSocket == 'LGA1700' || mbSocket == 'LGA1200') {
           // Intel 10th-gen+ boards can be DDR4 or DDR5 depending on model — skip
         } else if (mbSocket.isNotEmpty && (ddrGen == 4 || ddrGen == 5)) {
           issues.add(CompatIssue(
-            'RAM DDR$ddrGen ✓',
+            'Arbeitsspeicher (DDR$ddrGen) ist mit dem Mainboard kompatibel.',
             CompatIssueLevel.ok,
           ));
         }
@@ -172,12 +173,12 @@ class CompatibilityChecker {
       if (ff.isNotEmpty && caseType.isNotEmpty) {
         if (!_caseSupportsFormFactor(caseType, ff)) {
           issues.add(CompatIssue(
-            'Gehäuse ($caseType) unterstützt $ff-Mainboard nicht',
+            'Das Gehäuse unterstützt den Formfaktor des Mainboards ($ff) nicht.',
             CompatIssueLevel.error,
           ));
         } else {
           issues.add(CompatIssue(
-            'Formfaktor $ff im Gehäuse ✓',
+            'Das Mainboard ($ff) ist mit dem Gehäuse kompatibel.',
             CompatIssueLevel.ok,
           ));
         }
@@ -190,17 +191,17 @@ class CompatibilityChecker {
       if (psuW > 0) {
         if (psuW < estimatedWatts) {
           issues.add(CompatIssue(
-            'Netzteil zu schwach: ${psuW}W < ~${estimatedWatts}W',
+            'Das Netzteil (${psuW}W) reicht für den geschätzten Verbrauch (~${estimatedWatts}W) nicht aus.',
             CompatIssueLevel.error,
           ));
         } else if (psuW < (estimatedWatts * 1.2).ceil()) {
           issues.add(CompatIssue(
-            'Netzteil-Puffer niedrig: ${psuW}W für ~${estimatedWatts}W',
+            'Netzteil-Puffer gering: ${psuW}W für ~${estimatedWatts}W Verbrauch – empfohlen sind mind. 20% Reserve.',
             CompatIssueLevel.warning,
           ));
         } else {
           issues.add(CompatIssue(
-            'Netzteil ausreichend: ${psuW}W ✓',
+            'Das Netzteil (${psuW}W) hat ausreichend Reserve für den geschätzten Verbrauch (~${estimatedWatts}W).',
             CompatIssueLevel.ok,
           ));
         }
@@ -222,7 +223,7 @@ class CompatibilityChecker {
           final boardIsX870 = mbName.contains('x870');
           if (isRyzen9000 && !boardIsX870) {
             issues.add(const CompatIssue(
-              'Ryzen 9000 ggf. BIOS-Update nötig (kein X870-Board)',
+              'Ryzen 9000 auf Nicht-X870-Board: möglicherweise ist ein BIOS-Update nötig, bevor der Prozessor erkannt wird.',
               CompatIssueLevel.warning,
             ));
           }
@@ -238,7 +239,7 @@ class CompatibilityChecker {
           final is600Series = RegExp(r'[zbh]6[6-9]0').hasMatch(mbName);
           if (is14thGen && is600Series) {
             issues.add(const CompatIssue(
-              'Intel 14. Gen auf 600er-Board: BIOS-Update nötig',
+              'Intel 14. Gen auf 600er-Board: BIOS-Update erforderlich, bevor der Prozessor erkannt wird.',
               CompatIssueLevel.warning,
             ));
           }
@@ -256,7 +257,7 @@ class CompatibilityChecker {
           final jedec = ddrGen == 5 ? 4800 : 3200; // DDR5: 4800, DDR4: 3200
           if (ramMhz > jedec) {
             issues.add(CompatIssue(
-              'RAM ${ramMhz}MHz > JEDEC ${jedec}MHz: läuft ggf. nur mit XMP/EXPO',
+              'RAM läuft mit ${ramMhz}MHz über dem JEDEC-Standard (${jedec}MHz) – XMP/EXPO muss im BIOS aktiviert werden.',
               CompatIssueLevel.warning,
             ));
           }
@@ -277,7 +278,7 @@ class CompatibilityChecker {
         final isBudgetBoard = RegExp(r'\b(b650|b660|b760|b460|h670|h770|a620)\b').hasMatch(mbName);
         if (isBudgetBoard) {
           issues.add(const CompatIssue(
-            'DDR5 auf Einstiegs-Board: Stabilität vom Memory Controller abhängig',
+            'DDR5 auf Einstiegs-Board: Bei hohen Taktraten kann es zu Stabilitätsproblemen kommen – QVL-Liste des Mainboards prüfen.',
             CompatIssueLevel.warning,
           ));
         }
