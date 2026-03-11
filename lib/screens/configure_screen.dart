@@ -9,10 +9,17 @@ import '../services/builds_repository.dart';
 import '../services/pending_build_save_service.dart';
 import 'parts_screen.dart';
 
+class ConfigureScreenArgs {
+  const ConfigureScreenArgs({required this.build, this.readOnly = false});
+  final SavedBuild build;
+  final bool readOnly;
+}
+
 class ConfigureScreen extends StatefulWidget {
-  const ConfigureScreen({super.key, this.initialBuild});
+  const ConfigureScreen({super.key, this.initialBuild, this.readOnly = false});
 
   final SavedBuild? initialBuild;
+  final bool readOnly;
 
   @override
   State<ConfigureScreen> createState() => _ConfigureScreenState();
@@ -75,7 +82,7 @@ class _ConfigureScreenState extends State<ConfigureScreen> {
   void _loadInitialBuild() {
     final build = widget.initialBuild;
     if (build == null) return;
-    final isTemplate = build.buildId.isEmpty;
+    final isTemplate = build.buildId.isEmpty || widget.readOnly;
     _editingBuildId = isTemplate ? null : build.buildId;
     _editingBuildTitle = build.title.isEmpty ? null : build.title;
     _editingCreatedAt = isTemplate ? null : build.createdAt;
@@ -676,6 +683,7 @@ class _ConfigureScreenState extends State<ConfigureScreen> {
           ],
           isMultiSelect: true,
           onAdd: () => _addPart(slot),
+          readOnly: widget.readOnly,
         );
       } else {
         final selected = _selectedParts[slot.key];
@@ -695,6 +703,7 @@ class _ConfigureScreenState extends State<ConfigureScreen> {
                         setState(() => _selectedParts.remove(slot.key)),
                   ),
                 ],
+          readOnly: widget.readOnly,
         );
       }
       if (_mandatorySlots.contains(slot.key)) {
@@ -762,7 +771,9 @@ class _ConfigureScreenState extends State<ConfigureScreen> {
                 child: Row(
                   children: [
                     IconButton(
-                      onPressed: () => context.go('/dashboard'),
+                      onPressed: () => context.go(
+                        widget.readOnly ? '/' : '/dashboard',
+                      ),
                       icon: const Icon(Icons.arrow_back_rounded),
                       splashRadius: 22,
                     ),
@@ -893,10 +904,11 @@ class _ConfigureScreenState extends State<ConfigureScreen> {
                         selectedEntries: p.selectedEntries,
                         isMultiSelect: p.isMultiSelect,
                         onAdd: p.onAdd,
+                        readOnly: p.readOnly,
                       ),
                     );
                   } else {
-                    return _OptionalComponentsSection(parts: optionalParts);
+                    return _OptionalComponentsSection(parts: optionalParts, readOnly: widget.readOnly);
                   }
                 }, childCount: mandatoryParts.length + 1),
               ),
@@ -976,7 +988,9 @@ class _ConfigureScreenState extends State<ConfigureScreen> {
                                   child: Text(
                                     _isSaving
                                         ? 'SAVING...'
-                                        : l10n.configureAddToBuilds,
+                                        : widget.readOnly
+                                            ? 'ZU MEINEN BUILDS'
+                                            : l10n.configureAddToBuilds,
                                   ),
                                 ),
                               ),
@@ -1079,6 +1093,7 @@ class _PartTile {
     this.selectedEntries = const [],
     this.isMultiSelect = false,
     this.onAdd,
+    this.readOnly = false,
   });
 
   final IconData icon;
@@ -1088,6 +1103,7 @@ class _PartTile {
   final List<_SelectedEntry> selectedEntries;
   final bool isMultiSelect;
   final VoidCallback? onAdd;
+  final bool readOnly;
 
   bool get isSelected => selectedEntries.isNotEmpty;
 }
@@ -1141,6 +1157,7 @@ class _SelectedPartCard extends StatelessWidget {
     this.isMultiSelect = false,
     this.onAdd,
     this.accentColor,
+    this.readOnly = false,
   });
 
   final IconData categoryIcon;
@@ -1151,6 +1168,7 @@ class _SelectedPartCard extends StatelessWidget {
   final bool isMultiSelect;
   final VoidCallback? onAdd;
   final Color? accentColor;
+  final bool readOnly;
 
   String _priceLabel(double? price) =>
       price == null ? '-' : '\$${price.toStringAsFixed(2)}';
@@ -1205,16 +1223,17 @@ class _SelectedPartCard extends StatelessWidget {
                       overflow: TextOverflow.ellipsis,
                     ),
                   ),
-                  TextButton(
-                    onPressed: onChoose,
-                    child: Text(
-                      l10n.configureChoose,
-                      style: TextStyle(
-                        fontWeight: FontWeight.w900,
-                        color: accent,
+                  if (!readOnly)
+                    TextButton(
+                      onPressed: onChoose,
+                      child: Text(
+                        l10n.configureChoose,
+                        style: TextStyle(
+                          fontWeight: FontWeight.w900,
+                          color: accent,
+                        ),
                       ),
                     ),
-                  ),
                 ],
               ),
             ] else ...[
@@ -1262,33 +1281,35 @@ class _SelectedPartCard extends StatelessWidget {
                             ),
                           ),
                         ),
-                        TextButton(
-                          onPressed: entry.onChange,
-                          child: Text(
-                            l10n.configureChange,
-                            style: TextStyle(
-                              fontWeight: FontWeight.w900,
-                              color: accent,
+                        if (!readOnly) ...[
+                          TextButton(
+                            onPressed: entry.onChange,
+                            child: Text(
+                              l10n.configureChange,
+                              style: TextStyle(
+                                fontWeight: FontWeight.w900,
+                                color: accent,
+                              ),
                             ),
                           ),
-                        ),
-                        TextButton(
-                          onPressed: entry.onRemove,
-                          child: Text(
-                            l10n.configureRemove,
-                            style: TextStyle(
-                              fontWeight: FontWeight.w900,
-                              color: theme.colorScheme.error,
+                          TextButton(
+                            onPressed: entry.onRemove,
+                            child: Text(
+                              l10n.configureRemove,
+                              style: TextStyle(
+                                fontWeight: FontWeight.w900,
+                                color: theme.colorScheme.error,
+                              ),
                             ),
                           ),
-                        ),
+                        ],
                       ],
                     ),
                   ],
                 ),
               ],
               // ── Hinzufügen (multi-select only) ───────────────────────────────
-              if (isMultiSelect && onAdd != null) ...[
+              if (!readOnly && isMultiSelect && onAdd != null) ...[
                 const Divider(height: 20),
                 Align(
                   alignment: Alignment.centerRight,
@@ -1315,9 +1336,10 @@ class _SelectedPartCard extends StatelessWidget {
 // ── Optional components section ────────────────────────────────────────────────
 
 class _OptionalComponentsSection extends StatefulWidget {
-  const _OptionalComponentsSection({required this.parts});
+  const _OptionalComponentsSection({required this.parts, this.readOnly = false});
 
   final List<_PartTile> parts;
+  final bool readOnly;
 
   @override
   State<_OptionalComponentsSection> createState() =>
@@ -1408,6 +1430,7 @@ class _OptionalComponentsSectionState
                       isMultiSelect: p.isMultiSelect,
                       onAdd: p.onAdd,
                       accentColor: accentColor,
+                      readOnly: widget.readOnly,
                     ),
                   ],
                 ],
