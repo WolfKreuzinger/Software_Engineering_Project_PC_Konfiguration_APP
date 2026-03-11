@@ -119,6 +119,12 @@ final router = GoRouter(
           path: '/configure',
           pageBuilder: (_, state) {
             final extra = state.extra;
+            if (extra is ConfigureScreenArgs) {
+              return _noAnim(ConfigureScreen(
+                initialBuild: extra.build,
+                readOnly: extra.readOnly,
+              ));
+            }
             final initialBuild = extra is SavedBuild ? extra : null;
             return _noAnim(ConfigureScreen(initialBuild: initialBuild));
           },
