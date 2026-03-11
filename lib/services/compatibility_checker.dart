@@ -178,7 +178,7 @@ class CompatibilityChecker {
           ));
         } else {
           issues.add(CompatIssue(
-            'Das Mainboard ($ff) ist mit dem Gehäuse kompatibeö.',
+            'Das Mainboard ($ff) ist mit dem Gehäuse kompatibel.',
             CompatIssueLevel.ok,
           ));
         }
