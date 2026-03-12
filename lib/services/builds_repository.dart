@@ -74,6 +74,8 @@ class BuildsRepository {
     String? title,
     String? existingTitle,
     DateTime? existingCreatedAt,
+    bool readOnly = false,
+    String? importedFrom,
   }) async {
     final now = Timestamp.now();
     final ref = existingBuildId == null
@@ -109,6 +111,9 @@ class BuildsRepository {
       'selectedParts': selectedParts,
       'totalPrice': totalPrice,
       'estimatedWattage': estimatedWattage,
+      'readOnly': readOnly,
+      if (importedFrom != null && importedFrom.isNotEmpty)
+        'importedFrom': importedFrom,
     };
 
     await ref.set(payload);
@@ -141,7 +146,14 @@ class BuildsRepository {
 
   /// Writes a snapshot of [build] to the public `publicBuilds` collection
   /// and returns the shareable URL.
-  Future<String> publishBuild(SavedBuild build) async {
+  ///
+  /// If [readOnly] is true the recipient will only be able to view the build.
+  /// Pass [senderName] (the sharer's display name) to show attribution.
+  Future<String> publishBuild(
+    SavedBuild build, {
+    bool readOnly = false,
+    String? senderName,
+  }) async {
     await _firestore.collection('publicBuilds').doc(build.buildId).set({
       'buildId': build.buildId,
       'title': build.title,
@@ -150,6 +162,9 @@ class BuildsRepository {
       'totalPrice': build.totalPrice,
       'estimatedWattage': build.estimatedWattage,
       'publishedAt': FieldValue.serverTimestamp(),
+      'readOnly': readOnly,
+      if (readOnly && senderName != null && senderName.isNotEmpty)
+        'senderName': senderName,
     });
     return '$shareBaseUrl/build/${build.buildId}';
   }

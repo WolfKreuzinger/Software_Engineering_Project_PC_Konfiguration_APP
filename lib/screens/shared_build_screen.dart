@@ -57,6 +57,8 @@ class _SharedBuildScreenState extends State<SharedBuildScreen> {
     final rawParts = (data['selectedParts'] is Map)
         ? Map<String, dynamic>.from(data['selectedParts'] as Map)
         : <String, dynamic>{};
+    final isReadOnly = data['readOnly'] == true;
+    final senderName = (data['senderName'] ?? '').toString().trim();
     final build = SavedBuild(
       buildId: widget.buildId,
       createdAt: DateTime.now(),
@@ -66,10 +68,12 @@ class _SharedBuildScreenState extends State<SharedBuildScreen> {
       selectedParts: rawParts,
       totalPrice: (data['totalPrice'] as num?)?.toDouble() ?? 0.0,
       estimatedWattage: _toInt(data['estimatedWattage']),
+      readOnly: isReadOnly,
+      importedFrom: isReadOnly && senderName.isNotEmpty ? senderName : null,
     );
     context.go(
       '/configure',
-      extra: ConfigureScreenArgs(build: build, readOnly: true),
+      extra: ConfigureScreenArgs(build: build, readOnly: isReadOnly),
     );
   }
 
