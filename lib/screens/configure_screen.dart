@@ -96,18 +96,22 @@ class _ConfigureScreenState extends State<ConfigureScreen> {
       final name = (raw['name'] ?? '').toString().trim();
       if (name.isEmpty) continue;
       final rawData = <String, dynamic>{};
-      if (raw['specSnippet'] is Map) {
-        rawData['spec'] = Map<String, dynamic>.from(raw['specSnippet']);
+      // Restore full Firestore data when available (newer saves) so the spec
+      // detail sheet can show all fields, just like the components screen does.
+      if (raw['rawPartData'] is Map) {
+        rawData.addAll(Map<String, dynamic>.from(raw['rawPartData'] as Map));
       }
+      if (raw['specSnippet'] is Map) {
+        rawData['spec'] = Map<String, dynamic>.from(raw['specSnippet'] as Map);
+      }
+      // Always overlay the compat fields so they are present even for older saves.
       if (raw['wattage'] != null) rawData['wattage'] = raw['wattage'];
       if (raw['tdp'] != null) rawData['tdp'] = raw['tdp'];
       if (raw['chipset'] != null) rawData['chipset'] = raw['chipset'];
       if (raw['modules'] != null) rawData['modules'] = raw['modules'];
-      // Restore compatibility checker fields
       rawData['name'] = name;
       if (raw['socket'] != null) rawData['socket'] = raw['socket'];
-      if (raw['form_factor'] != null)
-        rawData['form_factor'] = raw['form_factor'];
+      if (raw['form_factor'] != null) rawData['form_factor'] = raw['form_factor'];
       if (raw['speed'] != null) rawData['speed'] = raw['speed'];
       if (raw['case_type'] != null) rawData['type'] = raw['case_type'];
 
@@ -130,6 +134,9 @@ class _ConfigureScreenState extends State<ConfigureScreen> {
       final name = (raw['name'] ?? '').toString().trim();
       if (name.isEmpty) continue;
       final rawData = <String, dynamic>{'name': name};
+      if (raw['rawPartData'] is Map) {
+        rawData.addAll(Map<String, dynamic>.from(raw['rawPartData'] as Map));
+      }
       if (raw['specSnippet'] is Map) {
         rawData['spec'] = Map<String, dynamic>.from(raw['specSnippet'] as Map);
       }
@@ -375,6 +382,9 @@ class _ConfigureScreenState extends State<ConfigureScreen> {
       'type': part.type,
       'subtitle': part.subtitle,
       'specSnippet': spec is Map ? Map<String, dynamic>.from(spec) : null,
+      // Full raw Firestore data — used by the spec detail sheet so all fields
+      // (core_count, boost_clock, microarchitecture, …) are preserved across save/reload.
+      'rawPartData': part.rawData,
       'wattage': part.rawData['wattage'],
       'tdp': part.rawData['tdp'],
       'chipset': part.rawData['chipset'],
