@@ -62,6 +62,8 @@ class SavedBuild {
     required this.totalPrice,
     required this.estimatedWattage,
     this.heroImageUrl,
+    this.readOnly = false,
+    this.importedFrom,
   });
 
   final String buildId;
@@ -73,6 +75,8 @@ class SavedBuild {
   final double totalPrice;
   final int estimatedWattage;
   final String? heroImageUrl;
+  final bool readOnly;
+  final String? importedFrom;
 
   int get selectedCount {
     var count = 0;
@@ -110,11 +114,12 @@ class SavedBuild {
       status == BuildStatus.inProgress || status == BuildStatus.draft;
 
   String get statusLabel {
+    if (readOnly) return 'IMPORTIERT';
     switch (status) {
       case BuildStatus.completed:
         return 'COMPLETED';
       case BuildStatus.draft:
-        return 'IMPORTIERT';
+        return 'DRAFT';
       case BuildStatus.archived:
         return 'ARCHIVED';
       case BuildStatus.inProgress:
@@ -148,6 +153,10 @@ class SavedBuild {
       heroImageUrl: (data['heroImageUrl'] ?? '').toString().trim().isEmpty
           ? null
           : data['heroImageUrl'].toString(),
+      readOnly: data['readOnly'] == true,
+      importedFrom: (data['importedFrom'] ?? '').toString().trim().isEmpty
+          ? null
+          : data['importedFrom'].toString(),
     );
   }
 
