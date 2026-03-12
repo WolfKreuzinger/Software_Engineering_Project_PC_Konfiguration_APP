@@ -94,39 +94,10 @@ class _MyBuildsScreenState extends State<MyBuildsScreen> {
   }
 
   Future<void> _shareBuild(SavedBuild build) async {
-    // Show loading while publishing
-    showDialog<void>(
-      context: context,
-      useRootNavigator: true,
-      barrierDismissible: false,
-      builder: (_) => const Center(
-        child: Card(
-          child: Padding(
-            padding: EdgeInsets.all(28),
-            child: CircularProgressIndicator(),
-          ),
-        ),
-      ),
-    );
-
-    String url;
-    try {
-      url = await _repo.publishBuild(build);
-    } catch (e) {
-      if (!mounted) return;
-      Navigator.of(context, rootNavigator: true).pop();
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          behavior: SnackBarBehavior.floating,
-          content: Text('Fehler beim Erstellen des Links: $e'),
-        ),
-      );
-      return;
-    }
+    final user = FirebaseAuth.instance.currentUser;
+    final senderName = user?.displayName ?? '';
 
     if (!mounted) return;
-    Navigator.of(context, rootNavigator: true).pop(); // dismiss loading
-
     showModalBottomSheet<void>(
       context: context,
       showDragHandle: true,
@@ -134,7 +105,11 @@ class _MyBuildsScreenState extends State<MyBuildsScreen> {
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
-      builder: (_) => _ShareBuildSheet(buildTitle: build.title, shareUrl: url),
+      builder: (_) => _ShareBuildSheet(
+        build: build,
+        senderName: senderName,
+        repo: _repo,
+      ),
     );
   }
 
@@ -359,11 +334,50 @@ class _MyBuildsScreenState extends State<MyBuildsScreen> {
 
 // ── Share sheet ───────────────────────────────────────────────────────────────
 
-class _ShareBuildSheet extends StatelessWidget {
-  const _ShareBuildSheet({required this.buildTitle, required this.shareUrl});
+class _ShareBuildSheet extends StatefulWidget {
+  const _ShareBuildSheet({
+    required this.build,
+    required this.senderName,
+    required this.repo,
+  });
 
-  final String buildTitle;
-  final String shareUrl;
+  final SavedBuild build;
+  final String senderName;
+  final BuildsRepository repo;
+
+  @override
+  State<_ShareBuildSheet> createState() => _ShareBuildSheetState();
+}
+
+class _ShareBuildSheetState extends State<_ShareBuildSheet> {
+  bool _readOnly = false;
+  String? _shareUrl;
+  bool _isGenerating = false;
+  String? _error;
+
+  @override
+  void initState() {
+    super.initState();
+    _generateLink();
+  }
+
+  Future<void> _generateLink() async {
+    setState(() {
+      _isGenerating = true;
+      _shareUrl = null;
+      _error = null;
+    });
+    try {
+      final url = await widget.repo.publishBuild(
+        widget.build,
+        readOnly: _readOnly,
+        senderName: _readOnly ? widget.senderName : null,
+      );
+      if (mounted) setState(() { _shareUrl = url; _isGenerating = false; });
+    } catch (e) {
+      if (mounted) setState(() { _isGenerating = false; _error = e.toString(); });
+    }
+  }
 
   Future<void> _launch(BuildContext context, String url) async {
     final uri = Uri.parse(url);
@@ -380,7 +394,9 @@ class _ShareBuildSheet extends StatelessWidget {
   }
 
   Future<void> _copy(BuildContext context) async {
-    await Clipboard.setData(ClipboardData(text: shareUrl));
+    final url = _shareUrl;
+    if (url == null) return;
+    await Clipboard.setData(ClipboardData(text: url));
     if (context.mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
@@ -394,86 +410,88 @@ class _ShareBuildSheet extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final encodedText = Uri.encodeComponent(
-      'Schau dir meinen PC-Build "$buildTitle" an: $shareUrl',
-    );
+    final shareUrl = _shareUrl ?? '';
+    final buildTitle = widget.build.title;
+
+    final encodedText = shareUrl.isEmpty
+        ? ''
+        : Uri.encodeComponent('Schau dir meinen PC-Build "$buildTitle" an: $shareUrl');
     final encodedSubject = Uri.encodeComponent('BuildMyPC – $buildTitle');
 
     // (label, iconWidget, bgWidget, url, copyFirst)
-    // bgWidget fills the 52×52 ClipRRect — use ColoredBox for solid, Stack for Instagram
-    // Instagram DM has no URL intent → copy link then open inbox
-    final channels = <(String, Widget, Widget, String, bool)>[
-      (
-        'WhatsApp',
-        const FaIcon(FontAwesomeIcons.whatsapp, color: Colors.white, size: 26),
-        const ColoredBox(color: Color(0xFF25D366)),
-        'https://wa.me/?text=$encodedText',
-        false,
-      ),
-      (
-        'Instagram',
-        const FaIcon(FontAwesomeIcons.instagram, color: Colors.white, size: 26),
-        // Two-layer gradient: warm radial from bottom-left + purple overlay top-left
-        const Stack(
-          fit: StackFit.expand,
-          children: [
-            DecoratedBox(
-              decoration: BoxDecoration(
-                gradient: RadialGradient(
-                  center: Alignment(-0.6, 1.0),
-                  radius: 2.2,
-                  colors: [
-                    Color(0xFFFFDC80), // yellow
-                    Color(0xFFF77737), // orange
-                    Color(0xFFF56040), // orange-red
-                    Color(0xFFE1306C), // hot pink
-                    Color(0xFFCE2085), // magenta (top-right area)
-                  ],
-                  stops: [0.0, 0.20, 0.35, 0.55, 1.0],
-                ),
-              ),
-              child: SizedBox.expand(),
+    final channels = shareUrl.isEmpty
+        ? <(String, Widget, Widget, String, bool)>[]
+        : <(String, Widget, Widget, String, bool)>[
+            (
+              'WhatsApp',
+              const FaIcon(FontAwesomeIcons.whatsapp, color: Colors.white, size: 26),
+              const ColoredBox(color: Color(0xFF25D366)),
+              'https://wa.me/?text=$encodedText',
+              false,
             ),
-            DecoratedBox(
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.topLeft,
-                  end: Alignment(0.8, 0.6),
-                  colors: [
-                    Color(0xCC7B1FA2), // ~80% purple
-                    Color(0x007B1FA2), // transparent
-                  ],
-                ),
+            (
+              'Instagram',
+              const FaIcon(FontAwesomeIcons.instagram, color: Colors.white, size: 26),
+              const Stack(
+                fit: StackFit.expand,
+                children: [
+                  DecoratedBox(
+                    decoration: BoxDecoration(
+                      gradient: RadialGradient(
+                        center: Alignment(-0.6, 1.0),
+                        radius: 2.2,
+                        colors: [
+                          Color(0xFFFFDC80),
+                          Color(0xFFF77737),
+                          Color(0xFFF56040),
+                          Color(0xFFE1306C),
+                          Color(0xFFCE2085),
+                        ],
+                        stops: [0.0, 0.20, 0.35, 0.55, 1.0],
+                      ),
+                    ),
+                    child: SizedBox.expand(),
+                  ),
+                  DecoratedBox(
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        begin: Alignment.topLeft,
+                        end: Alignment(0.8, 0.6),
+                        colors: [
+                          Color(0xCC7B1FA2),
+                          Color(0x007B1FA2),
+                        ],
+                      ),
+                    ),
+                    child: SizedBox.expand(),
+                  ),
+                ],
               ),
-              child: SizedBox.expand(),
+              'instagram://direct-inbox',
+              true,
             ),
-          ],
-        ),
-        'instagram://direct-inbox',
-        true,
-      ),
-      (
-        'X',
-        const FaIcon(FontAwesomeIcons.xTwitter, color: Colors.white, size: 24),
-        const ColoredBox(color: Colors.black),
-        'https://twitter.com/intent/tweet?text=$encodedText',
-        false,
-      ),
-      (
-        'E-Mail',
-        const Icon(Icons.email_rounded, color: Colors.white, size: 26),
-        const ColoredBox(color: Color(0xFF78909C)),
-        'mailto:?subject=$encodedSubject&body=$encodedText',
-        false,
-      ),
-      (
-        'SMS',
-        const Icon(Icons.sms_rounded, color: Colors.white, size: 26),
-        const ColoredBox(color: Color(0xFF34AADC)),
-        'sms:?&body=$encodedText',
-        false,
-      ),
-    ];
+            (
+              'X',
+              const FaIcon(FontAwesomeIcons.xTwitter, color: Colors.white, size: 24),
+              const ColoredBox(color: Colors.black),
+              'https://twitter.com/intent/tweet?text=$encodedText',
+              false,
+            ),
+            (
+              'E-Mail',
+              const Icon(Icons.email_rounded, color: Colors.white, size: 26),
+              const ColoredBox(color: Color(0xFF78909C)),
+              'mailto:?subject=$encodedSubject&body=$encodedText',
+              false,
+            ),
+            (
+              'SMS',
+              const Icon(Icons.sms_rounded, color: Colors.white, size: 26),
+              const ColoredBox(color: Color(0xFF34AADC)),
+              'sms:?&body=$encodedText',
+              false,
+            ),
+          ];
 
     return SafeArea(
       child: Padding(
@@ -482,14 +500,36 @@ class _ShareBuildSheet extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
-              'Build teilen',
-              style: theme.textTheme.titleLarge?.copyWith(
-                fontWeight: FontWeight.w800,
-              ),
+            // ── Header row with read-only toggle ─────────────────────────────
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                Text(
+                  'Build teilen',
+                  style: theme.textTheme.titleLarge?.copyWith(
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+                const Spacer(),
+                Text(
+                  'Nur ansehen',
+                  style: theme.textTheme.labelMedium?.copyWith(
+                    fontWeight: FontWeight.w600,
+                    color: theme.colorScheme.onSurfaceVariant,
+                  ),
+                ),
+                const SizedBox(width: 4),
+                Switch(
+                  value: _readOnly,
+                  onChanged: (v) {
+                    setState(() => _readOnly = v);
+                    _generateLink();
+                  },
+                ),
+              ],
             ),
             const SizedBox(height: 16),
-            // Link row
+            // ── Link row ─────────────────────────────────────────────────────
             Container(
               padding: const EdgeInsets.fromLTRB(14, 8, 8, 8),
               decoration: BoxDecoration(
@@ -502,17 +542,46 @@ class _ShareBuildSheet extends StatelessWidget {
               child: Row(
                 children: [
                   Expanded(
-                    child: Text(
-                      shareUrl,
-                      overflow: TextOverflow.ellipsis,
-                      style: theme.textTheme.bodySmall?.copyWith(
-                        color: theme.colorScheme.primary,
-                      ),
-                    ),
+                    child: _isGenerating
+                        ? Row(
+                            children: [
+                              SizedBox(
+                                width: 14,
+                                height: 14,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                  color: theme.colorScheme.primary,
+                                ),
+                              ),
+                              const SizedBox(width: 10),
+                              Text(
+                                'Link wird generiert…',
+                                style: theme.textTheme.bodySmall?.copyWith(
+                                  color: theme.colorScheme.onSurfaceVariant,
+                                ),
+                              ),
+                            ],
+                          )
+                        : _error != null
+                            ? Text(
+                                'Fehler beim Generieren',
+                                style: theme.textTheme.bodySmall?.copyWith(
+                                  color: theme.colorScheme.error,
+                                ),
+                              )
+                            : Text(
+                                shareUrl,
+                                overflow: TextOverflow.ellipsis,
+                                style: theme.textTheme.bodySmall?.copyWith(
+                                  color: theme.colorScheme.primary,
+                                ),
+                              ),
                   ),
                   const SizedBox(width: 8),
                   FilledButton.icon(
-                    onPressed: () => _copy(context),
+                    onPressed: _isGenerating || shareUrl.isEmpty
+                        ? null
+                        : () => _copy(context),
                     icon: const Icon(Icons.copy_rounded, size: 16),
                     label: const Text('Kopieren'),
                     style: FilledButton.styleFrom(
@@ -527,70 +596,72 @@ class _ShareBuildSheet extends StatelessWidget {
                 ],
               ),
             ),
-            const SizedBox(height: 24),
-            Text(
-              'DIREKT TEILEN',
-              style: theme.textTheme.labelSmall?.copyWith(
-                fontWeight: FontWeight.w900,
-                letterSpacing: 1.2,
-                color: theme.colorScheme.onSurfaceVariant,
+            if (channels.isNotEmpty) ...[
+              const SizedBox(height: 24),
+              Text(
+                'DIREKT TEILEN',
+                style: theme.textTheme.labelSmall?.copyWith(
+                  fontWeight: FontWeight.w900,
+                  letterSpacing: 1.2,
+                  color: theme.colorScheme.onSurfaceVariant,
+                ),
               ),
-            ),
-            const SizedBox(height: 12),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceAround,
-              children: channels.map((c) {
-                final (label, iconWidget, bgWidget, url, copyFirst) = c;
-                return InkWell(
-                  onTap: () async {
-                    if (copyFirst) {
-                      await Clipboard.setData(ClipboardData(text: shareUrl));
-                      if (!context.mounted) return;
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          behavior: SnackBarBehavior.floating,
-                          content: Text('Link kopiert – füge ihn in Instagram DM ein.'),
-                        ),
-                      );
-                    }
-                    if (context.mounted) _launch(context, url);
-                  },
-                  borderRadius: BorderRadius.circular(12),
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 8,
-                      vertical: 4,
-                    ),
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        ClipRRect(
-                          borderRadius: BorderRadius.circular(14),
-                          child: SizedBox(
-                            width: 52,
-                            height: 52,
-                            child: Stack(
-                              fit: StackFit.expand,
-                              children: [
-                                bgWidget,
-                                Center(child: iconWidget),
-                              ],
+              const SizedBox(height: 12),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceAround,
+                children: channels.map((c) {
+                  final (label, iconWidget, bgWidget, url, copyFirst) = c;
+                  return InkWell(
+                    onTap: () async {
+                      if (copyFirst) {
+                        await Clipboard.setData(ClipboardData(text: shareUrl));
+                        if (!context.mounted) return;
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            behavior: SnackBarBehavior.floating,
+                            content: Text('Link kopiert – füge ihn in Instagram DM ein.'),
+                          ),
+                        );
+                      }
+                      if (context.mounted) _launch(context, url);
+                    },
+                    borderRadius: BorderRadius.circular(12),
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 4,
+                      ),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          ClipRRect(
+                            borderRadius: BorderRadius.circular(14),
+                            child: SizedBox(
+                              width: 52,
+                              height: 52,
+                              child: Stack(
+                                fit: StackFit.expand,
+                                children: [
+                                  bgWidget,
+                                  Center(child: iconWidget),
+                                ],
+                              ),
                             ),
                           ),
-                        ),
-                        const SizedBox(height: 6),
-                        Text(
-                          label,
-                          style: theme.textTheme.labelSmall?.copyWith(
-                            fontWeight: FontWeight.w600,
+                          const SizedBox(height: 6),
+                          Text(
+                            label,
+                            style: theme.textTheme.labelSmall?.copyWith(
+                              fontWeight: FontWeight.w600,
+                            ),
                           ),
-                        ),
-                      ],
+                        ],
+                      ),
                     ),
-                  ),
-                );
-              }).toList(),
-            ),
+                  );
+                }).toList(),
+              ),
+            ],
             const SizedBox(height: 14),
           ],
         ),

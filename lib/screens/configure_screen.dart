@@ -84,7 +84,11 @@ class _ConfigureScreenState extends State<ConfigureScreen> {
     if (build == null) return;
     final isTemplate = build.buildId.isEmpty || widget.readOnly;
     _editingBuildId = isTemplate ? null : build.buildId;
-    _editingBuildTitle = build.title.isEmpty ? null : build.title;
+    if (widget.readOnly && (build.importedFrom ?? '').isNotEmpty) {
+      _editingBuildTitle = '${build.title} von ${build.importedFrom}';
+    } else {
+      _editingBuildTitle = build.title.isEmpty ? null : build.title;
+    }
     _editingCreatedAt = isTemplate ? null : build.createdAt;
     for (final key in buildSlotKeys) {
       final raw = build.selectedParts[key];
@@ -339,17 +343,27 @@ class _ConfigureScreenState extends State<ConfigureScreen> {
     await _choosePart(slot, overrideKey: _nextKey(slot.key));
   }
 
+  /// Converts camelCase to snake_case so spec keys from Firestore snapshots
+  /// (e.g. `coreCount`) match the `_labelMap` in PartsScreen (e.g. `core_count`).
+  static String _camelToSnake(String key) =>
+      key.replaceAllMapped(RegExp(r'[A-Z]'), (m) => '_${m[0]!.toLowerCase()}');
+
   void _viewPart(PartSelection part) {
-    PartsScreen.showDetailSheet(
-      context,
-      <String, dynamic>{
-        ...part.rawData,
-        'name': part.title,
-        'price': part.price,
-      },
-      part.type,
-      part.title,
-    );
+    final data = <String, dynamic>{
+      ...part.rawData,
+      'name': part.title,
+      'price': part.price,
+    };
+    // Flatten the nested spec map (stored with camelCase keys) to the top level
+    // using snake_case keys so PartsScreen._detailSpecs can render them.
+    final specMap = part.rawData['spec'];
+    if (specMap is Map) {
+      for (final e in specMap.entries) {
+        final snakeKey = _camelToSnake(e.key.toString());
+        data.putIfAbsent(snakeKey, () => e.value);
+      }
+    }
+    PartsScreen.showDetailSheet(context, data, part.type, part.title);
   }
 
   Map<String, dynamic> _serializePart(PartSelection part) {
@@ -401,11 +415,19 @@ class _ConfigureScreenState extends State<ConfigureScreen> {
       );
       return;
     }
-    final buildName = await _promptBuildName(
-      initial: (_editingBuildTitle ?? '').trim(),
-    );
-    if (!mounted) return;
-    if (buildName == null) return;
+
+    // In read-only mode the title is locked — skip the name prompt.
+    String? buildName;
+    if (widget.readOnly) {
+      buildName = (_editingBuildTitle ?? '').trim();
+    } else {
+      buildName = await _promptBuildName(
+        initial: (_editingBuildTitle ?? '').trim(),
+      );
+      if (!mounted) return;
+      if (buildName == null) return;
+    }
+
     await Future<void>.delayed(const Duration(milliseconds: 220));
     if (!mounted) return;
 
@@ -455,6 +477,10 @@ class _ConfigureScreenState extends State<ConfigureScreen> {
         totalPrice: totalPrice,
         estimatedWattage: estimatedWattage,
         status: status,
+        readOnly: widget.readOnly,
+        importedFrom: widget.readOnly
+            ? widget.initialBuild?.importedFrom
+            : null,
       );
       if (!mounted) return;
       setState(() {
@@ -780,7 +806,9 @@ class _ConfigureScreenState extends State<ConfigureScreen> {
                     const SizedBox(width: 4),
                     Expanded(
                       child: Text(
-                        l10n.configureBuildTitle,
+                        widget.readOnly && (_editingBuildTitle ?? '').isNotEmpty
+                            ? _editingBuildTitle!
+                            : l10n.configureBuildTitle,
                         style: theme.textTheme.titleLarge?.copyWith(
                           fontWeight: FontWeight.w800,
                           letterSpacing: -0.2,

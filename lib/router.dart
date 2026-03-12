@@ -126,7 +126,10 @@ final router = GoRouter(
               ));
             }
             final initialBuild = extra is SavedBuild ? extra : null;
-            return _noAnim(ConfigureScreen(initialBuild: initialBuild));
+            return _noAnim(ConfigureScreen(
+              initialBuild: initialBuild,
+              readOnly: initialBuild?.readOnly ?? false,
+            ));
           },
         ),
         GoRoute(
