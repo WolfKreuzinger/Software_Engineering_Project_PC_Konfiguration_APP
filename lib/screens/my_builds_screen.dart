@@ -79,7 +79,7 @@ class _MyBuildsScreenState extends State<MyBuildsScreen> {
       case _BuildFilter.inProgress:
         return build.status == BuildStatus.inProgress;
       case _BuildFilter.draft:
-        return build.status == BuildStatus.draft;
+        return build.readOnly;
       case _BuildFilter.all:
         return true;
     }
