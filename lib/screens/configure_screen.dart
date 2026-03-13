@@ -91,21 +91,26 @@ class _ConfigureScreenState extends State<ConfigureScreen> {
       if (raw is! Map) continue;
       final name = (raw['name'] ?? '').toString().trim();
       if (name.isEmpty) continue;
-      final rawData = <String, dynamic>{};
-      if (raw['specSnippet'] is Map) {
-        rawData['spec'] = Map<String, dynamic>.from(raw['specSnippet']);
+      final Map<String, dynamic> rawData;
+      if (raw['specData'] is Map) {
+        // New format: full spec data was saved — restore directly.
+        rawData = Map<String, dynamic>.from(raw['specData'] as Map);
+      } else {
+        // Legacy format: reconstruct from individual saved fields.
+        rawData = <String, dynamic>{};
+        if (raw['specSnippet'] is Map) {
+          rawData['spec'] = Map<String, dynamic>.from(raw['specSnippet'] as Map);
+        }
+        if (raw['wattage'] != null) rawData['wattage'] = raw['wattage'];
+        if (raw['tdp'] != null) rawData['tdp'] = raw['tdp'];
+        if (raw['chipset'] != null) rawData['chipset'] = raw['chipset'];
+        if (raw['modules'] != null) rawData['modules'] = raw['modules'];
+        if (raw['socket'] != null) rawData['socket'] = raw['socket'];
+        if (raw['form_factor'] != null) rawData['form_factor'] = raw['form_factor'];
+        if (raw['speed'] != null) rawData['speed'] = raw['speed'];
+        if (raw['case_type'] != null) rawData['type'] = raw['case_type'];
       }
-      if (raw['wattage'] != null) rawData['wattage'] = raw['wattage'];
-      if (raw['tdp'] != null) rawData['tdp'] = raw['tdp'];
-      if (raw['chipset'] != null) rawData['chipset'] = raw['chipset'];
-      if (raw['modules'] != null) rawData['modules'] = raw['modules'];
-      // Restore compatibility checker fields
       rawData['name'] = name;
-      if (raw['socket'] != null) rawData['socket'] = raw['socket'];
-      if (raw['form_factor'] != null)
-        rawData['form_factor'] = raw['form_factor'];
-      if (raw['speed'] != null) rawData['speed'] = raw['speed'];
-      if (raw['case_type'] != null) rawData['type'] = raw['case_type'];
 
       _selectedParts[key] = PartSelection(
         partId: (raw['partId'] ?? '').toString(),
@@ -125,22 +130,25 @@ class _ConfigureScreenState extends State<ConfigureScreen> {
       if (raw is! Map) continue;
       final name = (raw['name'] ?? '').toString().trim();
       if (name.isEmpty) continue;
-      final rawData = <String, dynamic>{'name': name};
-      if (raw['specSnippet'] is Map) {
-        rawData['spec'] = Map<String, dynamic>.from(raw['specSnippet'] as Map);
+      final Map<String, dynamic> rawData;
+      if (raw['specData'] is Map) {
+        rawData = Map<String, dynamic>.from(raw['specData'] as Map);
+      } else {
+        rawData = <String, dynamic>{};
+        if (raw['specSnippet'] is Map) {
+          rawData['spec'] = Map<String, dynamic>.from(raw['specSnippet'] as Map);
+        }
+        for (final f in [
+          'wattage', 'tdp', 'chipset', 'modules', 'socket', 'form_factor', 'speed',
+        ]) {
+          if (raw[f] != null) rawData[f] = raw[f];
+        }
+        if (raw['case_type'] != null) rawData['type'] = raw['case_type'];
       }
-      for (final f in [
-        'wattage',
-        'tdp',
-        'chipset',
-        'modules',
-        'socket',
-        'form_factor',
-        'speed',
-      ]) {
-        if (raw[f] != null) rawData[f] = raw[f];
+      rawData['name'] = name;
+      if (raw['case_type'] != null && !rawData.containsKey('type')) {
+        rawData['type'] = raw['case_type'];
       }
-      if (raw['case_type'] != null) rawData['type'] = raw['case_type'];
       _selectedParts[entry.key] = PartSelection(
         partId: (raw['partId'] ?? '').toString(),
         type: (raw['type'] ?? '').toString(),
@@ -354,6 +362,10 @@ class _ConfigureScreenState extends State<ConfigureScreen> {
 
   Map<String, dynamic> _serializePart(PartSelection part) {
     final spec = part.rawData['spec'];
+    // Save full rawData (minus the synthetic _category field) so the detail
+    // sheet can display all specs when the build is loaded back later.
+    final specData = Map<String, dynamic>.from(part.rawData)
+      ..remove('_category');
     return <String, dynamic>{
       'partId': part.partId,
       'name': part.title,
@@ -369,6 +381,7 @@ class _ConfigureScreenState extends State<ConfigureScreen> {
       'form_factor': part.rawData['form_factor'],
       'speed': part.rawData['speed'],
       'case_type': part.rawData['type'],
+      'specData': specData,
     };
   }
 
