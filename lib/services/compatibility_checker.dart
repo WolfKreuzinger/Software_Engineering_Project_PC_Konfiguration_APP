@@ -285,6 +285,36 @@ class CompatibilityChecker {
       }
     }
 
+    // ── H. RAM-Riegel-Anzahl ↔ Mainboard-Steckplätze ─────────────────────────
+    if (mb != null && parts.keys.any((k) => k == 'ram' || k.startsWith('ram_'))) {
+      final maxSlots = _toInt(mb.rawData['memory_slots']);
+      if (maxSlots > 0) {
+        // Sum up all sticks across ram, ram_1, ram_2, …
+        int totalSticks = 0;
+        for (final key in parts.keys.where((k) => k == 'ram' || k.startsWith('ram_'))) {
+          final modulesRaw = parts[key]!.rawData['modules'];
+          if (modulesRaw is List && modulesRaw.isNotEmpty) {
+            totalSticks += _toInt(modulesRaw.first);
+          } else {
+            totalSticks += _toInt(modulesRaw);
+          }
+        }
+        if (totalSticks > 0) {
+          if (totalSticks > maxSlots) {
+            issues.add(CompatIssue(
+              '$totalSticks RAM-Riegel ausgewählt, das Mainboard unterstützt jedoch nur $maxSlots Steckplätze.',
+              CompatIssueLevel.error,
+            ));
+          } else {
+            issues.add(CompatIssue(
+              'Die $totalSticks gewählten RAM-Riegel passen in die $maxSlots Steckplätze des Mainboards.',
+              CompatIssueLevel.ok,
+            ));
+          }
+        }
+      }
+    }
+
     return CompatibilityResult(issues);
   }
 }
