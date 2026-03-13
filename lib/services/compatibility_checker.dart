@@ -1,5 +1,5 @@
 import '../screens/parts_screen.dart';
-
+//das ist ein Test Kommentar
 enum CompatIssueLevel { ok, warning, error }
 
 class CompatIssue {
