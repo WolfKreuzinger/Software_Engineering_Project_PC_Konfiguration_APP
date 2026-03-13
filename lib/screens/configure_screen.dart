@@ -140,18 +140,10 @@ class _ConfigureScreenState extends State<ConfigureScreen> {
       if (raw['specSnippet'] is Map) {
         rawData['spec'] = Map<String, dynamic>.from(raw['specSnippet'] as Map);
       }
-      for (final f in [
-        'wattage',
-        'tdp',
-        'chipset',
-        'modules',
-        'socket',
-        'form_factor',
-        'speed',
-      ]) {
-        if (raw[f] != null) rawData[f] = raw[f];
+      rawData['name'] = name;
+      if (raw['case_type'] != null && !rawData.containsKey('type')) {
+        rawData['type'] = raw['case_type'];
       }
-      if (raw['case_type'] != null) rawData['type'] = raw['case_type'];
       _selectedParts[entry.key] = PartSelection(
         partId: (raw['partId'] ?? '').toString(),
         type: (raw['type'] ?? '').toString(),
@@ -375,6 +367,10 @@ class _ConfigureScreenState extends State<ConfigureScreen> {
 
   Map<String, dynamic> _serializePart(PartSelection part) {
     final spec = part.rawData['spec'];
+    // Save full rawData (minus the synthetic _category field) so the detail
+    // sheet can display all specs when the build is loaded back later.
+    final specData = Map<String, dynamic>.from(part.rawData)
+      ..remove('_category');
     return <String, dynamic>{
       'partId': part.partId,
       'name': part.title,
@@ -393,6 +389,7 @@ class _ConfigureScreenState extends State<ConfigureScreen> {
       'form_factor': part.rawData['form_factor'],
       'speed': part.rawData['speed'],
       'case_type': part.rawData['type'],
+      'specData': specData,
     };
   }
 
