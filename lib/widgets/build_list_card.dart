@@ -32,12 +32,14 @@ class BuildListCard extends StatelessWidget {
     final cardPadding = compact ? 10.0 : 12.0;
 
     final statusText = isCurrent ? 'CURRENT BUILD' : savedBuild.statusLabel;
-    final statusColor = switch (savedBuild.status) {
-      BuildStatus.completed => Colors.green,
-      BuildStatus.archived => Colors.blueGrey,
-      BuildStatus.draft => Colors.blueGrey,
-      BuildStatus.inProgress => Colors.orange,
-    };
+    final statusColor = savedBuild.readOnly
+        ? Colors.blueGrey
+        : switch (savedBuild.status) {
+            BuildStatus.completed => Colors.green,
+            BuildStatus.archived => Colors.blueGrey,
+            BuildStatus.draft => Colors.blueGrey,
+            BuildStatus.inProgress => Colors.orange,
+          };
 
     return Card(
       margin: EdgeInsets.zero,
@@ -133,28 +135,38 @@ class BuildListCard extends StatelessWidget {
                         color: theme.colorScheme.primary,
                       ),
                     ),
-                    if (!compact && savedBuild.isResumable) ...[
-                      const SizedBox(height: 10),
-                      FilledButton(
-                        onPressed: onResume,
-                        style: FilledButton.styleFrom(
-                          minimumSize: const Size(0, 34),
-                          padding: const EdgeInsets.symmetric(horizontal: 14),
+                    if (!compact) ...[
+                      if (savedBuild.readOnly) ...[
+                        const SizedBox(height: 10),
+                        FilledButton(
+                          onPressed: onResume,
+                          style: FilledButton.styleFrom(
+                            minimumSize: const Size(0, 34),
+                            padding: const EdgeInsets.symmetric(horizontal: 14),
+                          ),
+                          child: const Text('View'),
                         ),
-                        child: const Text('Resume Build'),
-                      ),
-                    ],
-                    if (!compact &&
-                        savedBuild.status == BuildStatus.completed) ...[
-                      const SizedBox(height: 10),
-                      FilledButton(
-                        onPressed: onResume,
-                        style: FilledButton.styleFrom(
-                          minimumSize: const Size(0, 34),
-                          padding: const EdgeInsets.symmetric(horizontal: 14),
+                      ] else if (savedBuild.isResumable) ...[
+                        const SizedBox(height: 10),
+                        FilledButton(
+                          onPressed: onResume,
+                          style: FilledButton.styleFrom(
+                            minimumSize: const Size(0, 34),
+                            padding: const EdgeInsets.symmetric(horizontal: 14),
+                          ),
+                          child: const Text('Resume Build'),
                         ),
-                        child: const Text('Edit'),
-                      ),
+                      ] else if (savedBuild.status == BuildStatus.completed) ...[
+                        const SizedBox(height: 10),
+                        FilledButton(
+                          onPressed: onResume,
+                          style: FilledButton.styleFrom(
+                            minimumSize: const Size(0, 34),
+                            padding: const EdgeInsets.symmetric(horizontal: 14),
+                          ),
+                          child: const Text('Edit'),
+                        ),
+                      ],
                     ],
                   ],
                 ),

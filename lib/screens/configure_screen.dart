@@ -84,33 +84,36 @@ class _ConfigureScreenState extends State<ConfigureScreen> {
     if (build == null) return;
     final isTemplate = build.buildId.isEmpty || widget.readOnly;
     _editingBuildId = isTemplate ? null : build.buildId;
-    _editingBuildTitle = build.title.isEmpty ? null : build.title;
+    if (widget.readOnly && (build.importedFrom ?? '').isNotEmpty) {
+      _editingBuildTitle = '${build.title} von ${build.importedFrom}';
+    } else {
+      _editingBuildTitle = build.title.isEmpty ? null : build.title;
+    }
     _editingCreatedAt = isTemplate ? null : build.createdAt;
     for (final key in buildSlotKeys) {
       final raw = build.selectedParts[key];
       if (raw is! Map) continue;
       final name = (raw['name'] ?? '').toString().trim();
       if (name.isEmpty) continue;
-      final Map<String, dynamic> rawData;
-      if (raw['specData'] is Map) {
-        // New format: full spec data was saved — restore directly.
-        rawData = Map<String, dynamic>.from(raw['specData'] as Map);
-      } else {
-        // Legacy format: reconstruct from individual saved fields.
-        rawData = <String, dynamic>{};
-        if (raw['specSnippet'] is Map) {
-          rawData['spec'] = Map<String, dynamic>.from(raw['specSnippet'] as Map);
-        }
-        if (raw['wattage'] != null) rawData['wattage'] = raw['wattage'];
-        if (raw['tdp'] != null) rawData['tdp'] = raw['tdp'];
-        if (raw['chipset'] != null) rawData['chipset'] = raw['chipset'];
-        if (raw['modules'] != null) rawData['modules'] = raw['modules'];
-        if (raw['socket'] != null) rawData['socket'] = raw['socket'];
-        if (raw['form_factor'] != null) rawData['form_factor'] = raw['form_factor'];
-        if (raw['speed'] != null) rawData['speed'] = raw['speed'];
-        if (raw['case_type'] != null) rawData['type'] = raw['case_type'];
+      final rawData = <String, dynamic>{};
+      // Restore full Firestore data when available (newer saves) so the spec
+      // detail sheet can show all fields, just like the components screen does.
+      if (raw['rawPartData'] is Map) {
+        rawData.addAll(Map<String, dynamic>.from(raw['rawPartData'] as Map));
       }
+      if (raw['specSnippet'] is Map) {
+        rawData['spec'] = Map<String, dynamic>.from(raw['specSnippet'] as Map);
+      }
+      // Always overlay the compat fields so they are present even for older saves.
+      if (raw['wattage'] != null) rawData['wattage'] = raw['wattage'];
+      if (raw['tdp'] != null) rawData['tdp'] = raw['tdp'];
+      if (raw['chipset'] != null) rawData['chipset'] = raw['chipset'];
+      if (raw['modules'] != null) rawData['modules'] = raw['modules'];
       rawData['name'] = name;
+      if (raw['socket'] != null) rawData['socket'] = raw['socket'];
+      if (raw['form_factor'] != null) rawData['form_factor'] = raw['form_factor'];
+      if (raw['speed'] != null) rawData['speed'] = raw['speed'];
+      if (raw['case_type'] != null) rawData['type'] = raw['case_type'];
 
       _selectedParts[key] = PartSelection(
         partId: (raw['partId'] ?? '').toString(),
@@ -130,20 +133,12 @@ class _ConfigureScreenState extends State<ConfigureScreen> {
       if (raw is! Map) continue;
       final name = (raw['name'] ?? '').toString().trim();
       if (name.isEmpty) continue;
-      final Map<String, dynamic> rawData;
-      if (raw['specData'] is Map) {
-        rawData = Map<String, dynamic>.from(raw['specData'] as Map);
-      } else {
-        rawData = <String, dynamic>{};
-        if (raw['specSnippet'] is Map) {
-          rawData['spec'] = Map<String, dynamic>.from(raw['specSnippet'] as Map);
-        }
-        for (final f in [
-          'wattage', 'tdp', 'chipset', 'modules', 'socket', 'form_factor', 'speed',
-        ]) {
-          if (raw[f] != null) rawData[f] = raw[f];
-        }
-        if (raw['case_type'] != null) rawData['type'] = raw['case_type'];
+      final rawData = <String, dynamic>{'name': name};
+      if (raw['rawPartData'] is Map) {
+        rawData.addAll(Map<String, dynamic>.from(raw['rawPartData'] as Map));
+      }
+      if (raw['specSnippet'] is Map) {
+        rawData['spec'] = Map<String, dynamic>.from(raw['specSnippet'] as Map);
       }
       rawData['name'] = name;
       if (raw['case_type'] != null && !rawData.containsKey('type')) {
@@ -347,17 +342,27 @@ class _ConfigureScreenState extends State<ConfigureScreen> {
     await _choosePart(slot, overrideKey: _nextKey(slot.key));
   }
 
+  /// Converts camelCase to snake_case so spec keys from Firestore snapshots
+  /// (e.g. `coreCount`) match the `_labelMap` in PartsScreen (e.g. `core_count`).
+  static String _camelToSnake(String key) =>
+      key.replaceAllMapped(RegExp(r'[A-Z]'), (m) => '_${m[0]!.toLowerCase()}');
+
   void _viewPart(PartSelection part) {
-    PartsScreen.showDetailSheet(
-      context,
-      <String, dynamic>{
-        ...part.rawData,
-        'name': part.title,
-        'price': part.price,
-      },
-      part.type,
-      part.title,
-    );
+    final data = <String, dynamic>{
+      ...part.rawData,
+      'name': part.title,
+      'price': part.price,
+    };
+    // Flatten the nested spec map (stored with camelCase keys) to the top level
+    // using snake_case keys so PartsScreen._detailSpecs can render them.
+    final specMap = part.rawData['spec'];
+    if (specMap is Map) {
+      for (final e in specMap.entries) {
+        final snakeKey = _camelToSnake(e.key.toString());
+        data.putIfAbsent(snakeKey, () => e.value);
+      }
+    }
+    PartsScreen.showDetailSheet(context, data, part.type, part.title);
   }
 
   Map<String, dynamic> _serializePart(PartSelection part) {
@@ -373,6 +378,9 @@ class _ConfigureScreenState extends State<ConfigureScreen> {
       'type': part.type,
       'subtitle': part.subtitle,
       'specSnippet': spec is Map ? Map<String, dynamic>.from(spec) : null,
+      // Full raw Firestore data — used by the spec detail sheet so all fields
+      // (core_count, boost_clock, microarchitecture, …) are preserved across save/reload.
+      'rawPartData': part.rawData,
       'wattage': part.rawData['wattage'],
       'tdp': part.rawData['tdp'],
       'chipset': part.rawData['chipset'],
@@ -414,11 +422,19 @@ class _ConfigureScreenState extends State<ConfigureScreen> {
       );
       return;
     }
-    final buildName = await _promptBuildName(
-      initial: (_editingBuildTitle ?? '').trim(),
-    );
-    if (!mounted) return;
-    if (buildName == null) return;
+
+    // In read-only mode the title is locked — skip the name prompt.
+    String? buildName;
+    if (widget.readOnly) {
+      buildName = (_editingBuildTitle ?? '').trim();
+    } else {
+      buildName = await _promptBuildName(
+        initial: (_editingBuildTitle ?? '').trim(),
+      );
+      if (!mounted) return;
+      if (buildName == null) return;
+    }
+
     await Future<void>.delayed(const Duration(milliseconds: 220));
     if (!mounted) return;
 
@@ -468,6 +484,10 @@ class _ConfigureScreenState extends State<ConfigureScreen> {
         totalPrice: totalPrice,
         estimatedWattage: estimatedWattage,
         status: status,
+        readOnly: widget.readOnly,
+        importedFrom: widget.readOnly
+            ? widget.initialBuild?.importedFrom
+            : null,
       );
       if (!mounted) return;
       setState(() {
@@ -793,7 +813,9 @@ class _ConfigureScreenState extends State<ConfigureScreen> {
                     const SizedBox(width: 4),
                     Expanded(
                       child: Text(
-                        l10n.configureBuildTitle,
+                        widget.readOnly && (_editingBuildTitle ?? '').isNotEmpty
+                            ? _editingBuildTitle!
+                            : l10n.configureBuildTitle,
                         style: theme.textTheme.titleLarge?.copyWith(
                           fontWeight: FontWeight.w800,
                           letterSpacing: -0.2,
