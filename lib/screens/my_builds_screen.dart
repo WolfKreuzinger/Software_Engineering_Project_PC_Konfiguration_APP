@@ -153,6 +153,67 @@ class _MyBuildsScreenState extends State<MyBuildsScreen> {
     await _repo.renameBuild(uid: user.uid, buildId: build.buildId, title: next);
   }
 
+  Future<void> _duplicateBuild(User user, SavedBuild build) async {
+    final ctrl = TextEditingController(text: 'Kopie von ${build.title}');
+    final title = await showDialog<String>(
+      context: context,
+      useRootNavigator: true,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Build duplizieren'),
+        content: TextField(
+          controller: ctrl,
+          autofocus: true,
+          decoration: const InputDecoration(
+            hintText: 'Name des Duplikats',
+            border: OutlineInputBorder(),
+          ),
+          textInputAction: TextInputAction.done,
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx, rootNavigator: true).pop(),
+            child: const Text('Abbrechen'),
+          ),
+          FilledButton(
+            onPressed: () {
+              final t = ctrl.text.trim();
+              Navigator.of(ctx, rootNavigator: true).pop(t.isEmpty ? null : t);
+            },
+            child: const Text('Duplizieren'),
+          ),
+        ],
+      ),
+    );
+    ctrl.dispose();
+    if (title == null || !mounted) return;
+
+    try {
+      await _repo.saveBuild(
+        uid: user.uid,
+        selectedParts: build.selectedParts,
+        totalPrice: build.totalPrice,
+        estimatedWattage: build.estimatedWattage,
+        status: build.status,
+        title: title,
+      );
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          behavior: SnackBarBehavior.floating,
+          content: Text('"$title" wurde gespeichert.'),
+        ),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          behavior: SnackBarBehavior.floating,
+          content: Text('Fehler beim Duplizieren: $e'),
+        ),
+      );
+    }
+  }
+
   Future<void> _deleteBuild(User user, SavedBuild build) async {
     final ok = await showDialog<bool>(
       context: context,
@@ -189,6 +250,12 @@ class _MyBuildsScreenState extends State<MyBuildsScreen> {
               title: const Text('Rename'),
               onTap: () => Navigator.of(ctx).pop('rename'),
             ),
+            if (!build.readOnly)
+              ListTile(
+                leading: const Icon(Icons.copy_rounded),
+                title: const Text('Duplizieren'),
+                onTap: () => Navigator.of(ctx).pop('duplicate'),
+              ),
             ListTile(
               leading: const Icon(Icons.delete_outline_rounded),
               title: const Text('Delete'),
@@ -204,6 +271,10 @@ class _MyBuildsScreenState extends State<MyBuildsScreen> {
     if (!mounted || action == null) return;
     if (action == 'rename') {
       await _renameBuild(user, build);
+      return;
+    }
+    if (action == 'duplicate') {
+      await _duplicateBuild(user, build);
       return;
     }
     if (action == 'delete') {
