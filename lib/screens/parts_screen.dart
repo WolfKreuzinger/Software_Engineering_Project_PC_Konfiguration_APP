@@ -100,28 +100,28 @@ class _PartsScreenState extends State<PartsScreen> {
   String _selectedType = 'All Components';
   String _selectedSort = 'Price: Low to High';
   RangeValues _priceRange = const RangeValues(0, 5000);
-  Map<String, RangeValues> _specFilters = {};
+  Map<String, _ActiveFilter> _specFilters = {};
 
   static const _types = <String>[
     'All Components',
-    'case',           // Case
+    'case', // Case
     'case-accessory', // Case Accessory
-    'case-fan',       // Case Fan
-    'cpu',            // CPU
-    'cpu-cooler',     // CPU Cooler
-    'wired-network-card',   // Ethernet Card
-    'external-hard-drive',  // External Storage
+    'case-fan', // Case Fan
+    'cpu', // CPU
+    'cpu-cooler', // CPU Cooler
+    'wired-network-card', // Ethernet Card
+    'external-hard-drive', // External Storage
     'fan-controller', // Fan Controller
-    'video-card',     // GPU
-    'motherboard',    // Motherboard
-    'optical-drive',  // Optical Drive
-    'os',             // OS
-    'power-supply',   // Power Supply
-    'memory',         // RAM
-    'sound-card',     // Sound Card
-    'internal-hard-drive',  // Storage
-    'thermal-paste',  // Thermal Paste
-    'ups',            // UPS
+    'video-card', // GPU
+    'motherboard', // Motherboard
+    'optical-drive', // Optical Drive
+    'os', // OS
+    'power-supply', // Power Supply
+    'memory', // RAM
+    'sound-card', // Sound Card
+    'internal-hard-drive', // Storage
+    'thermal-paste', // Thermal Paste
+    'ups', // UPS
     'wireless-network-card', // Wi-Fi Card
   ];
 
@@ -164,7 +164,9 @@ class _PartsScreenState extends State<PartsScreen> {
 
     for (final cat in categories) {
       try {
-        final snap = await db.collection(cat).get(); // .limit(_kLimitPerCategory)
+        final snap = await db
+            .collection(cat)
+            .get(); // .limit(_kLimitPerCategory)
         for (final d in snap.docs) {
           final data = Map<String, dynamic>.from(d.data());
           data['_category'] = cat;
@@ -274,7 +276,8 @@ class _PartsScreenState extends State<PartsScreen> {
     return '';
   }
 
-  static String _displayType(String value) => _typeDisplayName(_canonicalType(value));
+  static String _displayType(String value) =>
+      _typeDisplayName(_canonicalType(value));
 
   static double _toDouble(dynamic v) {
     if (v == null) return double.nan;
@@ -508,15 +511,16 @@ class _PartsScreenState extends State<PartsScreen> {
   }
 
   bool _matchesSpecs(
-    Map<String, RangeValues> specFilters,
+    Map<String, _ActiveFilter> specFilters,
     Map<String, dynamic> data,
   ) {
     if (specFilters.isEmpty) return true;
     final defs = _typeSpecDefs[_selectedType] ?? [];
     for (final def in defs) {
-      final filterRange = specFilters[def.dataKey];
-      if (filterRange == null) continue;
-      if (filterRange.start == def.min && filterRange.end == def.max) continue;
+      final filter = specFilters[def.specKey];
+      if (filter == null) continue;
+
+      // Resolve raw value from spec sub-map or top-level data
       final spec = data['spec'];
       dynamic rawVal;
       if (spec is Map) {
@@ -524,10 +528,73 @@ class _PartsScreenState extends State<PartsScreen> {
       } else {
         rawVal = data[def.dataKey];
       }
-      final numVal = _toDouble(rawVal);
-      if (!numVal.isNaN &&
-          (numVal < filterRange.start || numVal > filterRange.end)) {
-        return false;
+
+      // Extract element by index when the field is a List (e.g. speed[0])
+      if (def.listIndex != null) {
+        rawVal = (rawVal is List && def.listIndex! < rawVal.length)
+            ? rawVal[def.listIndex!]
+            : null;
+      }
+
+      // ── Special filter modes ──────────────────────────────────────────────
+      if (def.filterMode == _FilterMode.driveType) {
+        final filterText = filter.textValue?.trim() ?? '';
+        if (filterText.isEmpty) continue;
+        final sp = data['spec'];
+        dynamic f(String k) => (sp is Map ? sp[k] : null) ?? data[k];
+        final bdRead  = f('bd');
+        final bdWrite = f('bd_write');
+        final pass = switch (filterText) {
+          'CD/DVD Drive'   => bdRead == null && bdWrite == null,
+          'Blu-ray Reader' => bdRead != null && bdWrite == null,
+          'Blu-ray Writer' => bdWrite != null,
+          _                => true,
+        };
+        if (!pass) return false;
+        continue;
+      }
+
+      if (def.filterMode == _FilterMode.nonNull) {
+        if ((filter.textValue?.trim() ?? '').isEmpty) continue;
+        if (rawVal == null) return false;
+        continue;
+      }
+
+      // ── Normal matching ───────────────────────────────────────────────────
+      if (filter.isRange) {
+        final filterRange = filter.rangeValues!;
+        if (filterRange.start == def.min && filterRange.end == def.max) {
+          continue;
+        }
+        // List field without explicit listIndex (e.g. cpu-cooler rpm = [min, max])
+        if (rawVal is List) {
+          final vals =
+              rawVal.map(_toDouble).where((v) => !v.isNaN).toList();
+          if (vals.isNotEmpty) {
+            final listMin = vals.reduce((a, b) => a < b ? a : b);
+            final listMax = vals.reduce((a, b) => a > b ? a : b);
+            if (listMax < filterRange.start || listMin > filterRange.end) {
+              return false;
+            }
+          }
+          continue;
+        }
+        final numVal = _toDouble(rawVal);
+        if (!numVal.isNaN &&
+            (numVal < filterRange.start || numVal > filterRange.end)) {
+          return false;
+        }
+      } else {
+        // Text filter
+        final filterText = filter.textValue!.trim().toLowerCase();
+        if (filterText.isEmpty) continue;
+        final rawStr = rawVal?.toString().trim().toLowerCase() ?? '';
+        if (rawStr.isEmpty) continue; // no value → don't exclude
+        if (def.containsMatch) {
+          if (!rawStr.contains(filterText)) return false;
+        } else {
+          if (rawStr != filterText) return false;
+        }
       }
     }
     return true;
@@ -717,57 +784,86 @@ class _PartsScreenState extends State<PartsScreen> {
                 Align(
                   alignment: Alignment.centerLeft,
                   child: Padding(
-                  padding: const EdgeInsets.fromLTRB(16, 0, 16, 10),
-                  child: SingleChildScrollView(
-                    scrollDirection: Axis.horizontal,
-                    child: Row(
-                      children: [
-                        if (_isTypeLocked)
-                          _LockedPill(label: _displayType(_selectedType))
-                        else
-                          _Pill(
-                            label: _typeDisplayName(_selectedType),
-                            selected: true,
-                            onTap: () {
-                              showModalBottomSheet(
-                                context: context,
-                                showDragHandle: true,
-                                builder: (_) => _SimplePickerSheet(
-                                  title: 'Component Type',
-                                  items: _types,
-                                  selected: _selectedType,
-                                  onPick: (v) {
-                                    setState(() {
-                                      _selectedType = v;
-                                      _specFilters = {};
-                                    });
-                                    Navigator.of(context).pop();
-                                  },
-                                  theme: theme,
-                                  labelFor: _typeDisplayName,
-                                ),
-                              );
-                            },
-                          ),
-                        if (_selectedType != 'All Components' &&
-                            (_typeSpecDefs[_selectedType]?.isNotEmpty ??
-                                false)) ...[
+                    padding: const EdgeInsets.fromLTRB(16, 0, 16, 10),
+                    child: SingleChildScrollView(
+                      scrollDirection: Axis.horizontal,
+                      child: Row(
+                        children: [
+                          if (_isTypeLocked)
+                            _LockedPill(label: _displayType(_selectedType))
+                          else
+                            _Pill(
+                              label: _typeDisplayName(_selectedType),
+                              selected: true,
+                              onTap: () {
+                                showModalBottomSheet(
+                                  context: context,
+                                  showDragHandle: true,
+                                  builder: (_) => _SimplePickerSheet(
+                                    title: 'Component Type',
+                                    items: _types,
+                                    selected: _selectedType,
+                                    onPick: (v) {
+                                      setState(() {
+                                        _selectedType = v;
+                                        _specFilters = {};
+                                      });
+                                      Navigator.of(context).pop();
+                                    },
+                                    theme: theme,
+                                    labelFor: _typeDisplayName,
+                                  ),
+                                );
+                              },
+                            ),
+                          if (_selectedType != 'All Components' &&
+                              (_typeSpecDefs[_selectedType]?.isNotEmpty ??
+                                  false)) ...[
+                            const SizedBox(width: 10),
+                            _Pill(
+                              label: _specFilters.isEmpty
+                                  ? 'Specs'
+                                  : 'Specs (${_specFilters.length})',
+                              selected: _specFilters.isNotEmpty,
+                              onTap: () {
+                                showModalBottomSheet(
+                                  context: context,
+                                  isScrollControlled: true,
+                                  showDragHandle: true,
+                                  builder: (_) => _SpecsSheet(
+                                    selectedType: _selectedType,
+                                    specFilters: Map.from(_specFilters),
+                                    onApply: (filters) {
+                                      setState(() => _specFilters = filters);
+                                      Navigator.of(context).pop();
+                                    },
+                                    theme: theme,
+                                  ),
+                                );
+                              },
+                            ),
+                          ],
                           const SizedBox(width: 10),
                           _Pill(
-                            label: _specFilters.isEmpty
-                                ? 'Specs'
-                                : 'Specs (${_specFilters.length})',
-                            selected: _specFilters.isNotEmpty,
+                            label: 'Sort',
+                            selected:
+                                _selectedSort != _sorts[0] ||
+                                _priceRange.start > 0 ||
+                                _priceRange.end < 5000,
                             onTap: () {
                               showModalBottomSheet(
                                 context: context,
                                 isScrollControlled: true,
                                 showDragHandle: true,
-                                builder: (_) => _SpecsSheet(
-                                  selectedType: _selectedType,
-                                  specFilters: Map.from(_specFilters),
-                                  onApply: (filters) {
-                                    setState(() => _specFilters = filters);
+                                builder: (_) => _SortSheet(
+                                  sorts: _sorts,
+                                  selectedSort: _selectedSort,
+                                  priceRange: _priceRange,
+                                  onApply: (sort, range) {
+                                    setState(() {
+                                      _selectedSort = sort;
+                                      _priceRange = range;
+                                    });
                                     Navigator.of(context).pop();
                                   },
                                   theme: theme,
@@ -776,36 +872,8 @@ class _PartsScreenState extends State<PartsScreen> {
                             },
                           ),
                         ],
-                        const SizedBox(width: 10),
-                        _Pill(
-                          label: 'Sort',
-                          selected: _selectedSort != _sorts[0] ||
-                              _priceRange.start > 0 ||
-                              _priceRange.end < 5000,
-                          onTap: () {
-                            showModalBottomSheet(
-                              context: context,
-                              isScrollControlled: true,
-                              showDragHandle: true,
-                              builder: (_) => _SortSheet(
-                                sorts: _sorts,
-                                selectedSort: _selectedSort,
-                                priceRange: _priceRange,
-                                onApply: (sort, range) {
-                                  setState(() {
-                                    _selectedSort = sort;
-                                    _priceRange = range;
-                                  });
-                                  Navigator.of(context).pop();
-                                },
-                                theme: theme,
-                              ),
-                            );
-                          },
-                        ),
-                      ],
+                      ),
                     ),
-                  ),
                   ),
                 ),
                 Expanded(child: _buildPartsList(context, theme, cs)),
@@ -1642,15 +1710,14 @@ class _FiltersSheetState extends State<_FiltersSheet> {
                     color: cs.onSurfaceVariant,
                   ),
                 ),
-                RangeSlider(
-                  values: _range,
+                _SliderWithLabels(
+                  initial: _range,
                   min: 0,
                   max: 5000,
                   divisions: 100,
-                  labels: RangeLabels(
-                    _range.start.toStringAsFixed(0),
-                    _range.end.toStringAsFixed(0),
-                  ),
+                  prefix: '\$',
+                  theme: theme,
+                  cs: cs,
                   onChanged: (v) => setState(() => _range = v),
                 ),
                 const SizedBox(height: 8),
@@ -1772,27 +1839,77 @@ class _SimplePickerSheet extends StatelessWidget {
 
 // ── Spec definitions per component type ────────────────────────────────────
 
+// A filter value is either a numeric range or a text/string value.
+class _ActiveFilter {
+  final RangeValues? rangeValues;
+  final String? textValue;
+
+  const _ActiveFilter.range(this.rangeValues) : textValue = null;
+  const _ActiveFilter.text(this.textValue) : rangeValues = null;
+
+  bool get isRange => rangeValues != null;
+}
+
+enum _SpecWidgetType {
+  rangeSlider,   // Continuous range – RangeSlider
+  minMaxInput,   // Two text fields for min / max (numeric, free entry)
+  minChips,      // Discrete minimum value – chips with "≥ X" semantics
+  exactChips,    // Discrete exact value – chips (numeric)
+  textChips,     // Exact string value – chips
+  textDropdown,  // Exact string value – dropdown (many options)
+}
+
+enum _FilterMode {
+  normal,     // Standard matching against dataKey field
+  driveType,  // Multi-field: CD/DVD / Blu-ray Reader / Blu-ray Writer
+  nonNull,    // Passes only when dataKey field is non-null (e.g. "Writable")
+}
+
 class _SpecDef {
-  final String specKey;
-  final String dataKey;
+  final String specKey;        // camelCase key; also used as filter-map key
+  final String dataKey;        // snake_case key in the raw data / Firestore doc
   final String label;
   final double min;
   final double max;
   final String unit;
   final int divisions;
+  final _SpecWidgetType widgetType;
+  // Numeric chip options (for minChips / exactChips)
+  final List<double> chips;
+  // Optional prefix to prepend to chip labels (e.g. "DDR" → "DDR4")
+  final String chipLabelPrefix;
+  // Per-chip label overrides (same length as chips); overrides auto-generated labels
+  final List<String> chipLabelOverrides;
+  // String options for textChips / textDropdown
+  final List<String> textOptions;
+  // When true, text matching uses contains() instead of exact equality
+  final bool containsMatch;
+  // Index to extract when the raw data field is a List (e.g. speed[0] = DDR gen)
+  final int? listIndex;
+  // Overrides default matching logic in _matchesSpecs
+  final _FilterMode filterMode;
 
   const _SpecDef({
     required this.specKey,
     required this.dataKey,
     required this.label,
-    required this.min,
-    required this.max,
-    required this.unit,
+    this.min = 0,
+    this.max = 100,
+    this.unit = '',
     this.divisions = 50,
+    this.widgetType = _SpecWidgetType.rangeSlider,
+    this.chips = const [],
+    this.chipLabelPrefix = '',
+    this.chipLabelOverrides = const [],
+    this.textOptions = const [],
+    this.containsMatch = false,
+    this.listIndex,
+    this.filterMode = _FilterMode.normal,
   });
 }
 
 const Map<String, List<_SpecDef>> _typeSpecDefs = {
+  // ── CPU ──────────────────────────────────────────────────────────────────
   'cpu': [
     _SpecDef(
       specKey: 'coreCount',
@@ -1800,8 +1917,8 @@ const Map<String, List<_SpecDef>> _typeSpecDefs = {
       label: 'Core Count',
       min: 1,
       max: 64,
-      unit: '',
-      divisions: 63,
+      widgetType: _SpecWidgetType.minChips,
+      chips: [4, 6, 8, 12, 16, 32],
     ),
     _SpecDef(
       specKey: 'threadCount',
@@ -1809,8 +1926,8 @@ const Map<String, List<_SpecDef>> _typeSpecDefs = {
       label: 'Thread Count',
       min: 1,
       max: 128,
-      unit: '',
-      divisions: 127,
+      widgetType: _SpecWidgetType.minChips,
+      chips: [4, 6, 8, 12, 16, 32],
     ),
     _SpecDef(
       specKey: 'boostClock',
@@ -1831,6 +1948,8 @@ const Map<String, List<_SpecDef>> _typeSpecDefs = {
       divisions: 60,
     ),
   ],
+
+  // ── GPU ──────────────────────────────────────────────────────────────────
   'video-card': [
     _SpecDef(
       specKey: 'memory',
@@ -1839,7 +1958,8 @@ const Map<String, List<_SpecDef>> _typeSpecDefs = {
       min: 2,
       max: 24,
       unit: 'GB',
-      divisions: 11,
+      widgetType: _SpecWidgetType.minChips,
+      chips: [4, 6, 8, 10, 12, 16, 20, 24],
     ),
     _SpecDef(
       specKey: 'boostClock',
@@ -1866,10 +1986,45 @@ const Map<String, List<_SpecDef>> _typeSpecDefs = {
       min: 100,
       max: 420,
       unit: 'mm',
-      divisions: 64,
+      widgetType: _SpecWidgetType.minMaxInput,
     ),
   ],
+
+  // ── RAM ──────────────────────────────────────────────────────────────────
+  // speed field is [ddrGen, mhz], modules field is [count, sizeGb]
   'memory': [
+    _SpecDef(
+      specKey: 'speedGen',
+      dataKey: 'speed',
+      label: 'DDR Generation',
+      min: 3,
+      max: 5,
+      widgetType: _SpecWidgetType.exactChips,
+      chips: [3, 4, 5],
+      chipLabelPrefix: 'DDR',
+      listIndex: 0,
+    ),
+    _SpecDef(
+      specKey: 'moduleCount',
+      dataKey: 'modules',
+      label: 'Modules',
+      min: 1,
+      max: 8,
+      unit: 'x',
+      widgetType: _SpecWidgetType.exactChips,
+      chips: [1, 2, 4],
+      listIndex: 0,
+    ),
+    _SpecDef(
+      specKey: 'speedMhz',
+      dataKey: 'speed',
+      label: 'Speed',
+      min: 800,
+      max: 8000,
+      unit: 'MHz',
+      divisions: 72,
+      listIndex: 1,
+    ),
     _SpecDef(
       specKey: 'casLatency',
       dataKey: 'cas_latency',
@@ -1889,6 +2044,8 @@ const Map<String, List<_SpecDef>> _typeSpecDefs = {
       divisions: 38,
     ),
   ],
+
+  // ── Storage ───────────────────────────────────────────────────────────────
   'internal-hard-drive': [
     _SpecDef(
       specKey: 'capacityGb',
@@ -1897,7 +2054,9 @@ const Map<String, List<_SpecDef>> _typeSpecDefs = {
       min: 100,
       max: 20000,
       unit: 'GB',
-      divisions: 100,
+      widgetType: _SpecWidgetType.minChips,
+      chips: [128, 256, 512, 1000, 2000, 4000],
+      chipLabelOverrides: ['128 GB+', '256 GB+', '512 GB+', '1 TB+', '2 TB+', '4 TB+'],
     ),
     _SpecDef(
       specKey: 'cache',
@@ -1906,10 +2065,46 @@ const Map<String, List<_SpecDef>> _typeSpecDefs = {
       min: 0,
       max: 2000,
       unit: 'MB',
-      divisions: 100,
+      widgetType: _SpecWidgetType.minChips,
+      chips: [0, 256, 512, 1000, 2000],
+      chipLabelOverrides: ['0 MB', '256 MB+', '512 MB+', '1 GB+', '2 GB+'],
+    ),
+    _SpecDef(
+      specKey: 'formFactor',
+      dataKey: 'form_factor',
+      label: 'Form Factor',
+      widgetType: _SpecWidgetType.textChips,
+      textOptions: ['2.5"', '3.5"', 'M.2-2280', 'M.2-2242', 'M.2-22110'],
+    ),
+    _SpecDef(
+      specKey: 'interface',
+      dataKey: 'interface',
+      label: 'Interface',
+      widgetType: _SpecWidgetType.textChips,
+      containsMatch: true,
+      textOptions: ['SATA', 'PCIe 3.0', 'PCIe 4.0', 'PCIe 5.0', 'NVMe'],
     ),
   ],
+
+  // ── Motherboard ───────────────────────────────────────────────────────────
   'motherboard': [
+    _SpecDef(
+      specKey: 'socket',
+      dataKey: 'socket',
+      label: 'Socket',
+      widgetType: _SpecWidgetType.textDropdown,
+      textOptions: [
+        'AM4', 'AM5', 'LGA1700', 'LGA1200', 'LGA1151',
+        'LGA1155', 'TR4', 'sTRX4', 'LGA2066',
+      ],
+    ),
+    _SpecDef(
+      specKey: 'formFactor',
+      dataKey: 'form_factor',
+      label: 'Form Factor',
+      widgetType: _SpecWidgetType.textChips,
+      textOptions: ['ATX', 'Micro ATX', 'Mini ITX', 'EATX', 'Mini DTX'],
+    ),
     _SpecDef(
       specKey: 'maxMemory',
       dataKey: 'max_memory',
@@ -1917,7 +2112,8 @@ const Map<String, List<_SpecDef>> _typeSpecDefs = {
       min: 8,
       max: 256,
       unit: 'GB',
-      divisions: 31,
+      widgetType: _SpecWidgetType.minChips,
+      chips: [16, 32, 64, 128, 256],
     ),
     _SpecDef(
       specKey: 'memorySlots',
@@ -1925,21 +2121,47 @@ const Map<String, List<_SpecDef>> _typeSpecDefs = {
       label: 'Memory Slots',
       min: 2,
       max: 8,
-      unit: '',
-      divisions: 6,
+      widgetType: _SpecWidgetType.exactChips,
+      chips: [2, 4, 8],
     ),
   ],
+
+  // ── Power Supply ──────────────────────────────────────────────────────────
   'power-supply': [
     _SpecDef(
       specKey: 'wattage',
       dataKey: 'wattage',
       label: 'Wattage',
-      min: 300,
+      min: 150,
       max: 1600,
       unit: 'W',
-      divisions: 65,
+      widgetType: _SpecWidgetType.minChips,
+      chips: [200, 300, 400, 450, 550, 650, 750, 850, 1000, 1200],
+    ),
+    _SpecDef(
+      specKey: 'efficiency',
+      dataKey: 'efficiency',
+      label: 'Efficiency Certification',
+      widgetType: _SpecWidgetType.textChips,
+      textOptions: [
+        '80+',
+        '80+ Bronze',
+        '80+ Silver',
+        '80+ Gold',
+        '80+ Platinum',
+        '80+ Titanium',
+      ],
+    ),
+    _SpecDef(
+      specKey: 'modular',
+      dataKey: 'modular',
+      label: 'Modular',
+      widgetType: _SpecWidgetType.textChips,
+      textOptions: ['Full', 'Semi', 'No'],
     ),
   ],
+
+  // ── Case ──────────────────────────────────────────────────────────────────
   'case': [
     _SpecDef(
       specKey: 'internal35Bays',
@@ -1947,10 +2169,25 @@ const Map<String, List<_SpecDef>> _typeSpecDefs = {
       label: '3.5" Bays',
       min: 0,
       max: 10,
-      unit: '',
-      divisions: 10,
+      widgetType: _SpecWidgetType.minChips,
+      chips: [1, 2, 4, 6],
+    ),
+    _SpecDef(
+      specKey: 'sidePanel',
+      dataKey: 'side_panel',
+      label: 'Side Panel',
+      widgetType: _SpecWidgetType.textChips,
+      textOptions: [
+        'Tempered Glass',
+        'Tinted Tempered Glass',
+        'Acrylic',
+        'Mesh',
+        'Solid Steel',
+      ],
     ),
   ],
+
+  // ── CPU Cooler ────────────────────────────────────────────────────────────
   'cpu-cooler': [
     _SpecDef(
       specKey: 'noiseLevelDb',
@@ -1961,7 +2198,19 @@ const Map<String, List<_SpecDef>> _typeSpecDefs = {
       unit: 'dBA',
       divisions: 50,
     ),
+    // rpm can be a single value or [min, max]; _matchesSpecs handles both
+    _SpecDef(
+      specKey: 'rpm',
+      dataKey: 'rpm',
+      label: 'RPM',
+      min: 0,
+      max: 5000,
+      unit: 'RPM',
+      divisions: 50,
+    ),
   ],
+
+  // ── Case Fan ──────────────────────────────────────────────────────────────
   'case-fan': [
     _SpecDef(
       specKey: 'sizeMm',
@@ -1970,7 +2219,8 @@ const Map<String, List<_SpecDef>> _typeSpecDefs = {
       min: 80,
       max: 200,
       unit: 'mm',
-      divisions: 12,
+      widgetType: _SpecWidgetType.exactChips,
+      chips: [80, 92, 120, 140, 200],
     ),
     _SpecDef(
       specKey: 'noiseLevelDb',
@@ -1989,6 +2239,180 @@ const Map<String, List<_SpecDef>> _typeSpecDefs = {
       max: 100,
       unit: 'CFM',
       divisions: 50,
+    ),
+  ],
+
+  // ── External Hard Drive ───────────────────────────────────────────────────
+  'external-hard-drive': [
+    _SpecDef(
+      specKey: 'capacityGb',
+      dataKey: 'capacity',
+      label: 'Capacity',
+      min: 100,
+      max: 20000,
+      unit: 'GB',
+      widgetType: _SpecWidgetType.minChips,
+      chips: [128, 256, 512, 1000, 2000, 4000],
+      chipLabelOverrides: ['128 GB+', '256 GB+', '512 GB+', '1 TB+', '2 TB+', '4 TB+'],
+    ),
+    _SpecDef(
+      specKey: 'interface',
+      dataKey: 'interface',
+      label: 'Interface',
+      widgetType: _SpecWidgetType.textChips,
+      textOptions: ['USB 3.0', 'USB 3.1', 'USB 3.2', 'USB-C', 'Thunderbolt 3', 'Thunderbolt 4'],
+    ),
+  ],
+
+  // ── Sound Card ────────────────────────────────────────────────────────────
+  'sound-card': [
+    _SpecDef(
+      specKey: 'channels',
+      dataKey: 'channels',
+      label: 'Channels',
+      widgetType: _SpecWidgetType.exactChips,
+      chips: [2, 5.1, 7.1],
+      chipLabelOverrides: ['2.0', '5.1', '7.1'],
+    ),
+    _SpecDef(
+      specKey: 'interface',
+      dataKey: 'interface',
+      label: 'Interface',
+      widgetType: _SpecWidgetType.textChips,
+      containsMatch: true,
+      textOptions: ['PCIe', 'USB', 'Thunderbolt'],
+    ),
+    _SpecDef(
+      specKey: 'digitalAudio',
+      dataKey: 'digital_audio',
+      label: 'Digital Audio',
+      widgetType: _SpecWidgetType.textChips,
+      textOptions: ['Optical', 'Coaxial', 'HDMI'],
+    ),
+    _SpecDef(
+      specKey: 'sampleRate',
+      dataKey: 'sample_rate',
+      label: 'Sample Rate',
+      min: 44,
+      max: 384,
+      unit: 'kHz',
+      divisions: 17,
+    ),
+  ],
+
+  // ── Wired Network Card ────────────────────────────────────────────────────
+  'wired-network-card': [
+    _SpecDef(
+      specKey: 'interface',
+      dataKey: 'interface',
+      label: 'Interface',
+      widgetType: _SpecWidgetType.textChips,
+      containsMatch: true,
+      textOptions: ['PCIe x1', 'PCIe x4', 'USB'],
+    ),
+  ],
+
+  // ── Wireless Network Card ─────────────────────────────────────────────────
+  'wireless-network-card': [
+    _SpecDef(
+      specKey: 'interface',
+      dataKey: 'interface',
+      label: 'Interface',
+      widgetType: _SpecWidgetType.textChips,
+      containsMatch: true,
+      textOptions: ['PCIe x1', 'USB'],
+    ),
+    _SpecDef(
+      specKey: 'protocol',
+      dataKey: 'protocol',
+      label: 'Protocol',
+      widgetType: _SpecWidgetType.textChips,
+      containsMatch: true,
+      textOptions: ['Wi-Fi 5', 'Wi-Fi 6', 'Wi-Fi 6E', 'Wi-Fi 7', 'Bluetooth'],
+    ),
+  ],
+
+  // ── Fan Controller ────────────────────────────────────────────────────────
+  'fan-controller': [
+    _SpecDef(
+      specKey: 'channels',
+      dataKey: 'channels',
+      label: 'Channels',
+      min: 1,
+      max: 12,
+      unit: '',
+      divisions: 11,
+    ),
+    _SpecDef(
+      specKey: 'channelWattage',
+      dataKey: 'channel_wattage',
+      label: 'Channel Wattage',
+      min: 5,
+      max: 30,
+      unit: 'W',
+      divisions: 25,
+    ),
+  ],
+
+  // ── Optical Drive ─────────────────────────────────────────────────────────
+  'optical-drive': [
+    _SpecDef(
+      specKey: 'driveType',
+      dataKey: '',
+      label: 'Drive Type',
+      widgetType: _SpecWidgetType.textChips,
+      filterMode: _FilterMode.driveType,
+      textOptions: ['CD/DVD Drive', 'Blu-ray Reader', 'Blu-ray Writer'],
+    ),
+    _SpecDef(
+      specKey: 'dvdSpeed',
+      dataKey: 'dvd',
+      label: 'DVD Read Speed',
+      min: 1,
+      max: 24,
+      unit: 'x',
+      widgetType: _SpecWidgetType.minChips,
+      chips: [8, 16, 20],
+    ),
+    _SpecDef(
+      specKey: 'bdSpeed',
+      dataKey: 'bd',
+      label: 'Blu-ray Read Speed',
+      min: 1,
+      max: 16,
+      unit: 'x',
+      widgetType: _SpecWidgetType.minChips,
+      chips: [4, 6, 8, 12],
+    ),
+    _SpecDef(
+      specKey: 'dvdWritable',
+      dataKey: 'dvd_write',
+      label: 'DVD Writing',
+      widgetType: _SpecWidgetType.textChips,
+      filterMode: _FilterMode.nonNull,
+      textOptions: ['Writable'],
+    ),
+    _SpecDef(
+      specKey: 'bdWritable',
+      dataKey: 'bd_write',
+      label: 'Blu-ray Writing',
+      widgetType: _SpecWidgetType.textChips,
+      filterMode: _FilterMode.nonNull,
+      textOptions: ['Writable'],
+    ),
+  ],
+
+  // ── UPS ───────────────────────────────────────────────────────────────────
+  'ups': [
+    _SpecDef(
+      specKey: 'capacityW',
+      dataKey: 'capacity_w',
+      label: 'Capacity (Watt)',
+      min: 100,
+      max: 3000,
+      unit: 'W',
+      widgetType: _SpecWidgetType.minChips,
+      chips: [200, 300, 400, 600, 800, 1000, 1500, 2000],
     ),
   ],
 };
@@ -2087,15 +2511,14 @@ class _SortSheetState extends State<_SortSheet> {
                 color: cs.onSurfaceVariant,
               ),
             ),
-            RangeSlider(
-              values: _range,
+            _SliderWithLabels(
+              initial: _range,
               min: 0,
               max: 5000,
               divisions: 100,
-              labels: RangeLabels(
-                '\$${_range.start.toStringAsFixed(0)}',
-                '\$${_range.end.toStringAsFixed(0)}',
-              ),
+              prefix: '\$',
+              theme: theme,
+              cs: cs,
               onChanged: (v) => setState(() => _range = v),
             ),
             const SizedBox(height: 8),
@@ -2120,12 +2543,12 @@ class _SortSheetState extends State<_SortSheet> {
   }
 }
 
-// ── Specs sheet (component-specific spec range filters) ─────────────────────
+// ── Specs sheet (component-specific spec filters) ────────────────────────────
 
 class _SpecsSheet extends StatefulWidget {
   final String selectedType;
-  final Map<String, RangeValues> specFilters;
-  final void Function(Map<String, RangeValues> filters) onApply;
+  final Map<String, _ActiveFilter> specFilters;
+  final void Function(Map<String, _ActiveFilter> filters) onApply;
   final ThemeData theme;
 
   const _SpecsSheet({
@@ -2140,7 +2563,267 @@ class _SpecsSheet extends StatefulWidget {
 }
 
 class _SpecsSheetState extends State<_SpecsSheet> {
-  late Map<String, RangeValues> _filters = Map.from(widget.specFilters);
+  late final Map<String, _ActiveFilter> _filters = Map.from(widget.specFilters);
+
+  // Controllers for minMaxInput specs (keyed by specKey)
+  final Map<String, TextEditingController> _minCtrls = {};
+  final Map<String, TextEditingController> _maxCtrls = {};
+
+  @override
+  void initState() {
+    super.initState();
+    final defs = _typeSpecDefs[widget.selectedType] ?? [];
+    for (final def in defs) {
+      if (def.widgetType == _SpecWidgetType.minMaxInput) {
+        final current = _filters[def.specKey]?.rangeValues;
+        _minCtrls[def.specKey] = TextEditingController(
+          text: (current != null && current.start > def.min)
+              ? current.start.toStringAsFixed(0)
+              : '',
+        );
+        _maxCtrls[def.specKey] = TextEditingController(
+          text: (current != null && current.end < def.max)
+              ? current.end.toStringAsFixed(0)
+              : '',
+        );
+      }
+    }
+  }
+
+  @override
+  void dispose() {
+    for (final c in _minCtrls.values) c.dispose();
+    for (final c in _maxCtrls.values) c.dispose();
+    super.dispose();
+  }
+
+  // ── Numeric chip row (minChips / exactChips) ──────────────────────────────
+
+  Widget _buildNumericChips(_SpecDef def, ColorScheme cs, ThemeData theme) {
+    final unitStr = def.unit.isNotEmpty ? ' ${def.unit}' : '';
+    final selectedVal = _filters[def.specKey]?.rangeValues?.start;
+
+    return _SpecSection(
+      label: def.label,
+      theme: theme,
+      cs: cs,
+      child: Wrap(
+        spacing: 8,
+        runSpacing: 8,
+        children: def.chips.asMap().entries.map((entry) {
+          final i = entry.key;
+          final v = entry.value;
+          final isSelected = selectedVal == v;
+          final String chipLabel;
+          if (i < def.chipLabelOverrides.length) {
+            chipLabel = def.chipLabelOverrides[i];
+          } else if (def.chipLabelPrefix.isNotEmpty) {
+            chipLabel = '${def.chipLabelPrefix}${v.toInt()}';
+          } else if (def.widgetType == _SpecWidgetType.minChips) {
+            chipLabel = '${v.toInt()}$unitStr+';
+          } else {
+            chipLabel = '${v.toInt()}$unitStr';
+          }
+          return _SpecChip(
+            label: chipLabel,
+            selected: isSelected,
+            theme: theme,
+            cs: cs,
+            onTap: () => setState(() {
+              if (isSelected) {
+                _filters.remove(def.specKey);
+              } else if (def.widgetType == _SpecWidgetType.minChips) {
+                // v == 0 means "exactly zero" (e.g. no cache), not "≥0 = everything"
+                _filters[def.specKey] = _ActiveFilter.range(
+                    v == 0 ? const RangeValues(0, 0) : RangeValues(v, def.max));
+              } else {
+                _filters[def.specKey] =
+                    _ActiveFilter.range(RangeValues(v, v));
+              }
+            }),
+          );
+        }).toList(),
+      ),
+    );
+  }
+
+  // ── Text chip row ─────────────────────────────────────────────────────────
+
+  Widget _buildTextChips(_SpecDef def, ColorScheme cs, ThemeData theme) {
+    final selectedText = _filters[def.specKey]?.textValue;
+
+    return _SpecSection(
+      label: def.label,
+      theme: theme,
+      cs: cs,
+      child: Wrap(
+        spacing: 8,
+        runSpacing: 8,
+        children: def.textOptions.map((opt) {
+          final isSelected = selectedText == opt;
+          return _SpecChip(
+            label: opt,
+            selected: isSelected,
+            theme: theme,
+            cs: cs,
+            onTap: () => setState(() {
+              if (isSelected) {
+                _filters.remove(def.specKey);
+              } else {
+                _filters[def.specKey] = _ActiveFilter.text(opt);
+              }
+            }),
+          );
+        }).toList(),
+      ),
+    );
+  }
+
+  // ── Text dropdown ─────────────────────────────────────────────────────────
+
+  Widget _buildTextDropdown(_SpecDef def, ColorScheme cs, ThemeData theme) {
+    final selectedText = _filters[def.specKey]?.textValue ?? '';
+    final isActive = selectedText.isNotEmpty;
+
+    return _SpecSection(
+      label: def.label,
+      theme: theme,
+      cs: cs,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 2),
+        decoration: BoxDecoration(
+          color: isActive
+              ? cs.primaryContainer.withValues(alpha: 0.7)
+              : cs.surfaceContainerHighest.withValues(alpha: 0.65),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+            color: isActive
+                ? cs.primary.withValues(alpha: 0.5)
+                : cs.outlineVariant.withValues(alpha: 0.35),
+          ),
+        ),
+        child: DropdownButton<String>(
+          value: selectedText.isEmpty ? '' : selectedText,
+          isExpanded: true,
+          underline: const SizedBox.shrink(),
+          dropdownColor: cs.surface,
+          iconEnabledColor: isActive ? cs.onPrimaryContainer : cs.onSurfaceVariant,
+          items: [
+            DropdownMenuItem<String>(
+              value: '',
+              child: Text(
+                'Any',
+                style: theme.textTheme.bodyMedium?.copyWith(
+                  color: cs.onSurface,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
+            ...def.textOptions.map(
+              (opt) => DropdownMenuItem<String>(
+                value: opt,
+                child: Text(
+                  opt,
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    color: cs.onSurface,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+              ),
+            ),
+          ],
+          onChanged: (val) => setState(() {
+            if (val == null || val.isEmpty) {
+              _filters.remove(def.specKey);
+            } else {
+              _filters[def.specKey] = _ActiveFilter.text(val);
+            }
+          }),
+        ),
+      ),
+    );
+  }
+
+  // ── Range slider ──────────────────────────────────────────────────────────
+
+  Widget _buildRangeSlider(_SpecDef def, ColorScheme cs, ThemeData theme) {
+    final current =
+        _filters[def.specKey]?.rangeValues ?? RangeValues(def.min, def.max);
+    return _SpecSection(
+      label: def.label,
+      theme: theme,
+      cs: cs,
+      child: _SliderWithLabels(
+        initial: current,
+        min: def.min,
+        max: def.max,
+        divisions: def.divisions,
+        suffix: def.unit.isNotEmpty ? ' ${def.unit}' : '',
+        theme: theme,
+        cs: cs,
+        onChanged: (v) =>
+            setState(() => _filters[def.specKey] = _ActiveFilter.range(v)),
+      ),
+    );
+  }
+
+  Widget _buildMinMaxInput(_SpecDef def, ColorScheme cs, ThemeData theme) {
+    final unitStr = def.unit.isNotEmpty ? ' ${def.unit}' : '';
+    final minCtrl = _minCtrls[def.specKey]!;
+    final maxCtrl = _maxCtrls[def.specKey]!;
+
+    void commit() {
+      final minVal = double.tryParse(minCtrl.text);
+      final maxVal = double.tryParse(maxCtrl.text);
+      if (minVal == null && maxVal == null) {
+        setState(() => _filters.remove(def.specKey));
+        return;
+      }
+      final start = minVal ?? def.min;
+      final end = maxVal ?? def.max;
+      setState(() => _filters[def.specKey] =
+          _ActiveFilter.range(RangeValues(start < end ? start : end, end > start ? end : start)));
+    }
+
+    return _SpecSection(
+      label: def.label,
+      theme: theme,
+      cs: cs,
+      child: Row(
+        children: [
+          Expanded(
+            child: TextField(
+              controller: minCtrl,
+              keyboardType: const TextInputType.numberWithOptions(decimal: true),
+              decoration: InputDecoration(
+                labelText: 'Min$unitStr',
+                border: const OutlineInputBorder(),
+                isDense: true,
+              ),
+              onEditingComplete: commit,
+              onTapOutside: (_) => commit(),
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: TextField(
+              controller: maxCtrl,
+              keyboardType: const TextInputType.numberWithOptions(decimal: true),
+              decoration: InputDecoration(
+                labelText: 'Max$unitStr',
+                border: const OutlineInputBorder(),
+                isDense: true,
+              ),
+              onEditingComplete: commit,
+              onTapOutside: (_) => commit(),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ── Build ─────────────────────────────────────────────────────────────────
 
   @override
   Widget build(BuildContext context) {
@@ -2150,10 +2833,9 @@ class _SpecsSheetState extends State<_SpecsSheet> {
 
     return SafeArea(
       top: false,
-      child: Padding(
+      child: SingleChildScrollView(
         padding: const EdgeInsets.fromLTRB(16, 6, 16, 16),
         child: Column(
-          mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Row(
@@ -2173,35 +2855,19 @@ class _SpecsSheetState extends State<_SpecsSheet> {
               ],
             ),
             const SizedBox(height: 12),
-            ...defs.map((def) {
-              final current =
-                  _filters[def.dataKey] ?? RangeValues(def.min, def.max);
-              final unitStr = def.unit.isNotEmpty ? ' ${def.unit}' : '';
-              return Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    def.label,
-                    style: theme.textTheme.labelLarge?.copyWith(
-                      fontWeight: FontWeight.w800,
-                      color: cs.onSurfaceVariant,
-                    ),
-                  ),
-                  RangeSlider(
-                    values: current,
-                    min: def.min,
-                    max: def.max,
-                    divisions: def.divisions,
-                    labels: RangeLabels(
-                      '${current.start.toStringAsFixed(0)}$unitStr',
-                      '${current.end.toStringAsFixed(0)}$unitStr',
-                    ),
-                    onChanged: (v) =>
-                        setState(() => _filters[def.dataKey] = v),
-                  ),
-                ],
-              );
-            }),
+            ...defs.map((def) => switch (def.widgetType) {
+                  _SpecWidgetType.rangeSlider =>
+                    _buildRangeSlider(def, cs, theme),
+                  _SpecWidgetType.minChips ||
+                  _SpecWidgetType.exactChips =>
+                    _buildNumericChips(def, cs, theme),
+                  _SpecWidgetType.textChips =>
+                    _buildTextChips(def, cs, theme),
+                  _SpecWidgetType.textDropdown =>
+                    _buildTextDropdown(def, cs, theme),
+                  _SpecWidgetType.minMaxInput =>
+                    _buildMinMaxInput(def, cs, theme),
+                }),
             const SizedBox(height: 8),
             SizedBox(
               width: double.infinity,
@@ -2218,6 +2884,195 @@ class _SpecsSheetState extends State<_SpecsSheet> {
               ),
             ),
           ],
+        ),
+      ),
+    );
+  }
+}
+
+// ── Reusable spec-filter helper widgets ──────────────────────────────────────
+
+/// Label + child widget pair used in every spec-filter row.
+class _SpecSection extends StatelessWidget {
+  final String label;
+  final Widget child;
+  final ThemeData theme;
+  final ColorScheme cs;
+
+  const _SpecSection({
+    required this.label,
+    required this.child,
+    required this.theme,
+    required this.cs,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          label,
+          style: theme.textTheme.labelLarge?.copyWith(
+            fontWeight: FontWeight.w800,
+            color: cs.onSurfaceVariant,
+          ),
+        ),
+        const SizedBox(height: 8),
+        child,
+        const SizedBox(height: 12),
+      ],
+    );
+  }
+}
+
+/// Pill-shaped selectable chip used in spec-filter rows.
+// ── Slider with always-visible value labels above each thumb ─────────────────
+
+class _SliderWithLabels extends StatefulWidget {
+  final RangeValues initial;
+  final double min;
+  final double max;
+  final int divisions;
+  final String prefix;
+  final String suffix;
+  final ThemeData theme;
+  final ColorScheme cs;
+  final void Function(RangeValues) onChanged;
+
+  const _SliderWithLabels({
+    required this.initial,
+    required this.min,
+    required this.max,
+    required this.divisions,
+    required this.theme,
+    required this.cs,
+    required this.onChanged,
+    this.prefix = '',
+    this.suffix = '',
+  });
+
+  @override
+  State<_SliderWithLabels> createState() => _SliderWithLabelsState();
+}
+
+class _SliderWithLabelsState extends State<_SliderWithLabels> {
+  late RangeValues _current = widget.initial;
+
+  @override
+  void didUpdateWidget(_SliderWithLabels old) {
+    super.didUpdateWidget(old);
+    // Sync when parent resets or pushes a new value (e.g. "Reset" button)
+    if (old.initial != widget.initial) _current = widget.initial;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final labelStyle = widget.theme.textTheme.labelSmall?.copyWith(
+      color: widget.cs.primary,
+      fontWeight: FontWeight.w700,
+    );
+    String fmt(double v) =>
+        '${widget.prefix}${v.toStringAsFixed(0)}${widget.suffix}';
+
+    // Determine the effective track padding by querying the active SliderTheme.
+    // Flutter places the track start/end at max(overlayRadius, thumbRadius).
+    // Material 3 suppresses the overlay (radius → 0) so only thumbRadius matters.
+    final sliderTheme = SliderTheme.of(context);
+    final overlayR =
+        (sliderTheme.overlayShape?.getPreferredSize(true, false).width ?? 48.0) /
+            2;
+    final thumbR =
+        (sliderTheme.rangeThumbShape?.getPreferredSize(true, false).width ??
+                20.0) /
+            2;
+    final thumbPad = overlayR > thumbR ? overlayR : thumbR;
+
+    return LayoutBuilder(
+      builder: (_, constraints) {
+        final trackW = constraints.maxWidth - 2 * thumbPad;
+        final span = widget.max - widget.min;
+        double thumbX(double v) =>
+            thumbPad + (v - widget.min) / span * trackW;
+
+        return Column(
+          children: [
+            SizedBox(
+              height: 18,
+              child: Stack(
+                clipBehavior: Clip.none,
+                children: [
+                  Positioned(
+                    left: thumbX(_current.start),
+                    child: FractionalTranslation(
+                      translation: const Offset(-0.5, 0),
+                      child: Text(fmt(_current.start), style: labelStyle),
+                    ),
+                  ),
+                  Positioned(
+                    left: thumbX(_current.end),
+                    child: FractionalTranslation(
+                      translation: const Offset(-0.5, 0),
+                      child: Text(fmt(_current.end), style: labelStyle),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            RangeSlider(
+              values: _current,
+              min: widget.min,
+              max: widget.max,
+              divisions: widget.divisions,
+              onChanged: (v) {
+                setState(() => _current = v);
+                widget.onChanged(v);
+              },
+            ),
+          ],
+        );
+      },
+    );
+  }
+}
+
+class _SpecChip extends StatelessWidget {
+  final String label;
+  final bool selected;
+  final VoidCallback onTap;
+  final ThemeData theme;
+  final ColorScheme cs;
+
+  const _SpecChip({
+    required this.label,
+    required this.selected,
+    required this.onTap,
+    required this.theme,
+    required this.cs,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(999),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+        decoration: BoxDecoration(
+          color: selected
+              ? cs.primary
+              : cs.surfaceContainerHighest.withValues(alpha: 0.65),
+          borderRadius: BorderRadius.circular(999),
+          border: Border.all(
+            color: cs.outlineVariant.withValues(alpha: 0.35),
+          ),
+        ),
+        child: Text(
+          label,
+          style: theme.textTheme.bodyMedium?.copyWith(
+            color: selected ? cs.onPrimary : cs.onSurface,
+            fontWeight: FontWeight.w800,
+          ),
         ),
       ),
     );
