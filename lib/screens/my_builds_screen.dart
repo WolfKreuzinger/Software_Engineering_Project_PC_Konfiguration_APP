@@ -354,6 +354,7 @@ class _ShareBuildSheetState extends State<_ShareBuildSheet> {
   String? _shareUrl;
   bool _isGenerating = false;
   String? _error;
+  int _genSeq = 0;
 
   @override
   void initState() {
@@ -362,20 +363,26 @@ class _ShareBuildSheetState extends State<_ShareBuildSheet> {
   }
 
   Future<void> _generateLink() async {
+    final seq = ++_genSeq;
+    final readOnly = _readOnly; // capture before any await
     setState(() {
       _isGenerating = true;
-      _shareUrl = null;
       _error = null;
+      // Keep _shareUrl as-is so the UI doesn't flicker while regenerating.
     });
     try {
       final url = await widget.repo.publishBuild(
         widget.build,
-        readOnly: _readOnly,
-        senderName: _readOnly ? widget.senderName : null,
+        readOnly: readOnly,
+        senderName: readOnly ? widget.senderName : null,
       );
-      if (mounted) setState(() { _shareUrl = url; _isGenerating = false; });
+      if (mounted && seq == _genSeq) {
+        setState(() { _shareUrl = url; _isGenerating = false; });
+      }
     } catch (e) {
-      if (mounted) setState(() { _isGenerating = false; _error = e.toString(); });
+      if (mounted && seq == _genSeq) {
+        setState(() { _isGenerating = false; _error = e.toString(); });
+      }
     }
   }
 
@@ -542,7 +549,7 @@ class _ShareBuildSheetState extends State<_ShareBuildSheet> {
               child: Row(
                 children: [
                   Expanded(
-                    child: _isGenerating
+                    child: _isGenerating && _shareUrl == null
                         ? Row(
                             children: [
                               SizedBox(
@@ -562,7 +569,7 @@ class _ShareBuildSheetState extends State<_ShareBuildSheet> {
                               ),
                             ],
                           )
-                        : _error != null
+                        : _error != null && _shareUrl == null
                             ? Text(
                                 'Fehler beim Generieren',
                                 style: theme.textTheme.bodySmall?.copyWith(
@@ -573,7 +580,9 @@ class _ShareBuildSheetState extends State<_ShareBuildSheet> {
                                 shareUrl,
                                 overflow: TextOverflow.ellipsis,
                                 style: theme.textTheme.bodySmall?.copyWith(
-                                  color: theme.colorScheme.primary,
+                                  color: _isGenerating
+                                      ? theme.colorScheme.primary.withValues(alpha: 0.45)
+                                      : theme.colorScheme.primary,
                                 ),
                               ),
                   ),
