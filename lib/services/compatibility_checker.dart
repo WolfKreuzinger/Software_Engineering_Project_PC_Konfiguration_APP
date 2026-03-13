@@ -1,5 +1,5 @@
 import '../screens/parts_screen.dart';
-
+//enemenemiste
 enum CompatIssueLevel { ok, warning, error }
 
 class CompatIssue {
