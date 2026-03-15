@@ -37,7 +37,7 @@ class BottomNav extends StatelessWidget {
     final items = _items(context);
 
     final bottomInset = MediaQuery.of(context).padding.bottom;
-    final bottomPadding = (bottomInset - 20).clamp(0.0, double.infinity);
+    final bottomPadding = bottomInset + 12;
 
     return SafeArea(
       top: false,
@@ -49,13 +49,6 @@ class BottomNav extends StatelessWidget {
             color: theme.colorScheme.surface.withValues(alpha: 0.92),
             borderRadius: BorderRadius.circular(18),
             border: Border.all(color: theme.colorScheme.outlineVariant),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withValues(alpha: 0.10),
-                blurRadius: 24,
-                offset: const Offset(0, 12),
-              ),
-            ],
           ),
           child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
