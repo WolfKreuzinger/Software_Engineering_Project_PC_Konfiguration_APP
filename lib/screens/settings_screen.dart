@@ -24,6 +24,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     final authed = _isAuthed(user);
 
     return ListView(
+      physics: const NeverScrollableScrollPhysics(),
       padding: const EdgeInsets.fromLTRB(16, 16, 16, 120),
       children: [
         // ── Profil ──────────────────────────────────────────────────────
