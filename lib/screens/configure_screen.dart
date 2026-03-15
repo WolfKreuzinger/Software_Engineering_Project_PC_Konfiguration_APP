@@ -1342,6 +1342,12 @@ class _SelectedPartCard extends StatelessWidget {
                     ),
                   ],
                 ),
+                if (entry.part.missingDataFields.isNotEmpty) ...[
+                  const SizedBox(height: 8),
+                  _IncompleteDataWarning(
+                    missingFields: entry.part.missingDataFields,
+                  ),
+                ],
               ],
               // ── Hinzufügen (multi-select only) ───────────────────────────────
               if (!readOnly && isMultiSelect && onAdd != null) ...[
@@ -1363,6 +1369,47 @@ class _SelectedPartCard extends StatelessWidget {
             ],
           ],
         ),
+      ),
+    );
+  }
+}
+
+// ── Incomplete data warning ────────────────────────────────────────────────────
+
+class _IncompleteDataWarning extends StatelessWidget {
+  const _IncompleteDataWarning({required this.missingFields});
+
+  final List<String> missingFields;
+
+  @override
+  Widget build(BuildContext context) {
+    const bg = Color(0xFFFFE082); // amber 200
+    const fg = Color(0xFFE65100); // deep-orange 900
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
+      decoration: BoxDecoration(
+        color: bg,
+        borderRadius: BorderRadius.circular(10),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Icon(Icons.warning_amber_rounded, size: 15, color: fg),
+          const SizedBox(width: 6),
+          Expanded(
+            child: Text(
+              'Unvollständige Daten: ${missingFields.join(', ')}',
+              style: const TextStyle(
+                color: fg,
+                fontSize: 12,
+                fontWeight: FontWeight.w700,
+                height: 1.3,
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
