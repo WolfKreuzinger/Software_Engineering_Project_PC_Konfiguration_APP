@@ -2929,6 +2929,73 @@ class _SpecSection extends StatelessWidget {
 /// Pill-shaped selectable chip used in spec-filter rows.
 // ── Slider with always-visible value labels above each thumb ─────────────────
 
+/// Custom thumb shape that also paints the value label directly above the
+/// thumb.  Flutter passes the exact thumb centre to [paint], so the label
+/// is always perfectly in sync — no external geometry calculation needed.
+class _ThumbWithLabel extends RangeSliderThumbShape {
+  final String startLabel;
+  final String endLabel;
+  final TextStyle? labelStyle;
+
+  static const double _r = 10.0; // thumb radius, matches M2/M3 default
+  static const double _gap = 4.0;
+
+  const _ThumbWithLabel({
+    required this.startLabel,
+    required this.endLabel,
+    required this.labelStyle,
+  });
+
+  @override
+  Size getPreferredSize(bool isEnabled, bool isDiscrete) =>
+      Size.fromRadius(_r);
+
+  @override
+  void paint(
+    PaintingContext context,
+    Offset center, {
+    required Animation<double> activationAnimation,
+    required Animation<double> enableAnimation,
+    bool isDiscrete = false,
+    bool isEnabled = false,
+    bool isOnTop = false,
+    bool isPressed = false,
+    TextDirection textDirection = TextDirection.ltr,
+    required SliderThemeData sliderTheme,
+    Thumb thumb = Thumb.start,
+    double value = 0,
+  }) {
+    // Delegate to Flutter's default thumb so theme colours / shadows are kept.
+    const RoundRangeSliderThumbShape(enabledThumbRadius: _r).paint(
+      context,
+      center,
+      activationAnimation: activationAnimation,
+      enableAnimation: enableAnimation,
+      isDiscrete: isDiscrete,
+      isEnabled: isEnabled,
+      isOnTop: isOnTop,
+      isPressed: isPressed,
+      textDirection: textDirection,
+      sliderTheme: sliderTheme,
+      thumb: thumb,
+    );
+
+    // Paint value label centred above the thumb.
+    final label = thumb == Thumb.start ? startLabel : endLabel;
+    final tp = TextPainter(
+      text: TextSpan(text: label, style: labelStyle),
+      textDirection: TextDirection.ltr,
+    )..layout();
+    tp.paint(
+      context.canvas,
+      Offset(
+        center.dx - tp.width / 2,
+        center.dy - _r - _gap - tp.height,
+      ),
+    );
+  }
+}
+
 class _SliderWithLabels extends StatefulWidget {
   final RangeValues initial;
   final double min;
@@ -2975,63 +3042,31 @@ class _SliderWithLabelsState extends State<_SliderWithLabels> {
     String fmt(double v) =>
         '${widget.prefix}${v.toStringAsFixed(0)}${widget.suffix}';
 
-    // Determine the effective track padding by querying the active SliderTheme.
-    // Flutter places the track start/end at max(overlayRadius, thumbRadius).
-    // Material 3 suppresses the overlay (radius → 0) so only thumbRadius matters.
-    final sliderTheme = SliderTheme.of(context);
-    final overlayR =
-        (sliderTheme.overlayShape?.getPreferredSize(true, false).width ?? 48.0) /
-            2;
-    final thumbR =
-        (sliderTheme.rangeThumbShape?.getPreferredSize(true, false).width ??
-                20.0) /
-            2;
-    final thumbPad = overlayR > thumbR ? overlayR : thumbR;
-
-    return LayoutBuilder(
-      builder: (_, constraints) {
-        final trackW = constraints.maxWidth - 2 * thumbPad;
-        final span = widget.max - widget.min;
-        double thumbX(double v) =>
-            thumbPad + (v - widget.min) / span * trackW;
-
-        return Column(
-          children: [
-            SizedBox(
-              height: 18,
-              child: Stack(
-                clipBehavior: Clip.none,
-                children: [
-                  Positioned(
-                    left: thumbX(_current.start),
-                    child: FractionalTranslation(
-                      translation: const Offset(-0.5, 0),
-                      child: Text(fmt(_current.start), style: labelStyle),
-                    ),
-                  ),
-                  Positioned(
-                    left: thumbX(_current.end),
-                    child: FractionalTranslation(
-                      translation: const Offset(-0.5, 0),
-                      child: Text(fmt(_current.end), style: labelStyle),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            RangeSlider(
-              values: _current,
-              min: widget.min,
-              max: widget.max,
-              divisions: widget.divisions,
-              onChanged: (v) {
-                setState(() => _current = v);
-                widget.onChanged(v);
-              },
-            ),
-          ],
-        );
-      },
+    // _ThumbWithLabel receives the exact thumb centre from Flutter's own
+    // rendering pipeline — labels are always in sync and always visible.
+    // The top padding reserves visual space so labels don't overlap the
+    // section heading above.
+    return Padding(
+      padding: const EdgeInsets.only(top: 20),
+      child: SliderTheme(
+        data: SliderTheme.of(context).copyWith(
+          rangeThumbShape: _ThumbWithLabel(
+            startLabel: fmt(_current.start),
+            endLabel: fmt(_current.end),
+            labelStyle: labelStyle,
+          ),
+        ),
+        child: RangeSlider(
+          values: _current,
+          min: widget.min,
+          max: widget.max,
+          divisions: widget.divisions,
+          onChanged: (v) {
+            setState(() => _current = v);
+            widget.onChanged(v);
+          },
+        ),
+      ),
     );
   }
 }
