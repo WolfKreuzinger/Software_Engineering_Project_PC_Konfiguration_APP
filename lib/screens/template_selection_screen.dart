@@ -64,7 +64,7 @@ class TemplateSelectionScreen extends StatelessWidget {
                   mainAxisSpacing: 10,
                   shrinkWrap: true,
                   physics: const NeverScrollableScrollPhysics(),
-                  childAspectRatio: 0.86,
+                  childAspectRatio: 0.87,
                   children: [
                     for (final template in buildTemplates)
                       _TemplateTile(template: template),
@@ -132,11 +132,7 @@ class _TemplateTile extends StatelessWidget {
                       color: primary.withValues(alpha: 0.12),
                       borderRadius: BorderRadius.circular(14),
                     ),
-                    child: Icon(
-                      template.icon,
-                      color: primary,
-                      size: 26,
-                    ),
+                    child: Icon(template.icon, color: primary, size: 26),
                   ),
                   const SizedBox(height: 12),
 
