@@ -14,7 +14,11 @@ class HomeScreen extends StatelessWidget {
 
     return Scaffold(
       backgroundColor: theme.colorScheme.surface,
-      body: Stack(
+      body: SingleChildScrollView(
+        physics: const NeverScrollableScrollPhysics(),
+        child: ConstrainedBox(
+          constraints: BoxConstraints(minHeight: size.height),
+          child: Stack(
             children: [
               // Background glow
               Positioned(
@@ -151,6 +155,8 @@ class HomeScreen extends StatelessWidget {
               ),
             ],
           ),
+        ),
+      ),
     );
   }
 }
