@@ -110,6 +110,8 @@ class _PartsScreenState extends State<PartsScreen> {
   // not on every scroll frame.
   List<(String, Map<String, dynamic>, _PartIndex)> _filteredParts = [];
 
+  final ScrollController _scrollCtrl = ScrollController();
+
   String _selectedType = 'All Components';
   String _selectedSort = 'Price: Low to High';
   RangeValues _priceRange = const RangeValues(0, 5000);
@@ -179,35 +181,37 @@ class _PartsScreenState extends State<PartsScreen> {
 
     final errors = <String>[];
 
-    await Future.wait(categories.map((cat) async {
-      try {
-        final snap = await db.collection(cat).limit(_kBatchSize).get();
-        for (final d in snap.docs) {
-          final data = Map<String, dynamic>.from(d.data());
-          data['_category'] = cat;
-          parts.add((d.reference.path, data));
-        }
-        if (snap.docs.isNotEmpty) {
-          _lastDocPerCategory[cat] = snap.docs.last;
-        }
-        _loadedCountPerCategory[cat] = snap.docs.length;
-
-        // Fetch total count and use it to determine if more docs exist
+    await Future.wait(
+      categories.map((cat) async {
         try {
-          final countSnap = await db.collection(cat).count().get();
-          final total = countSnap.count ?? snap.docs.length;
-          _countPerCategory[cat] = total;
-          _hasMorePerCategory[cat] = snap.docs.length < total;
-        } catch (_) {
-          _countPerCategory[cat] = snap.docs.length;
-          _hasMorePerCategory[cat] = snap.docs.length >= _kBatchSize;
+          final snap = await db.collection(cat).limit(_kBatchSize).get();
+          for (final d in snap.docs) {
+            final data = Map<String, dynamic>.from(d.data());
+            data['_category'] = cat;
+            parts.add((d.reference.path, data));
+          }
+          if (snap.docs.isNotEmpty) {
+            _lastDocPerCategory[cat] = snap.docs.last;
+          }
+          _loadedCountPerCategory[cat] = snap.docs.length;
+
+          // Fetch total count and use it to determine if more docs exist
+          try {
+            final countSnap = await db.collection(cat).count().get();
+            final total = countSnap.count ?? snap.docs.length;
+            _countPerCategory[cat] = total;
+            _hasMorePerCategory[cat] = snap.docs.length < total;
+          } catch (_) {
+            _countPerCategory[cat] = snap.docs.length;
+            _hasMorePerCategory[cat] = snap.docs.length >= _kBatchSize;
+          }
+        } catch (e) {
+          errors.add('$cat: $e');
+          // ignore: avoid_print
+          print('[_loadParts] error loading $cat: $e');
         }
-      } catch (e) {
-        errors.add('$cat: $e');
-        // ignore: avoid_print
-        print('[_loadParts] error loading $cat: $e');
-      }
-    }));
+      }),
+    );
 
     if (!mounted) return;
     setState(() {
@@ -218,50 +222,78 @@ class _PartsScreenState extends State<PartsScreen> {
     });
   }
 
-  /// Load the next batch from Firestore for categories that still have more docs.
-  Future<void> _loadMoreFromDb() async {
-    if (_isLoadingMore || !mounted) return;
-    setState(() => _isLoadingMore = true);
-
+  /// Fetches the next batch for all categories that still have more docs.
+  /// Pure data operation — no setState, no loading-flag management.
+  /// Returns the newly loaded parts.
+  Future<List<(String, Map<String, dynamic>)>> _fetchNextBatch() async {
     final db = FirebaseFirestore.instance;
     final newParts = <(String, Map<String, dynamic>)>[];
-
-    final categoriesToLoad = _hasMorePerCategory.entries
+    final cats = _hasMorePerCategory.entries
         .where((e) => e.value)
         .map((e) => e.key)
         .toList();
 
-    await Future.wait(categoriesToLoad.map((cat) async {
+    await Future.wait(cats.map((cat) async {
       try {
         final lastDoc = _lastDocPerCategory[cat];
         Query<Map<String, dynamic>> query =
             db.collection(cat).limit(_kBatchSize);
-        if (lastDoc != null) {
-          query = query.startAfterDocument(lastDoc);
-        }
+        if (lastDoc != null) query = query.startAfterDocument(lastDoc);
         final snap = await query.get();
         for (final d in snap.docs) {
           final data = Map<String, dynamic>.from(d.data());
           data['_category'] = cat;
           newParts.add((d.reference.path, data));
         }
-        if (snap.docs.isNotEmpty) {
-          _lastDocPerCategory[cat] = snap.docs.last;
-        }
-        final loaded =
-            (_loadedCountPerCategory[cat] ?? 0) + snap.docs.length;
+        if (snap.docs.isNotEmpty) _lastDocPerCategory[cat] = snap.docs.last;
+        final loaded = (_loadedCountPerCategory[cat] ?? 0) + snap.docs.length;
         _loadedCountPerCategory[cat] = loaded;
-        _hasMorePerCategory[cat] =
-            loaded < (_countPerCategory[cat] ?? loaded);
+        _hasMorePerCategory[cat] = loaded < (_countPerCategory[cat] ?? loaded);
       } catch (e) {
         // ignore: avoid_print
-        print('[_loadMoreFromDb] error loading $cat: $e');
+        print('[_fetchNextBatch] $cat: $e');
+        _hasMorePerCategory[cat] = false; // prevent infinite loop
       }
     }));
 
+    return newParts;
+  }
+
+  /// Loads the next single batch (used by the "Load More" button).
+  Future<void> _loadMoreFromDb() async {
+    if (_isLoadingMore || !mounted) return;
+    setState(() => _isLoadingMore = true);
+    final newParts = await _fetchNextBatch();
     if (!mounted) return;
     setState(() {
       _allParts = [..._allParts, ...newParts];
+      _isLoadingMore = false;
+      _recomputeFiltered();
+    });
+  }
+
+  /// Loads ALL remaining data from Firestore in batches, then recomputes.
+  /// Shows a full loading state so the user never sees a partially-sorted list.
+  Future<void> _loadAllFromDb() async {
+    if (_isLoadingMore || !mounted) return;
+    final hasMore = _hasMorePerCategory.values.any((v) => v);
+    // If everything is already loaded, just sort what we have.
+    if (!hasMore) {
+      setState(() => _recomputeFiltered());
+      return;
+    }
+    setState(() {
+      _isLoading = true;
+      _isLoadingMore = true;
+    });
+    final allNew = <(String, Map<String, dynamic>)>[];
+    while (mounted && _hasMorePerCategory.values.any((v) => v)) {
+      allNew.addAll(await _fetchNextBatch());
+    }
+    if (!mounted) return;
+    setState(() {
+      _allParts = [..._allParts, ...allNew];
+      _isLoading = false;
       _isLoadingMore = false;
       _recomputeFiltered();
     });
@@ -275,6 +307,12 @@ class _PartsScreenState extends State<PartsScreen> {
     } else if (_hasMorePerCategory.values.any((v) => v)) {
       await _loadMoreFromDb();
       if (mounted) setState(() => _displayedCount += _kBatchSize);
+    }
+  }
+
+  void _scrollToTop() {
+    if (_scrollCtrl.hasClients) {
+      _scrollCtrl.jumpTo(0);
     }
   }
 
@@ -295,6 +333,7 @@ class _PartsScreenState extends State<PartsScreen> {
   @override
   void dispose() {
     _searchCtrl.dispose();
+    _scrollCtrl.dispose();
     super.dispose();
   }
 
@@ -306,6 +345,7 @@ class _PartsScreenState extends State<PartsScreen> {
       _displayedCount = _kBatchSize;
       _recomputeFiltered();
     });
+    _scrollToTop();
   }
 
   static String _normType(String s) {
@@ -651,13 +691,13 @@ class _PartsScreenState extends State<PartsScreen> {
         if (filterText.isEmpty) continue;
         final sp = data['spec'];
         dynamic f(String k) => (sp is Map ? sp[k] : null) ?? data[k];
-        final bdRead  = f('bd');
+        final bdRead = f('bd');
         final bdWrite = f('bd_write');
         final pass = switch (filterText) {
-          'CD/DVD Drive'   => bdRead == null && bdWrite == null,
+          'CD/DVD Drive' => bdRead == null && bdWrite == null,
           'Blu-ray Reader' => bdRead != null && bdWrite == null,
           'Blu-ray Writer' => bdWrite != null,
-          _                => true,
+          _ => true,
         };
         if (!pass) return false;
         continue;
@@ -677,8 +717,7 @@ class _PartsScreenState extends State<PartsScreen> {
         }
         // List field without explicit listIndex (e.g. cpu-cooler rpm = [min, max])
         if (rawVal is List) {
-          final vals =
-              rawVal.map(_toDouble).where((v) => !v.isNaN).toList();
+          final vals = rawVal.map(_toDouble).where((v) => !v.isNaN).toList();
           if (vals.isNotEmpty) {
             final listMin = vals.reduce((a, b) => a < b ? a : b);
             final listMax = vals.reduce((a, b) => a > b ? a : b);
@@ -834,11 +873,15 @@ class _PartsScreenState extends State<PartsScreen> {
                                   // Use the pre-computed cache — free during build
                                   count = _filteredParts.length;
                                 } else if (_selectedType == 'All Components') {
-                                  count = _countPerCategory.values
-                                      .fold(0, (a, b) => a + b);
+                                  count = _countPerCategory.values.fold(
+                                    0,
+                                    (a, b) => a + b,
+                                  );
                                 } else {
-                                  count = _countPerCategory[
-                                          _canonicalType(_selectedType)] ??
+                                  count =
+                                      _countPerCategory[_canonicalType(
+                                        _selectedType,
+                                      )] ??
                                       0;
                                 }
                                 return Text(
@@ -867,14 +910,17 @@ class _PartsScreenState extends State<PartsScreen> {
                                 selectedSort: _selectedSort,
                                 priceRange: _priceRange,
                                 onApply: (t, sort, range) {
+                                  final sortChanged = sort != _selectedSort;
                                   setState(() {
                                     _selectedType = t;
                                     _selectedSort = sort;
                                     _priceRange = range;
                                     _displayedCount = _kBatchSize;
-                                    _recomputeFiltered();
+                                    if (!sortChanged) _recomputeFiltered();
                                   });
+                                  _scrollToTop();
                                   Navigator.of(context).pop();
+                                  if (sortChanged) _loadAllFromDb();
                                 },
                                 theme: theme,
                               ),
@@ -925,6 +971,7 @@ class _PartsScreenState extends State<PartsScreen> {
                                         _displayedCount = _kBatchSize;
                                         _recomputeFiltered();
                                       });
+                                      _scrollToTop();
                                       Navigator.of(context).pop();
                                     },
                                     theme: theme,
@@ -956,6 +1003,7 @@ class _PartsScreenState extends State<PartsScreen> {
                                         _displayedCount = _kBatchSize;
                                         _recomputeFiltered();
                                       });
+                                      _scrollToTop();
                                       Navigator.of(context).pop();
                                     },
                                     theme: theme,
@@ -981,13 +1029,16 @@ class _PartsScreenState extends State<PartsScreen> {
                                   selectedSort: _selectedSort,
                                   priceRange: _priceRange,
                                   onApply: (sort, range) {
+                                    final sortChanged = sort != _selectedSort;
                                     setState(() {
                                       _selectedSort = sort;
                                       _priceRange = range;
                                       _displayedCount = _kBatchSize;
-                                      _recomputeFiltered();
+                                      if (!sortChanged) _recomputeFiltered();
                                     });
+                                    _scrollToTop();
                                     Navigator.of(context).pop();
+                                    if (sortChanged) _loadAllFromDb();
                                   },
                                   theme: theme,
                                 ),
@@ -1062,10 +1113,12 @@ class _PartsScreenState extends State<PartsScreen> {
     final displayList = filtered.take(_displayedCount).toList();
     // Only show "Load More" if the filtered result set is at least as large as
     // one full batch – if fewer items matched, all results are already visible.
-    final showLoadMore = totalFiltered >= _kBatchSize &&
+    final showLoadMore =
+        totalFiltered >= _kBatchSize &&
         (_displayedCount < totalFiltered || hasMoreInDb);
 
     return ListView.separated(
+      controller: _scrollCtrl,
       padding: const EdgeInsets.fromLTRB(16, 2, 16, 16),
       itemCount: displayList.length + (showLoadMore ? 1 : 0),
       separatorBuilder: (_, _) => const SizedBox(height: 12),
@@ -2009,23 +2062,23 @@ class _ActiveFilter {
 }
 
 enum _SpecWidgetType {
-  rangeSlider,   // Continuous range – RangeSlider
-  minMaxInput,   // Two text fields for min / max (numeric, free entry)
-  minChips,      // Discrete minimum value – chips with "≥ X" semantics
-  exactChips,    // Discrete exact value – chips (numeric)
-  textChips,     // Exact string value – chips
-  textDropdown,  // Exact string value – dropdown (many options)
+  rangeSlider, // Continuous range – RangeSlider
+  minMaxInput, // Two text fields for min / max (numeric, free entry)
+  minChips, // Discrete minimum value – chips with "≥ X" semantics
+  exactChips, // Discrete exact value – chips (numeric)
+  textChips, // Exact string value – chips
+  textDropdown, // Exact string value – dropdown (many options)
 }
 
 enum _FilterMode {
-  normal,     // Standard matching against dataKey field
-  driveType,  // Multi-field: CD/DVD / Blu-ray Reader / Blu-ray Writer
-  nonNull,    // Passes only when dataKey field is non-null (e.g. "Writable")
+  normal, // Standard matching against dataKey field
+  driveType, // Multi-field: CD/DVD / Blu-ray Reader / Blu-ray Writer
+  nonNull, // Passes only when dataKey field is non-null (e.g. "Writable")
 }
 
 class _SpecDef {
-  final String specKey;        // camelCase key; also used as filter-map key
-  final String dataKey;        // snake_case key in the raw data / Firestore doc
+  final String specKey; // camelCase key; also used as filter-map key
+  final String dataKey; // snake_case key in the raw data / Firestore doc
   final String label;
   final double min;
   final double max;
@@ -2214,7 +2267,14 @@ const Map<String, List<_SpecDef>> _typeSpecDefs = {
       unit: 'GB',
       widgetType: _SpecWidgetType.minChips,
       chips: [128, 256, 512, 1000, 2000, 4000],
-      chipLabelOverrides: ['128 GB+', '256 GB+', '512 GB+', '1 TB+', '2 TB+', '4 TB+'],
+      chipLabelOverrides: [
+        '128 GB+',
+        '256 GB+',
+        '512 GB+',
+        '1 TB+',
+        '2 TB+',
+        '4 TB+',
+      ],
     ),
     _SpecDef(
       specKey: 'cache',
@@ -2252,8 +2312,15 @@ const Map<String, List<_SpecDef>> _typeSpecDefs = {
       label: 'Socket',
       widgetType: _SpecWidgetType.textDropdown,
       textOptions: [
-        'AM4', 'AM5', 'LGA1700', 'LGA1200', 'LGA1151',
-        'LGA1155', 'TR4', 'sTRX4', 'LGA2066',
+        'AM4',
+        'AM5',
+        'LGA1700',
+        'LGA1200',
+        'LGA1151',
+        'LGA1155',
+        'TR4',
+        'sTRX4',
+        'LGA2066',
       ],
     ),
     _SpecDef(
@@ -2411,14 +2478,28 @@ const Map<String, List<_SpecDef>> _typeSpecDefs = {
       unit: 'GB',
       widgetType: _SpecWidgetType.minChips,
       chips: [128, 256, 512, 1000, 2000, 4000],
-      chipLabelOverrides: ['128 GB+', '256 GB+', '512 GB+', '1 TB+', '2 TB+', '4 TB+'],
+      chipLabelOverrides: [
+        '128 GB+',
+        '256 GB+',
+        '512 GB+',
+        '1 TB+',
+        '2 TB+',
+        '4 TB+',
+      ],
     ),
     _SpecDef(
       specKey: 'interface',
       dataKey: 'interface',
       label: 'Interface',
       widgetType: _SpecWidgetType.textChips,
-      textOptions: ['USB 3.0', 'USB 3.1', 'USB 3.2', 'USB-C', 'Thunderbolt 3', 'Thunderbolt 4'],
+      textOptions: [
+        'USB 3.0',
+        'USB 3.1',
+        'USB 3.2',
+        'USB-C',
+        'Thunderbolt 3',
+        'Thunderbolt 4',
+      ],
     ),
   ],
 
@@ -2750,8 +2831,12 @@ class _SpecsSheetState extends State<_SpecsSheet> {
 
   @override
   void dispose() {
-    for (final c in _minCtrls.values) c.dispose();
-    for (final c in _maxCtrls.values) c.dispose();
+    for (final c in _minCtrls.values) {
+      c.dispose();
+    }
+    for (final c in _maxCtrls.values) {
+      c.dispose();
+    }
     super.dispose();
   }
 
@@ -2793,10 +2878,10 @@ class _SpecsSheetState extends State<_SpecsSheet> {
               } else if (def.widgetType == _SpecWidgetType.minChips) {
                 // v == 0 means "exactly zero" (e.g. no cache), not "≥0 = everything"
                 _filters[def.specKey] = _ActiveFilter.range(
-                    v == 0 ? const RangeValues(0, 0) : RangeValues(v, def.max));
+                  v == 0 ? const RangeValues(0, 0) : RangeValues(v, def.max),
+                );
               } else {
-                _filters[def.specKey] =
-                    _ActiveFilter.range(RangeValues(v, v));
+                _filters[def.specKey] = _ActiveFilter.range(RangeValues(v, v));
               }
             }),
           );
@@ -2865,7 +2950,9 @@ class _SpecsSheetState extends State<_SpecsSheet> {
           isExpanded: true,
           underline: const SizedBox.shrink(),
           dropdownColor: cs.surface,
-          iconEnabledColor: isActive ? cs.onPrimaryContainer : cs.onSurfaceVariant,
+          iconEnabledColor: isActive
+              ? cs.onPrimaryContainer
+              : cs.onSurfaceVariant,
           items: [
             DropdownMenuItem<String>(
               value: '',
@@ -2939,8 +3026,11 @@ class _SpecsSheetState extends State<_SpecsSheet> {
       }
       final start = minVal ?? def.min;
       final end = maxVal ?? def.max;
-      setState(() => _filters[def.specKey] =
-          _ActiveFilter.range(RangeValues(start < end ? start : end, end > start ? end : start)));
+      setState(
+        () => _filters[def.specKey] = _ActiveFilter.range(
+          RangeValues(start < end ? start : end, end > start ? end : start),
+        ),
+      );
     }
 
     return _SpecSection(
@@ -2952,7 +3042,9 @@ class _SpecsSheetState extends State<_SpecsSheet> {
           Expanded(
             child: TextField(
               controller: minCtrl,
-              keyboardType: const TextInputType.numberWithOptions(decimal: true),
+              keyboardType: const TextInputType.numberWithOptions(
+                decimal: true,
+              ),
               decoration: InputDecoration(
                 labelText: 'Min$unitStr',
                 border: const OutlineInputBorder(),
@@ -2966,7 +3058,9 @@ class _SpecsSheetState extends State<_SpecsSheet> {
           Expanded(
             child: TextField(
               controller: maxCtrl,
-              keyboardType: const TextInputType.numberWithOptions(decimal: true),
+              keyboardType: const TextInputType.numberWithOptions(
+                decimal: true,
+              ),
               decoration: InputDecoration(
                 labelText: 'Max$unitStr',
                 border: const OutlineInputBorder(),
@@ -3013,19 +3107,28 @@ class _SpecsSheetState extends State<_SpecsSheet> {
               ],
             ),
             const SizedBox(height: 12),
-            ...defs.map((def) => switch (def.widgetType) {
-                  _SpecWidgetType.rangeSlider =>
-                    _buildRangeSlider(def, cs, theme),
-                  _SpecWidgetType.minChips ||
-                  _SpecWidgetType.exactChips =>
-                    _buildNumericChips(def, cs, theme),
-                  _SpecWidgetType.textChips =>
-                    _buildTextChips(def, cs, theme),
-                  _SpecWidgetType.textDropdown =>
-                    _buildTextDropdown(def, cs, theme),
-                  _SpecWidgetType.minMaxInput =>
-                    _buildMinMaxInput(def, cs, theme),
-                }),
+            ...defs.map(
+              (def) => switch (def.widgetType) {
+                _SpecWidgetType.rangeSlider => _buildRangeSlider(
+                  def,
+                  cs,
+                  theme,
+                ),
+                _SpecWidgetType.minChips || _SpecWidgetType.exactChips =>
+                  _buildNumericChips(def, cs, theme),
+                _SpecWidgetType.textChips => _buildTextChips(def, cs, theme),
+                _SpecWidgetType.textDropdown => _buildTextDropdown(
+                  def,
+                  cs,
+                  theme,
+                ),
+                _SpecWidgetType.minMaxInput => _buildMinMaxInput(
+                  def,
+                  cs,
+                  theme,
+                ),
+              },
+            ),
             const SizedBox(height: 8),
             SizedBox(
               width: double.infinity,
@@ -3105,8 +3208,7 @@ class _ThumbWithLabel extends RangeSliderThumbShape {
   });
 
   @override
-  Size getPreferredSize(bool isEnabled, bool isDiscrete) =>
-      Size.fromRadius(_r);
+  Size getPreferredSize(bool isEnabled, bool isDiscrete) => Size.fromRadius(_r);
 
   @override
   void paint(
@@ -3146,10 +3248,7 @@ class _ThumbWithLabel extends RangeSliderThumbShape {
     )..layout();
     tp.paint(
       context.canvas,
-      Offset(
-        center.dx - tp.width / 2,
-        center.dy - _r - _gap - tp.height,
-      ),
+      Offset(center.dx - tp.width / 2, center.dy - _r - _gap - tp.height),
     );
   }
 }
@@ -3256,9 +3355,7 @@ class _SpecChip extends StatelessWidget {
               ? cs.primary
               : cs.surfaceContainerHighest.withValues(alpha: 0.65),
           borderRadius: BorderRadius.circular(999),
-          border: Border.all(
-            color: cs.outlineVariant.withValues(alpha: 0.35),
-          ),
+          border: Border.all(color: cs.outlineVariant.withValues(alpha: 0.35)),
         ),
         child: Text(
           label,
