@@ -64,6 +64,63 @@ class PartSelection {
   final String subtitle;
   final double? price;
   final Map<String, dynamic> rawData;
+
+  /// Returns human-readable labels for critical fields that are missing.
+  /// Empty list = data is complete.
+  List<String> get missingDataFields =>
+      _partMissingDataFields(type, rawData, price);
+}
+
+/// Returns human-readable labels of missing critical fields for a part.
+List<String> _partMissingDataFields(
+  String type,
+  Map<String, dynamic> rawData,
+  double? price,
+) {
+  final missing = <String>[];
+  if (price == null) missing.add('Preis');
+
+  final spec = rawData['spec'];
+
+  // Look up a value by camelCase key in spec map, snake_case in both,
+  // or top-level in rawData.
+  dynamic v(String camel, String snake) {
+    if (spec is Map) {
+      final sv = spec[camel] ?? spec[snake];
+      if (sv != null) return sv;
+    }
+    return rawData[snake] ?? rawData[camel];
+  }
+
+  bool empty(dynamic val) {
+    if (val == null) return true;
+    if (val is String) return val.trim().isEmpty || val == 'null';
+    if (val is List) return val.isEmpty;
+    return false;
+  }
+
+  switch (type) {
+    case 'cpu':
+      if (empty(v('tdp', 'tdp'))) missing.add('TDP');
+      if (empty(v('socket', 'socket'))) missing.add('Sockel');
+      if (empty(v('coreCount', 'core_count'))) missing.add('Kernanzahl');
+    case 'video-card':
+      if (empty(v('chipset', 'chipset'))) missing.add('Chipsatz');
+      if (empty(v('memory', 'memory'))) missing.add('VRAM');
+    case 'memory':
+      if (empty(v('speed', 'speed'))) missing.add('Geschwindigkeit');
+      if (empty(v('modules', 'modules'))) missing.add('Module');
+    case 'internal-hard-drive':
+      if (empty(v('capacityGb', 'capacity'))) missing.add('Kapazität');
+      if (empty(v('interface', 'interface'))) missing.add('Schnittstelle');
+    case 'motherboard':
+      if (empty(v('socket', 'socket'))) missing.add('Sockel');
+      if (empty(v('formFactor', 'form_factor'))) missing.add('Formfaktor');
+      if (empty(v('memorySlots', 'memory_slots'))) missing.add('RAM-Slots');
+    case 'power-supply':
+      if (empty(v('wattage', 'wattage'))) missing.add('Leistung');
+  }
+  return missing;
 }
 
 class PartsScreen extends StatefulWidget {
@@ -116,6 +173,7 @@ class _PartsScreenState extends State<PartsScreen> {
   String _selectedSort = 'Price: Low to High';
   RangeValues _priceRange = const RangeValues(0, 5000);
   Map<String, _ActiveFilter> _specFilters = {};
+  bool _hideIncomplete = false;
 
   static const _types = <String>[
     'All Components',
@@ -1042,7 +1100,8 @@ class _PartsScreenState extends State<PartsScreen> {
                             selected:
                                 _selectedSort != _sorts[0] ||
                                 _priceRange.start > 0 ||
-                                _priceRange.end < 5000,
+                                _priceRange.end < 5000 ||
+                                _hideIncomplete,
                             onTap: () {
                               showModalBottomSheet(
                                 context: context,
@@ -2701,13 +2760,15 @@ class _SortSheet extends StatefulWidget {
   final List<String> sorts;
   final String selectedSort;
   final RangeValues priceRange;
-  final void Function(String sort, RangeValues range) onApply;
+  final bool hideIncomplete;
+  final void Function(String sort, RangeValues range, bool hideIncomplete) onApply;
   final ThemeData theme;
 
   const _SortSheet({
     required this.sorts,
     required this.selectedSort,
     required this.priceRange,
+    required this.hideIncomplete,
     required this.onApply,
     required this.theme,
   });
@@ -2719,6 +2780,7 @@ class _SortSheet extends StatefulWidget {
 class _SortSheetState extends State<_SortSheet> {
   late String _sort = widget.selectedSort;
   late RangeValues _range = widget.priceRange;
+  late bool _hideIncomplete = widget.hideIncomplete;
 
   @override
   Widget build(BuildContext context) {
@@ -2799,12 +2861,42 @@ class _SortSheetState extends State<_SortSheet> {
               cs: cs,
               onChanged: (v) => setState(() => _range = v),
             ),
-            const SizedBox(height: 8),
+            const SizedBox(height: 16),
+            Row(
+              children: [
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Unvollständige ausblenden',
+                        style: theme.textTheme.labelLarge?.copyWith(
+                          fontWeight: FontWeight.w800,
+                          color: cs.onSurfaceVariant,
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        'Teile ohne wichtige Spezifikationen werden ausgeblendet',
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          color: cs.onSurfaceVariant.withValues(alpha: 0.7),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                Switch(
+                  value: _hideIncomplete,
+                  onChanged: (v) => setState(() => _hideIncomplete = v),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
             SizedBox(
               width: double.infinity,
               height: 52,
               child: FilledButton(
-                onPressed: () => widget.onApply(_sort, _range),
+                onPressed: () => widget.onApply(_sort, _range, _hideIncomplete),
                 style: FilledButton.styleFrom(
                   shape: const StadiumBorder(),
                   textStyle: theme.textTheme.titleMedium?.copyWith(
