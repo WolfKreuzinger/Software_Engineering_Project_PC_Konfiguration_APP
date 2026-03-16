@@ -272,13 +272,14 @@ class _PartsScreenState extends State<PartsScreen> {
     });
   }
 
-  /// Loads ALL remaining data from Firestore in batches, then recomputes.
-  /// Shows a full loading state so the user never sees a partially-sorted list.
+  /// Loads ALL remaining data from Firestore in a single round-trip per
+  /// category (no limit), then recomputes. Much faster than looping small
+  /// batches because it avoids sequential network round-trips.
   Future<void> _loadAllFromDb() async {
     if (_isLoadingMore || !mounted) return;
-    final hasMore = _hasMorePerCategory.values.any((v) => v);
-    // If everything is already loaded, just sort what we have.
-    if (!hasMore) {
+    final cats =
+        _hasMorePerCategory.entries.where((e) => e.value).map((e) => e.key).toList();
+    if (cats.isEmpty) {
       setState(() => _recomputeFiltered());
       return;
     }
@@ -286,10 +287,33 @@ class _PartsScreenState extends State<PartsScreen> {
       _isLoading = true;
       _isLoadingMore = true;
     });
+
+    final db = FirebaseFirestore.instance;
     final allNew = <(String, Map<String, dynamic>)>[];
-    while (mounted && _hasMorePerCategory.values.any((v) => v)) {
-      allNew.addAll(await _fetchNextBatch());
-    }
+
+    // One unlimited request per category – all categories in parallel.
+    await Future.wait(cats.map((cat) async {
+      try {
+        final lastDoc = _lastDocPerCategory[cat];
+        Query<Map<String, dynamic>> query = db.collection(cat);
+        if (lastDoc != null) query = query.startAfterDocument(lastDoc);
+        final snap = await query.get();
+        for (final d in snap.docs) {
+          final data = Map<String, dynamic>.from(d.data());
+          data['_category'] = cat;
+          allNew.add((d.reference.path, data));
+        }
+        if (snap.docs.isNotEmpty) _lastDocPerCategory[cat] = snap.docs.last;
+        final loaded = (_loadedCountPerCategory[cat] ?? 0) + snap.docs.length;
+        _loadedCountPerCategory[cat] = loaded;
+        _hasMorePerCategory[cat] = false;
+      } catch (e) {
+        // ignore: avoid_print
+        print('[_loadAllFromDb] $cat: $e');
+        _hasMorePerCategory[cat] = false;
+      }
+    }));
+
     if (!mounted) return;
     setState(() {
       _allParts = [..._allParts, ...allNew];
@@ -1091,16 +1115,27 @@ class _PartsScreenState extends State<PartsScreen> {
     final filtered = _filteredParts;
     final hasMoreInDb = _hasMorePerCategory.values.any((v) => v);
 
-    if (filtered.isEmpty) {
-      if (hasMoreInDb) {
-        // Auto-fetch more until matching results are found or DB is exhausted
-        if (!_isLoadingMore) {
-          WidgetsBinding.instance.addPostFrameCallback((_) {
-            if (mounted) _loadMoreFromDb();
-          });
-        }
+    // Auto-fetch more batches when the visible result count is below a full
+    // batch and the DB still has documents. This ensures that e.g. a "16+ cores"
+    // filter immediately fills the screen instead of stopping at whatever few
+    // items happened to be in the first loaded batch.
+    final hasActiveFilters = _searchQuery.trim().isNotEmpty ||
+        _specFilters.isNotEmpty ||
+        _priceRange.start > 0 ||
+        _priceRange.end < 5000;
+    if (hasMoreInDb && hasActiveFilters && filtered.length < _kBatchSize) {
+      if (!_isLoadingMore) {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (mounted) _loadMoreFromDb();
+        });
+      }
+      // Show whatever partial results we already have while fetching more.
+      if (filtered.isEmpty) {
         return const Center(child: CircularProgressIndicator());
       }
+    }
+
+    if (filtered.isEmpty) {
       return _EmptyState(
         icon: Icons.search_off_rounded,
         title: 'No results',
@@ -1111,11 +1146,15 @@ class _PartsScreenState extends State<PartsScreen> {
 
     final totalFiltered = filtered.length;
     final displayList = filtered.take(_displayedCount).toList();
-    // Only show "Load More" if the filtered result set is at least as large as
-    // one full batch – if fewer items matched, all results are already visible.
-    final showLoadMore =
-        totalFiltered >= _kBatchSize &&
-        (_displayedCount < totalFiltered || hasMoreInDb);
+    // While auto-fetching to fill up to a full batch, suppress the Load More
+    // footer so the button/spinner doesn't flicker at the bottom of the list.
+    final isAutoFetching =
+        hasActiveFilters && hasMoreInDb && totalFiltered < _kBatchSize;
+    // Show "Load More" if there are more pages in memory OR if the DB has more
+    // documents that haven't been loaded yet (they might match the current filter).
+    final showLoadMore = !isAutoFetching &&
+        ((_displayedCount < totalFiltered && totalFiltered >= _kBatchSize) ||
+            hasMoreInDb);
 
     return ListView.separated(
       controller: _scrollCtrl,
