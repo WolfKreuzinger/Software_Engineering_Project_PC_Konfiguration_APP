@@ -50,22 +50,37 @@ class HomeScreen extends StatelessWidget {
                     Container(
                       decoration: BoxDecoration(
                         shape: BoxShape.circle,
-                        boxShadow: [
-                          BoxShadow(
-                            color: theme.colorScheme.primary.withValues(
-                              alpha: isDark ? 0.35 : 0.32,
-                            ),
-                            blurRadius: 64,
-                            spreadRadius: 8,
-                          ),
-                        ],
+                        boxShadow: isDark
+                            ? [
+                                BoxShadow(
+                                  color: theme.colorScheme.primary.withValues(
+                                    alpha: 0.35,
+                                  ),
+                                  blurRadius: 64,
+                                  spreadRadius: 8,
+                                ),
+                              ]
+                            : [
+                                BoxShadow(
+                                  color: const Color(0xFF7C3AED).withValues(
+                                    alpha: 0.45,
+                                  ),
+                                  blurRadius: 80,
+                                  spreadRadius: 20,
+                                ),
+                                BoxShadow(
+                                  color: Colors.white.withValues(
+                                    alpha: 0.55,
+                                  ),
+                                  blurRadius: 100,
+                                  spreadRadius: 25,
+                                ),
+                              ],
                       ),
                       child: Image.asset(
-                        isDark
-                            ? 'assets/images/logo.png'
-                            : 'assets/images/logo_light.png',
-                        width: 200,
-                        height: 200,
+                        'assets/images/futuristic.png',
+                        width: 240,
+                        height: 240,
                         fit: BoxFit.contain,
                         errorBuilder: (_, _, _) => Icon(
                           Icons.computer_rounded,
@@ -78,13 +93,27 @@ class HomeScreen extends StatelessWidget {
                     const SizedBox(height: 20),
 
                     // ── App name ──────────────────────────────────
-                    Text(
-                      'BuildMyPC',
-                      style: theme.textTheme.displaySmall?.copyWith(
-                        fontWeight: FontWeight.w900,
-                        letterSpacing: -1.2,
-                        color: theme.colorScheme.onSurface,
-                        height: 1.0,
+                    RichText(
+                      text: TextSpan(
+                        style: theme.textTheme.displaySmall?.copyWith(
+                          fontWeight: FontWeight.w900,
+                          letterSpacing: -1.2,
+                          height: 1.0,
+                        ),
+                        children: [
+                          TextSpan(
+                            text: 'BuildMy',
+                            style: TextStyle(
+                              color: theme.colorScheme.onSurface,
+                            ),
+                          ),
+                          TextSpan(
+                            text: 'PC',
+                            style: TextStyle(
+                              color: theme.colorScheme.primary,
+                            ),
+                          ),
+                        ],
                       ),
                     ),
 
@@ -92,7 +121,7 @@ class HomeScreen extends StatelessWidget {
 
                     // ── Subtitle ──────────────────────────────────
                     Text(
-                      l10n.homeSubtitle,
+                      l10n.authTagline,
                       textAlign: TextAlign.center,
                       style: theme.textTheme.bodyLarge?.copyWith(
                         color: theme.colorScheme.onSurfaceVariant,
@@ -112,12 +141,28 @@ class HomeScreen extends StatelessWidget {
                         ),
                         Padding(
                           padding: const EdgeInsets.symmetric(horizontal: 14),
-                          child: Text(
-                            l10n.homeWelcome,
-                            style: theme.textTheme.labelSmall?.copyWith(
-                              color: theme.colorScheme.onSurfaceVariant,
-                              fontWeight: FontWeight.w700,
-                              letterSpacing: 0.6,
+                          child: RichText(
+                            text: TextSpan(
+                              style: theme.textTheme.labelSmall?.copyWith(
+                                color: theme.colorScheme.onSurfaceVariant,
+                                fontWeight: FontWeight.w700,
+                                letterSpacing: 0.6,
+                              ),
+                              children: () {
+                                final s = l10n.homeWelcome;
+                                final i = s.lastIndexOf('PC');
+                                return [
+                                  TextSpan(text: s.substring(0, i)),
+                                  TextSpan(
+                                    text: 'PC',
+                                    style: TextStyle(
+                                      color: theme.colorScheme.primary,
+                                    ),
+                                  ),
+                                  if (i + 2 < s.length)
+                                    TextSpan(text: s.substring(i + 2)),
+                                ];
+                              }(),
                             ),
                           ),
                         ),

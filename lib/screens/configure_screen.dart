@@ -778,10 +778,25 @@ class _ConfigureScreenState extends State<ConfigureScreen> {
       hasCpuCooler: selection.hasCpuCooler,
     );
 
-    final compatResult = CompatibilityChecker.check(
+    final rawCompatResult = CompatibilityChecker.check(
       parts: _selectedParts,
       estimatedWatts: estWatts,
     );
+    // Append incomplete-data notices as warnings so they appear in the
+    // compatibility report screen instead of inline below each component.
+    final incompleteWarnings = [
+      for (final entry in _selectedParts.entries)
+        if (entry.value.missingDataFields.isNotEmpty)
+          CompatIssue(
+            '${entry.value.title}: Fehlende Daten – ${entry.value.missingDataFields.join(', ')}',
+            CompatIssueLevel.warning,
+          ),
+    ];
+    final compatResult = incompleteWarnings.isEmpty
+        ? rawCompatResult
+        : CompatibilityResult(
+            [...rawCompatResult.issues, ...incompleteWarnings],
+          );
     final psuWatts = _toInt(_selectedParts['psu']?.rawData['wattage']);
     final showCompat = _selectedParts.isNotEmpty;
 
@@ -1231,14 +1246,36 @@ class _SelectedPartCard extends StatelessWidget {
               children: [
                 Icon(categoryIcon, color: accent),
                 const SizedBox(width: 8),
-                Text(
-                  categoryLabel.toUpperCase(),
-                  style: theme.textTheme.labelSmall?.copyWith(
-                    fontWeight: FontWeight.w900,
-                    letterSpacing: 1.0,
-                    color: theme.colorScheme.onSurfaceVariant,
+                Expanded(
+                  child: Text(
+                    categoryLabel.toUpperCase(),
+                    style: theme.textTheme.labelSmall?.copyWith(
+                      fontWeight: FontWeight.w900,
+                      letterSpacing: 1.0,
+                      color: theme.colorScheme.onSurfaceVariant,
+                    ),
                   ),
                 ),
+                if (selectedEntries.any(
+                  (e) => e.part.missingDataFields.isNotEmpty,
+                ))
+                  Padding(
+                    padding: const EdgeInsets.only(right: 6),
+                    child: Tooltip(
+                      message: [
+                        for (final e in selectedEntries.where(
+                          (e) => e.part.missingDataFields.isNotEmpty,
+                        ))
+                          '${e.part.title}: ${e.part.missingDataFields.join(', ')}',
+                      ].join('\n'),
+                      triggerMode: TooltipTriggerMode.tap,
+                      child: const Icon(
+                        Icons.warning_amber_rounded,
+                        size: 18,
+                        color: Color(0xFFE65100),
+                      ),
+                    ),
+                  ),
               ],
             ),
 
@@ -1367,6 +1404,7 @@ class _SelectedPartCard extends StatelessWidget {
     );
   }
 }
+
 
 // ── Optional components section ────────────────────────────────────────────────
 
