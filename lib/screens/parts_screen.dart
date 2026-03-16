@@ -407,6 +407,16 @@ class _PartsScreenState extends State<PartsScreen> {
         .where((e) => _matchesSearchIdx(_searchQuery, e.$3))
         .where((e) => _matchesPrice(_priceRange, e.$3))
         .where((e) => _matchesSpecs(_specFilters, e.$2))
+        .where((e) {
+          if (_dataFilter == _DataCompletenessFilter.showAll) return true;
+          final price = _toDouble(e.$2['price']).isNaN
+              ? null
+              : _toDouble(e.$2['price']);
+          if (_dataFilter == _DataCompletenessFilter.compatOnly) {
+            return _partMissingDataFields(e.$3.type, e.$2, price).isEmpty;
+          }
+          return _partFullMissingDataFields(e.$3.type, e.$2, price).isEmpty;
+        })
         .toList();
     list.sort((a, b) => _sortCompare(_selectedSort, a.$2, b.$2));
     _filteredParts = list;
@@ -1173,25 +1183,29 @@ class _PartsScreenState extends State<PartsScreen> {
       );
     }
 
-    final filtered = _allParts
-        .map((p) => (p.$1, p.$2, _partIndexFor(p.$1, p.$2)))
-        .where((e) => _matchesSelectedTypeIdx(_selectedType, e.$3))
-        .where((e) => _matchesSearchIdx(_searchQuery, e.$3))
-        .where((e) => _matchesPrice(_priceRange, e.$3))
-        .where((e) => _matchesSpecs(_specFilters, e.$2))
-        .where((e) {
-          if (_dataFilter == _DataCompletenessFilter.showAll) return true;
-          final price = _toDouble(e.$2['price']).isNaN
-              ? null
-              : _toDouble(e.$2['price']);
-          if (_dataFilter == _DataCompletenessFilter.compatOnly) {
-            return _partMissingDataFields(e.$3.type, e.$2, price).isEmpty;
-          }
-          return _partFullMissingDataFields(e.$3.type, e.$2, price).isEmpty;
-        })
-        .toList();
+    final filtered = _filteredParts;
+    final hasMoreInDb = _hasMorePerCategory.values.any((v) => v);
 
-    filtered.sort((a, b) => _sortCompare(_selectedSort, a.$2, b.$2));
+    // Auto-fetch more batches when the visible result count is below a full
+    // batch and the DB still has documents. This ensures that e.g. a "16+ cores"
+    // filter immediately fills the screen instead of stopping at whatever few
+    // items happened to be in the first loaded batch.
+    final hasActiveFilters = _searchQuery.trim().isNotEmpty ||
+        _specFilters.isNotEmpty ||
+        _priceRange.start > 0 ||
+        _priceRange.end < 5000 ||
+        _dataFilter != _DataCompletenessFilter.showAll;
+    if (hasMoreInDb && hasActiveFilters && filtered.length < _kBatchSize) {
+      if (!_isLoadingMore) {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (mounted) _loadMoreFromDb();
+        });
+      }
+      // Show whatever partial results we already have while fetching more.
+      if (filtered.isEmpty) {
+        return const Center(child: CircularProgressIndicator());
+      }
+    }
 
     if (filtered.isEmpty) {
       return _EmptyState(
@@ -1204,12 +1218,6 @@ class _PartsScreenState extends State<PartsScreen> {
 
     final totalFiltered = filtered.length;
     final displayList = filtered.take(_displayedCount).toList();
-    final hasMoreInDb = _hasMorePerCategory.values.any((v) => v);
-    final hasActiveFilters = _searchQuery.trim().isNotEmpty ||
-        _specFilters.isNotEmpty ||
-        _priceRange.start > 0 ||
-        _priceRange.end < 5000 ||
-        _dataFilter != _DataCompletenessFilter.showAll;
     // While auto-fetching to fill up to a full batch, suppress the Load More
     // footer so the button/spinner doesn't flicker at the bottom of the list.
     final isAutoFetching =
@@ -2862,7 +2870,7 @@ class _SortSheetState extends State<_SortSheet> {
 
     return SafeArea(
       top: false,
-      child: Padding(
+      child: SingleChildScrollView(
         padding: const EdgeInsets.fromLTRB(16, 6, 16, 16),
         child: Column(
           mainAxisSize: MainAxisSize.min,
