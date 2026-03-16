@@ -1113,10 +1113,13 @@ class _PartsScreenState extends State<PartsScreen> {
                                   priceRange: _priceRange,
                                   dataFilter: _dataFilter,
                                   onApply: (sort, range, dataFilter) {
+                                    final sortChanged = sort != _selectedSort;
                                     setState(() {
                                       _selectedSort = sort;
                                       _priceRange = range;
                                       _dataFilter = dataFilter;
+                                      _displayedCount = _kBatchSize;
+                                      if (!sortChanged) _recomputeFiltered();
                                     });
                                     _scrollToTop();
                                     Navigator.of(context).pop();
@@ -1201,6 +1204,12 @@ class _PartsScreenState extends State<PartsScreen> {
 
     final totalFiltered = filtered.length;
     final displayList = filtered.take(_displayedCount).toList();
+    final hasMoreInDb = _hasMorePerCategory.values.any((v) => v);
+    final hasActiveFilters = _searchQuery.trim().isNotEmpty ||
+        _specFilters.isNotEmpty ||
+        _priceRange.start > 0 ||
+        _priceRange.end < 5000 ||
+        _dataFilter != _DataCompletenessFilter.showAll;
     // While auto-fetching to fill up to a full batch, suppress the Load More
     // footer so the button/spinner doesn't flicker at the bottom of the list.
     final isAutoFetching =
