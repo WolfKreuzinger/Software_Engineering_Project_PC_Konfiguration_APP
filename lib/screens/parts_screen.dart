@@ -158,7 +158,7 @@ class _PartsScreenState extends State<PartsScreen> {
   String _selectedSort = 'Price: Low to High';
   RangeValues _priceRange = const RangeValues(0, 5000);
   Map<String, _ActiveFilter> _specFilters = {};
-  bool _hideIncomplete = false;
+  _DataCompletenessFilter _dataFilter = _DataCompletenessFilter.showAll;
 
   static const _types = <String>[
     'All Components',
@@ -908,7 +908,7 @@ class _PartsScreenState extends State<PartsScreen> {
                                 _selectedSort != _sorts[0] ||
                                 _priceRange.start > 0 ||
                                 _priceRange.end < 5000 ||
-                                _hideIncomplete,
+                                _dataFilter != _DataCompletenessFilter.showAll,
                             onTap: () {
                               showModalBottomSheet(
                                 context: context,
@@ -918,12 +918,12 @@ class _PartsScreenState extends State<PartsScreen> {
                                   sorts: _sorts,
                                   selectedSort: _selectedSort,
                                   priceRange: _priceRange,
-                                  hideIncomplete: _hideIncomplete,
-                                  onApply: (sort, range, hideIncomplete) {
+                                  dataFilter: _dataFilter,
+                                  onApply: (sort, range, dataFilter) {
                                     setState(() {
                                       _selectedSort = sort;
                                       _priceRange = range;
-                                      _hideIncomplete = hideIncomplete;
+                                      _dataFilter = dataFilter;
                                     });
                                     Navigator.of(context).pop();
                                   },
@@ -981,12 +981,16 @@ class _PartsScreenState extends State<PartsScreen> {
         .where((e) => _matchesSearchIdx(_searchQuery, e.$3))
         .where((e) => _matchesPrice(_priceRange, e.$3))
         .where((e) => _matchesSpecs(_specFilters, e.$2))
-        .where((e) => !_hideIncomplete ||
-            _partMissingDataFields(
-              e.$3.type,
-              e.$2,
-              _toDouble(e.$2['price']).isNaN ? null : _toDouble(e.$2['price']),
-            ).isEmpty)
+        .where((e) {
+          if (_dataFilter == _DataCompletenessFilter.showAll) return true;
+          final price = _toDouble(e.$2['price']).isNaN
+              ? null
+              : _toDouble(e.$2['price']);
+          if (_dataFilter == _DataCompletenessFilter.compatOnly) {
+            return _partMissingDataFields(e.$3.type, e.$2, price).isEmpty;
+          }
+          return _partFullMissingDataFields(e.$3.type, e.$2, price).isEmpty;
+        })
         .toList();
 
     filtered.sort((a, b) => _sortCompare(_selectedSort, a.$2, b.$2));
@@ -1324,6 +1328,70 @@ class _PartIndex {
     required this.price,
     required this.searchHay,
   });
+}
+
+/// Controls which parts are filtered out based on data completeness.
+enum _DataCompletenessFilter {
+  showAll,       // Alle anzeigen – no filter
+  compatOnly,    // Hide parts missing compat-critical fields
+  fullyComplete, // Hide parts missing any known spec field
+}
+
+/// Extended version of [_partMissingDataFields] that also checks non-compat
+/// spec fields (e.g. noise_level for cpu-cooler, rpm, airflow…).
+List<String> _partFullMissingDataFields(
+  String type,
+  Map<String, dynamic> rawData,
+  double? price,
+) {
+  // Start with compat-critical fields (superset).
+  final missing = List<String>.from(_partMissingDataFields(type, rawData, price));
+
+  final spec = rawData['spec'];
+  dynamic v(String camel, String snake) {
+    if (spec is Map) {
+      final sv = spec[camel] ?? spec[snake];
+      if (sv != null) return sv;
+    }
+    return rawData[snake] ?? rawData[camel];
+  }
+
+  bool empty(dynamic val) {
+    if (val == null) return true;
+    if (val is String) return val.trim().isEmpty || val == 'null';
+    if (val is List) return val.isEmpty;
+    return false;
+  }
+
+  switch (type) {
+    case 'cpu':
+      if (empty(v('threadCount', 'thread_count'))) missing.add('Thread-Anzahl');
+      if (empty(v('boostClock', 'boost_clock'))) missing.add('Taktfrequenz');
+    case 'video-card':
+      if (empty(v('boostClock', 'boost_clock'))) missing.add('Taktfrequenz');
+      if (empty(v('tdp', 'tdp'))) missing.add('TDP');
+    case 'memory':
+      if (empty(v('casLatency', 'cas_latency'))) missing.add('CAS-Latenz');
+      if (empty(v('firstWordLatency', 'first_word_latency')))
+        missing.add('First-Word-Latenz');
+    case 'internal-hard-drive':
+      if (empty(v('formFactor', 'form_factor'))) missing.add('Formfaktor');
+    case 'motherboard':
+      if (empty(v('maxMemory', 'max_memory'))) missing.add('Max. RAM');
+    case 'power-supply':
+      if (empty(v('efficiency', 'efficiency'))) missing.add('Effizienz');
+      if (empty(v('modular', 'modular'))) missing.add('Modular');
+    case 'case':
+      if (empty(v('sidePanel', 'side_panel'))) missing.add('Seitenpanel');
+    case 'cpu-cooler':
+      if (empty(v('rpm', 'rpm'))) missing.add('RPM');
+      if (empty(v('noiseLevelDb', 'noise_level'))) missing.add('Lautstärke');
+    case 'case-fan':
+      if (empty(v('sizeMm', 'size'))) missing.add('Größe');
+      if (empty(v('noiseLevelDb', 'noise_level'))) missing.add('Lautstärke');
+      if (empty(v('airflow', 'airflow'))) missing.add('Airflow');
+  }
+  return missing;
 }
 
 class _SearchField extends StatelessWidget {
@@ -2490,15 +2558,19 @@ class _SortSheet extends StatefulWidget {
   final List<String> sorts;
   final String selectedSort;
   final RangeValues priceRange;
-  final bool hideIncomplete;
-  final void Function(String sort, RangeValues range, bool hideIncomplete) onApply;
+  final _DataCompletenessFilter dataFilter;
+  final void Function(
+    String sort,
+    RangeValues range,
+    _DataCompletenessFilter dataFilter,
+  ) onApply;
   final ThemeData theme;
 
   const _SortSheet({
     required this.sorts,
     required this.selectedSort,
     required this.priceRange,
-    required this.hideIncomplete,
+    required this.dataFilter,
     required this.onApply,
     required this.theme,
   });
@@ -2510,7 +2582,7 @@ class _SortSheet extends StatefulWidget {
 class _SortSheetState extends State<_SortSheet> {
   late String _sort = widget.selectedSort;
   late RangeValues _range = widget.priceRange;
-  late bool _hideIncomplete = widget.hideIncomplete;
+  late _DataCompletenessFilter _dataFilter = widget.dataFilter;
 
   @override
   Widget build(BuildContext context) {
@@ -2592,33 +2664,58 @@ class _SortSheetState extends State<_SortSheet> {
               onChanged: (v) => setState(() => _range = v),
             ),
             const SizedBox(height: 16),
-            Row(
+            Text(
+              'Datenvollständigkeit',
+              style: theme.textTheme.labelLarge?.copyWith(
+                fontWeight: FontWeight.w800,
+                color: cs.onSurfaceVariant,
+              ),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              'Komponenten nach Vollständigkeit der Spezifikationsdaten filtern',
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: cs.onSurfaceVariant.withValues(alpha: 0.7),
+              ),
+            ),
+            const SizedBox(height: 10),
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
               children: [
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'Unvollständige ausblenden',
-                        style: theme.textTheme.labelLarge?.copyWith(
+                for (final (filter, label) in [
+                  (_DataCompletenessFilter.showAll, 'Alle anzeigen'),
+                  (_DataCompletenessFilter.compatOnly, 'Kompatibilität'),
+                  (_DataCompletenessFilter.fullyComplete, 'Vollständig'),
+                ])
+                  InkWell(
+                    onTap: () => setState(() => _dataFilter = filter),
+                    borderRadius: BorderRadius.circular(999),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 10,
+                      ),
+                      decoration: BoxDecoration(
+                        color: _dataFilter == filter
+                            ? cs.primary
+                            : cs.surfaceContainerHighest.withValues(alpha: 0.65),
+                        borderRadius: BorderRadius.circular(999),
+                        border: Border.all(
+                          color: cs.outlineVariant.withValues(alpha: 0.35),
+                        ),
+                      ),
+                      child: Text(
+                        label,
+                        style: theme.textTheme.bodyMedium?.copyWith(
+                          color: _dataFilter == filter
+                              ? cs.onPrimary
+                              : cs.onSurface,
                           fontWeight: FontWeight.w800,
-                          color: cs.onSurfaceVariant,
                         ),
                       ),
-                      const SizedBox(height: 2),
-                      Text(
-                        'Teile ohne wichtige Spezifikationen werden ausgeblendet',
-                        style: theme.textTheme.bodySmall?.copyWith(
-                          color: cs.onSurfaceVariant.withValues(alpha: 0.7),
-                        ),
-                      ),
-                    ],
+                    ),
                   ),
-                ),
-                Switch(
-                  value: _hideIncomplete,
-                  onChanged: (v) => setState(() => _hideIncomplete = v),
-                ),
               ],
             ),
             const SizedBox(height: 16),
@@ -2626,7 +2723,7 @@ class _SortSheetState extends State<_SortSheet> {
               width: double.infinity,
               height: 52,
               child: FilledButton(
-                onPressed: () => widget.onApply(_sort, _range, _hideIncomplete),
+                onPressed: () => widget.onApply(_sort, _range, _dataFilter),
                 style: FilledButton.styleFrom(
                   shape: const StadiumBorder(),
                   textStyle: theme.textTheme.titleMedium?.copyWith(
