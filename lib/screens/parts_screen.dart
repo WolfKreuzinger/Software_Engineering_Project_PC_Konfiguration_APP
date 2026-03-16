@@ -92,10 +92,23 @@ class _PartsScreenState extends State<PartsScreen> {
   String _searchQuery = '';
   final Map<String, _PartIndex> _partIndexCache = <String, _PartIndex>{};
 
-  // static const int _kLimitPerCategory = 10;
+  static const int _kBatchSize = 100;
+
   bool _isLoading = true;
   String? _loadError;
   List<(String, Map<String, dynamic>)> _allParts = [];
+
+  // Pagination state
+  int _displayedCount = _kBatchSize;
+  final Map<String, DocumentSnapshot?> _lastDocPerCategory = {};
+  final Map<String, bool> _hasMorePerCategory = {};
+  bool _isLoadingMore = false;
+  final Map<String, int> _countPerCategory = {};
+  final Map<String, int> _loadedCountPerCategory = {};
+
+  // Cached filtered+sorted list — recomputed only when data or filters change,
+  // not on every scroll frame.
+  List<(String, Map<String, dynamic>, _PartIndex)> _filteredParts = [];
 
   String _selectedType = 'All Components';
   String _selectedSort = 'Price: Low to High';
@@ -142,7 +155,7 @@ class _PartsScreenState extends State<PartsScreen> {
     _loadParts();
   }
 
-  /// Load all items from each per-type collection.
+  /// Load the first batch of items from each per-type collection.
   /// Each document gets a synthetic `_category` field so type-detection works
   /// without relying on stored `metadata.datasetType`.
   Future<void> _loadParts() async {
@@ -150,41 +163,133 @@ class _PartsScreenState extends State<PartsScreen> {
     setState(() {
       _isLoading = true;
       _loadError = null;
+      _displayedCount = _kBatchSize;
+      _lastDocPerCategory.clear();
+      _hasMorePerCategory.clear();
+      _countPerCategory.clear();
+      _loadedCountPerCategory.clear();
     });
 
     final db = FirebaseFirestore.instance;
     final parts = <(String, Map<String, dynamic>)>[];
 
-    // Determine which categories to load
     final categories = _isTypeLocked
         ? [_canonicalType(widget.lockedType!)]
         : _types.where((t) => t != 'All Components').toList();
 
-    String? firstError;
+    final errors = <String>[];
 
-    for (final cat in categories) {
+    await Future.wait(categories.map((cat) async {
       try {
-        final snap = await db
-            .collection(cat)
-            .get(); // .limit(_kLimitPerCategory)
+        final snap = await db.collection(cat).limit(_kBatchSize).get();
         for (final d in snap.docs) {
           final data = Map<String, dynamic>.from(d.data());
           data['_category'] = cat;
           parts.add((d.reference.path, data));
         }
+        if (snap.docs.isNotEmpty) {
+          _lastDocPerCategory[cat] = snap.docs.last;
+        }
+        _loadedCountPerCategory[cat] = snap.docs.length;
+
+        // Fetch total count and use it to determine if more docs exist
+        try {
+          final countSnap = await db.collection(cat).count().get();
+          final total = countSnap.count ?? snap.docs.length;
+          _countPerCategory[cat] = total;
+          _hasMorePerCategory[cat] = snap.docs.length < total;
+        } catch (_) {
+          _countPerCategory[cat] = snap.docs.length;
+          _hasMorePerCategory[cat] = snap.docs.length >= _kBatchSize;
+        }
       } catch (e) {
-        firstError ??= '$cat: $e';
+        errors.add('$cat: $e');
         // ignore: avoid_print
         print('[_loadParts] error loading $cat: $e');
       }
-    }
+    }));
 
     if (!mounted) return;
     setState(() {
       _allParts = parts;
-      _loadError = parts.isEmpty ? firstError : null;
+      _loadError = parts.isEmpty && errors.isNotEmpty ? errors.first : null;
       _isLoading = false;
+      _recomputeFiltered();
     });
+  }
+
+  /// Load the next batch from Firestore for categories that still have more docs.
+  Future<void> _loadMoreFromDb() async {
+    if (_isLoadingMore || !mounted) return;
+    setState(() => _isLoadingMore = true);
+
+    final db = FirebaseFirestore.instance;
+    final newParts = <(String, Map<String, dynamic>)>[];
+
+    final categoriesToLoad = _hasMorePerCategory.entries
+        .where((e) => e.value)
+        .map((e) => e.key)
+        .toList();
+
+    await Future.wait(categoriesToLoad.map((cat) async {
+      try {
+        final lastDoc = _lastDocPerCategory[cat];
+        Query<Map<String, dynamic>> query =
+            db.collection(cat).limit(_kBatchSize);
+        if (lastDoc != null) {
+          query = query.startAfterDocument(lastDoc);
+        }
+        final snap = await query.get();
+        for (final d in snap.docs) {
+          final data = Map<String, dynamic>.from(d.data());
+          data['_category'] = cat;
+          newParts.add((d.reference.path, data));
+        }
+        if (snap.docs.isNotEmpty) {
+          _lastDocPerCategory[cat] = snap.docs.last;
+        }
+        final loaded =
+            (_loadedCountPerCategory[cat] ?? 0) + snap.docs.length;
+        _loadedCountPerCategory[cat] = loaded;
+        _hasMorePerCategory[cat] =
+            loaded < (_countPerCategory[cat] ?? loaded);
+      } catch (e) {
+        // ignore: avoid_print
+        print('[_loadMoreFromDb] error loading $cat: $e');
+      }
+    }));
+
+    if (!mounted) return;
+    setState(() {
+      _allParts = [..._allParts, ...newParts];
+      _isLoadingMore = false;
+      _recomputeFiltered();
+    });
+  }
+
+  /// Called when the user taps "Load More".
+  Future<void> _handleLoadMore(int filteredCount) async {
+    if (_isLoadingMore) return;
+    if (_displayedCount < filteredCount) {
+      setState(() => _displayedCount += _kBatchSize);
+    } else if (_hasMorePerCategory.values.any((v) => v)) {
+      await _loadMoreFromDb();
+      if (mounted) setState(() => _displayedCount += _kBatchSize);
+    }
+  }
+
+  // Recomputes _filteredParts from _allParts + current filters + sort.
+  // Must be called inside every setState that changes data or filter state.
+  void _recomputeFiltered() {
+    final list = _allParts
+        .map((p) => (p.$1, p.$2, _partIndexFor(p.$1, p.$2)))
+        .where((e) => _matchesSelectedTypeIdx(_selectedType, e.$3))
+        .where((e) => _matchesSearchIdx(_searchQuery, e.$3))
+        .where((e) => _matchesPrice(_priceRange, e.$3))
+        .where((e) => _matchesSpecs(_specFilters, e.$2))
+        .toList();
+    list.sort((a, b) => _sortCompare(_selectedSort, a.$2, b.$2));
+    _filteredParts = list;
   }
 
   @override
@@ -196,7 +301,11 @@ class _PartsScreenState extends State<PartsScreen> {
   void _applySearch() {
     final next = _searchCtrl.text;
     if (next == _searchQuery) return;
-    setState(() => _searchQuery = next);
+    setState(() {
+      _searchQuery = next;
+      _displayedCount = _kBatchSize;
+      _recomputeFiltered();
+    });
   }
 
   static String _normType(String s) {
@@ -706,28 +815,32 @@ class _PartsScreenState extends State<PartsScreen> {
                             const SizedBox(height: 2),
                             Builder(
                               builder: (context) {
-                                final count = _isLoading
-                                    ? 0
-                                    : _allParts
-                                          .where(
-                                            (p) => _matchesSelectedTypeIdx(
-                                              _selectedType,
-                                              _partIndexFor(p.$1, p.$2),
-                                            ),
-                                          )
-                                          .where(
-                                            (p) => _matchesSearchIdx(
-                                              _searchQuery,
-                                              _partIndexFor(p.$1, p.$2),
-                                            ),
-                                          )
-                                          .where(
-                                            (p) => _matchesPrice(
-                                              _priceRange,
-                                              _partIndexFor(p.$1, p.$2),
-                                            ),
-                                          )
-                                          .length;
+                                if (_isLoading) {
+                                  return Text(
+                                    '0 Products Found',
+                                    style: theme.textTheme.bodySmall?.copyWith(
+                                      color: cs.onSurfaceVariant,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  );
+                                }
+                                final hasActiveFilters =
+                                    _searchQuery.trim().isNotEmpty ||
+                                    _specFilters.isNotEmpty ||
+                                    _priceRange.start > 0 ||
+                                    _priceRange.end < 5000;
+                                final int count;
+                                if (hasActiveFilters) {
+                                  // Use the pre-computed cache — free during build
+                                  count = _filteredParts.length;
+                                } else if (_selectedType == 'All Components') {
+                                  count = _countPerCategory.values
+                                      .fold(0, (a, b) => a + b);
+                                } else {
+                                  count = _countPerCategory[
+                                          _canonicalType(_selectedType)] ??
+                                      0;
+                                }
                                 return Text(
                                   '$count Products Found',
                                   style: theme.textTheme.bodySmall?.copyWith(
@@ -758,6 +871,8 @@ class _PartsScreenState extends State<PartsScreen> {
                                     _selectedType = t;
                                     _selectedSort = sort;
                                     _priceRange = range;
+                                    _displayedCount = _kBatchSize;
+                                    _recomputeFiltered();
                                   });
                                   Navigator.of(context).pop();
                                 },
@@ -807,6 +922,8 @@ class _PartsScreenState extends State<PartsScreen> {
                                       setState(() {
                                         _selectedType = v;
                                         _specFilters = {};
+                                        _displayedCount = _kBatchSize;
+                                        _recomputeFiltered();
                                       });
                                       Navigator.of(context).pop();
                                     },
@@ -834,7 +951,11 @@ class _PartsScreenState extends State<PartsScreen> {
                                     selectedType: _selectedType,
                                     specFilters: Map.from(_specFilters),
                                     onApply: (filters) {
-                                      setState(() => _specFilters = filters);
+                                      setState(() {
+                                        _specFilters = filters;
+                                        _displayedCount = _kBatchSize;
+                                        _recomputeFiltered();
+                                      });
                                       Navigator.of(context).pop();
                                     },
                                     theme: theme,
@@ -863,6 +984,8 @@ class _PartsScreenState extends State<PartsScreen> {
                                     setState(() {
                                       _selectedSort = sort;
                                       _priceRange = range;
+                                      _displayedCount = _kBatchSize;
+                                      _recomputeFiltered();
                                     });
                                     Navigator.of(context).pop();
                                   },
@@ -914,17 +1037,19 @@ class _PartsScreenState extends State<PartsScreen> {
       );
     }
 
-    final filtered = _allParts
-        .map((p) => (p.$1, p.$2, _partIndexFor(p.$1, p.$2)))
-        .where((e) => _matchesSelectedTypeIdx(_selectedType, e.$3))
-        .where((e) => _matchesSearchIdx(_searchQuery, e.$3))
-        .where((e) => _matchesPrice(_priceRange, e.$3))
-        .where((e) => _matchesSpecs(_specFilters, e.$2))
-        .toList();
-
-    filtered.sort((a, b) => _sortCompare(_selectedSort, a.$2, b.$2));
+    final filtered = _filteredParts;
+    final hasMoreInDb = _hasMorePerCategory.values.any((v) => v);
 
     if (filtered.isEmpty) {
+      if (hasMoreInDb) {
+        // Auto-fetch more until matching results are found or DB is exhausted
+        if (!_isLoadingMore) {
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (mounted) _loadMoreFromDb();
+          });
+        }
+        return const Center(child: CircularProgressIndicator());
+      }
       return _EmptyState(
         icon: Icons.search_off_rounded,
         title: 'No results',
@@ -933,14 +1058,47 @@ class _PartsScreenState extends State<PartsScreen> {
       );
     }
 
+    final totalFiltered = filtered.length;
+    final displayList = filtered.take(_displayedCount).toList();
+    // Only show "Load More" if the filtered result set is at least as large as
+    // one full batch – if fewer items matched, all results are already visible.
+    final showLoadMore = totalFiltered >= _kBatchSize &&
+        (_displayedCount < totalFiltered || hasMoreInDb);
+
     return ListView.separated(
       padding: const EdgeInsets.fromLTRB(16, 2, 16, 16),
-      itemCount: filtered.length,
+      itemCount: displayList.length + (showLoadMore ? 1 : 0),
       separatorBuilder: (_, _) => const SizedBox(height: 12),
       itemBuilder: (context, i) {
-        final id = filtered[i].$1;
-        final data = filtered[i].$2;
-        final idx = filtered[i].$3;
+        if (i == displayList.length) {
+          return Padding(
+            padding: const EdgeInsets.only(top: 4, bottom: 8),
+            child: Center(
+              child: _isLoadingMore
+                  ? const CircularProgressIndicator()
+                  : FilledButton(
+                      onPressed: () => _handleLoadMore(totalFiltered),
+                      style: FilledButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 32,
+                          vertical: 14,
+                        ),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(999),
+                        ),
+                        textStyle: theme.textTheme.labelLarge?.copyWith(
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                      child: const Text('Load More'),
+                    ),
+            ),
+          );
+        }
+
+        final id = displayList[i].$1;
+        final data = displayList[i].$2;
+        final idx = displayList[i].$3;
         final title = _titleFor(data);
         final subtitle = _subtitleFor(data);
         final price = _money(data['price']);
