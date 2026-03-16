@@ -150,22 +150,37 @@ class _AuthScreenState extends State<AuthScreen> {
                   Container(
                     decoration: BoxDecoration(
                       shape: BoxShape.circle,
-                      boxShadow: [
-                        BoxShadow(
-                          color: theme.colorScheme.primary.withValues(
-                            alpha: isDark ? 0.35 : 0.32,
-                          ),
-                          blurRadius: 64,
-                          spreadRadius: 8,
-                        ),
-                      ],
+                      boxShadow: isDark
+                          ? [
+                              BoxShadow(
+                                color: theme.colorScheme.primary.withValues(
+                                  alpha: 0.35,
+                                ),
+                                blurRadius: 64,
+                                spreadRadius: 8,
+                              ),
+                            ]
+                          : [
+                              BoxShadow(
+                                color: const Color(0xFF7C3AED).withValues(
+                                  alpha: 0.45,
+                                ),
+                                blurRadius: 80,
+                                spreadRadius: 20,
+                              ),
+                              BoxShadow(
+                                color: Colors.white.withValues(
+                                  alpha: 0.55,
+                                ),
+                                blurRadius: 100,
+                                spreadRadius: 25,
+                              ),
+                            ],
                     ),
                     child: Image.asset(
-                      isDark
-                          ? 'assets/images/logo.png'
-                          : 'assets/images/logo_light.png',
-                      width: 160,
-                      height: 160,
+                      'assets/images/futuristic.png',
+                      width: 200,
+                      height: 200,
                       fit: BoxFit.contain,
                       errorBuilder: (_, _, _) => Icon(
                         Icons.memory,
