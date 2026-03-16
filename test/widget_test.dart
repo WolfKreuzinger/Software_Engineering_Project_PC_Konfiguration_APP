@@ -5,6 +5,6 @@ void main() {
   testWidgets('App smoke test', (tester) async {
     await tester.pumpWidget(const App());
     await tester.pump();
-    expect(find.text('Willkommen bei BuildMyPC'), findsOneWidget);
+    expect(find.text('PC konfigurieren'), findsOneWidget);
   });
 }
