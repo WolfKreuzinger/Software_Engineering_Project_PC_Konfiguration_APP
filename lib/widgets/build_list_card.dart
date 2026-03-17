@@ -7,18 +7,18 @@ class BuildListCard extends StatelessWidget {
     super.key,
     required this.savedBuild,
     required this.onTap,
-    required this.onResume,
     this.isCurrent = false,
     this.compact = false,
+    this.pinCostToBottom = false,
     this.onMore,
     this.onShare,
   });
 
   final SavedBuild savedBuild;
   final VoidCallback onTap;
-  final VoidCallback onResume;
   final bool isCurrent;
   final bool compact;
+  final bool pinCostToBottom;
   final VoidCallback? onMore;
   final VoidCallback? onShare;
 
@@ -46,7 +46,7 @@ class BuildListCard extends StatelessWidget {
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
       child: InkWell(
         borderRadius: BorderRadius.circular(18),
-        onTap: () {},
+        onTap: onTap,
         child: Padding(
           padding: EdgeInsets.all(cardPadding),
           child: Row(
@@ -98,77 +98,54 @@ class BuildListCard extends StatelessWidget {
               ),
               const SizedBox(width: 12),
               Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      savedBuild.title,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: theme.textTheme.titleMedium?.copyWith(
-                        fontWeight: FontWeight.w800,
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      savedBuild.summaryLine,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: theme.textTheme.bodySmall?.copyWith(
-                        color: theme.colorScheme.onSurfaceVariant,
-                      ),
-                    ),
-                    const SizedBox(height: 10),
-                    Text(
-                      'ESTIMATED COST',
-                      style: theme.textTheme.labelSmall?.copyWith(
-                        letterSpacing: 1.0,
-                        fontWeight: FontWeight.w800,
-                        color: theme.colorScheme.onSurfaceVariant,
-                      ),
-                    ),
-                    const SizedBox(height: 2),
-                    Text(
-                      _priceLabel(savedBuild.totalPrice),
-                      style: theme.textTheme.titleSmall?.copyWith(
-                        fontWeight: FontWeight.w900,
-                        color: theme.colorScheme.primary,
-                      ),
-                    ),
-                    if (!compact) ...[
-                      if (savedBuild.readOnly) ...[
-                        const SizedBox(height: 10),
-                        FilledButton(
-                          onPressed: onResume,
-                          style: FilledButton.styleFrom(
-                            minimumSize: const Size(0, 34),
-                            padding: const EdgeInsets.symmetric(horizontal: 14),
-                          ),
-                          child: const Text('View'),
+                child: SizedBox(
+                  height: pinCostToBottom ? thumbHeight : null,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: pinCostToBottom
+                        ? MainAxisSize.max
+                        : MainAxisSize.min,
+                    children: [
+                      Text(
+                        savedBuild.title,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: theme.textTheme.titleMedium?.copyWith(
+                          fontWeight: FontWeight.w800,
                         ),
-                      ] else if (savedBuild.isResumable) ...[
-                        const SizedBox(height: 10),
-                        FilledButton(
-                          onPressed: onResume,
-                          style: FilledButton.styleFrom(
-                            minimumSize: const Size(0, 34),
-                            padding: const EdgeInsets.symmetric(horizontal: 14),
-                          ),
-                          child: const Text('Resume Build'),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        savedBuild.summaryLine,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          color: theme.colorScheme.onSurfaceVariant,
                         ),
-                      ] else if (savedBuild.status == BuildStatus.completed) ...[
+                      ),
+                      if (pinCostToBottom)
+                        const Spacer()
+                      else
                         const SizedBox(height: 10),
-                        FilledButton(
-                          onPressed: onResume,
-                          style: FilledButton.styleFrom(
-                            minimumSize: const Size(0, 34),
-                            padding: const EdgeInsets.symmetric(horizontal: 14),
-                          ),
-                          child: const Text('Edit'),
+                      Text(
+                        'ESTIMATED COST',
+                        style: theme.textTheme.labelSmall?.copyWith(
+                          letterSpacing: 1.0,
+                          fontWeight: FontWeight.w800,
+                          color: theme.colorScheme.onSurfaceVariant,
                         ),
-                      ],
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        _priceLabel(savedBuild.totalPrice),
+                        style: theme.textTheme.titleSmall?.copyWith(
+                          fontWeight: FontWeight.w900,
+                          color: theme.colorScheme.primary,
+                        ),
+                      ),
+                      if (pinCostToBottom) const SizedBox(height: 22),
                     ],
-                  ],
+                  ),
                 ),
               ),
               Column(

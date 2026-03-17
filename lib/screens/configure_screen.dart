@@ -10,16 +10,18 @@ import '../services/pending_build_save_service.dart';
 import 'parts_screen.dart';
 
 class ConfigureScreenArgs {
-  const ConfigureScreenArgs({required this.build, this.readOnly = false});
+  const ConfigureScreenArgs({required this.build, this.readOnly = false, this.backRoute = '/dashboard'});
   final SavedBuild build;
   final bool readOnly;
+  final String backRoute;
 }
 
 class ConfigureScreen extends StatefulWidget {
-  const ConfigureScreen({super.key, this.initialBuild, this.readOnly = false});
+  const ConfigureScreen({super.key, this.initialBuild, this.readOnly = false, this.backRoute = '/dashboard'});
 
   final SavedBuild? initialBuild;
   final bool readOnly;
+  final String backRoute;
 
   @override
   State<ConfigureScreen> createState() => _ConfigureScreenState();
@@ -820,7 +822,7 @@ class _ConfigureScreenState extends State<ConfigureScreen> {
                   children: [
                     IconButton(
                       onPressed: () => context.go(
-                        widget.readOnly ? '/' : '/dashboard',
+                        widget.readOnly ? '/' : widget.backRoute,
                       ),
                       icon: const Icon(Icons.arrow_back_rounded),
                       splashRadius: 22,
