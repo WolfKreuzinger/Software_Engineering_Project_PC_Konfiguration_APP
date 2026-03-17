@@ -430,25 +430,29 @@ class _ShareBuildSheetState extends State<_ShareBuildSheet> {
   @override
   void initState() {
     super.initState();
-    _generateLink();
+    _generateLink(minDuration: Duration.zero);
   }
 
-  Future<void> _generateLink() async {
+  Future<void> _generateLink({
+    Duration minDuration = const Duration(milliseconds: 600),
+  }) async {
     final seq = ++_genSeq;
     final readOnly = _readOnly; // capture before any await
     setState(() {
       _isGenerating = true;
       _error = null;
-      // Keep _shareUrl as-is so the UI doesn't flicker while regenerating.
     });
     try {
-      final url = await widget.repo.publishBuild(
-        widget.build,
-        readOnly: readOnly,
-        senderName: readOnly ? widget.senderName : null,
-      );
+      final results = await Future.wait<dynamic>([
+        widget.repo.publishBuild(
+          widget.build,
+          readOnly: readOnly,
+          senderName: readOnly ? widget.senderName : null,
+        ),
+        Future<void>.delayed(minDuration),
+      ]);
       if (mounted && seq == _genSeq) {
-        setState(() { _shareUrl = url; _isGenerating = false; });
+        setState(() { _shareUrl = results[0] as String; _isGenerating = false; });
       }
     } catch (e) {
       if (mounted && seq == _genSeq) {
@@ -599,10 +603,12 @@ class _ShareBuildSheetState extends State<_ShareBuildSheet> {
                 const SizedBox(width: 4),
                 Switch(
                   value: _readOnly,
-                  onChanged: (v) {
-                    setState(() => _readOnly = v);
-                    _generateLink();
-                  },
+                  onChanged: _isGenerating
+                      ? null
+                      : (v) {
+                          setState(() => _readOnly = v);
+                          _generateLink();
+                        },
                 ),
               ],
             ),
@@ -651,28 +657,39 @@ class _ShareBuildSheetState extends State<_ShareBuildSheet> {
                                 shareUrl,
                                 overflow: TextOverflow.ellipsis,
                                 style: theme.textTheme.bodySmall?.copyWith(
-                                  color: _isGenerating
-                                      ? theme.colorScheme.primary.withValues(alpha: 0.45)
-                                      : theme.colorScheme.primary,
+                                  color: theme.colorScheme.primary.withValues(
+                                    alpha: _isGenerating ? 0.45 : 1.0,
+                                  ),
                                 ),
                               ),
                   ),
                   const SizedBox(width: 8),
-                  FilledButton.icon(
-                    onPressed: _isGenerating || shareUrl.isEmpty
-                        ? null
-                        : () => _copy(context),
-                    icon: const Icon(Icons.copy_rounded, size: 16),
-                    label: const Text('Kopieren'),
-                    style: FilledButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 12,
-                        vertical: 8,
+                  if (_isGenerating && _shareUrl != null)
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 14),
+                      child: SizedBox(
+                        width: 16,
+                        height: 16,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: theme.colorScheme.primary,
+                        ),
                       ),
-                      minimumSize: Size.zero,
-                      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                    )
+                  else
+                    FilledButton.icon(
+                      onPressed: shareUrl.isEmpty ? null : () => _copy(context),
+                      icon: const Icon(Icons.copy_rounded, size: 16),
+                      label: const Text('Kopieren'),
+                      style: FilledButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 8,
+                        ),
+                        minimumSize: Size.zero,
+                        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                      ),
                     ),
-                  ),
                 ],
               ),
             ),
@@ -687,59 +704,66 @@ class _ShareBuildSheetState extends State<_ShareBuildSheet> {
                 ),
               ),
               const SizedBox(height: 12),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceAround,
-                children: channels.map((c) {
-                  final (label, iconWidget, bgWidget, url, copyFirst) = c;
-                  return InkWell(
-                    onTap: () async {
-                      if (copyFirst) {
-                        await Clipboard.setData(ClipboardData(text: shareUrl));
-                        if (!context.mounted) return;
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                            behavior: SnackBarBehavior.floating,
-                            content: Text('Link kopiert – füge ihn in Instagram DM ein.'),
-                          ),
-                        );
-                      }
-                      if (context.mounted) _launch(context, url);
-                    },
-                    borderRadius: BorderRadius.circular(12),
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 8,
-                        vertical: 4,
-                      ),
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          ClipRRect(
-                            borderRadius: BorderRadius.circular(14),
-                            child: SizedBox(
-                              width: 52,
-                              height: 52,
-                              child: Stack(
-                                fit: StackFit.expand,
-                                children: [
-                                  bgWidget,
-                                  Center(child: iconWidget),
-                                ],
+              IgnorePointer(
+                ignoring: _isGenerating,
+                child: AnimatedOpacity(
+                  opacity: _isGenerating ? 0.35 : 1.0,
+                  duration: const Duration(milliseconds: 200),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceAround,
+                    children: channels.map((c) {
+                      final (label, iconWidget, bgWidget, url, copyFirst) = c;
+                      return InkWell(
+                        onTap: () async {
+                          if (copyFirst) {
+                            await Clipboard.setData(ClipboardData(text: shareUrl));
+                            if (!context.mounted) return;
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                behavior: SnackBarBehavior.floating,
+                                content: Text('Link kopiert – füge ihn in Instagram DM ein.'),
                               ),
-                            ),
+                            );
+                          }
+                          if (context.mounted) _launch(context, url);
+                        },
+                        borderRadius: BorderRadius.circular(12),
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 8,
+                            vertical: 4,
                           ),
-                          const SizedBox(height: 6),
-                          Text(
-                            label,
-                            style: theme.textTheme.labelSmall?.copyWith(
-                              fontWeight: FontWeight.w600,
-                            ),
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              ClipRRect(
+                                borderRadius: BorderRadius.circular(14),
+                                child: SizedBox(
+                                  width: 52,
+                                  height: 52,
+                                  child: Stack(
+                                    fit: StackFit.expand,
+                                    children: [
+                                      bgWidget,
+                                      Center(child: iconWidget),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(height: 6),
+                              Text(
+                                label,
+                                style: theme.textTheme.labelSmall?.copyWith(
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            ],
                           ),
-                        ],
-                      ),
-                    ),
-                  );
-                }).toList(),
+                        ),
+                      );
+                    }).toList(),
+                  ),
+                ),
               ),
             ],
             const SizedBox(height: 14),
