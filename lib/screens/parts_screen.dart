@@ -291,28 +291,32 @@ class _PartsScreenState extends State<PartsScreen> {
         .map((e) => e.key)
         .toList();
 
-    await Future.wait(cats.map((cat) async {
-      try {
-        final lastDoc = _lastDocPerCategory[cat];
-        Query<Map<String, dynamic>> query =
-            db.collection(cat).limit(_kBatchSize);
-        if (lastDoc != null) query = query.startAfterDocument(lastDoc);
-        final snap = await query.get();
-        for (final d in snap.docs) {
-          final data = Map<String, dynamic>.from(d.data());
-          data['_category'] = cat;
-          newParts.add((d.reference.path, data));
+    await Future.wait(
+      cats.map((cat) async {
+        try {
+          final lastDoc = _lastDocPerCategory[cat];
+          Query<Map<String, dynamic>> query = db
+              .collection(cat)
+              .limit(_kBatchSize);
+          if (lastDoc != null) query = query.startAfterDocument(lastDoc);
+          final snap = await query.get();
+          for (final d in snap.docs) {
+            final data = Map<String, dynamic>.from(d.data());
+            data['_category'] = cat;
+            newParts.add((d.reference.path, data));
+          }
+          if (snap.docs.isNotEmpty) _lastDocPerCategory[cat] = snap.docs.last;
+          final loaded = (_loadedCountPerCategory[cat] ?? 0) + snap.docs.length;
+          _loadedCountPerCategory[cat] = loaded;
+          _hasMorePerCategory[cat] =
+              loaded < (_countPerCategory[cat] ?? loaded);
+        } catch (e) {
+          // ignore: avoid_print
+          print('[_fetchNextBatch] $cat: $e');
+          _hasMorePerCategory[cat] = false; // prevent infinite loop
         }
-        if (snap.docs.isNotEmpty) _lastDocPerCategory[cat] = snap.docs.last;
-        final loaded = (_loadedCountPerCategory[cat] ?? 0) + snap.docs.length;
-        _loadedCountPerCategory[cat] = loaded;
-        _hasMorePerCategory[cat] = loaded < (_countPerCategory[cat] ?? loaded);
-      } catch (e) {
-        // ignore: avoid_print
-        print('[_fetchNextBatch] $cat: $e');
-        _hasMorePerCategory[cat] = false; // prevent infinite loop
-      }
-    }));
+      }),
+    );
 
     return newParts;
   }
@@ -335,8 +339,10 @@ class _PartsScreenState extends State<PartsScreen> {
   /// batches because it avoids sequential network round-trips.
   Future<void> _loadAllFromDb() async {
     if (_isLoadingMore || !mounted) return;
-    final cats =
-        _hasMorePerCategory.entries.where((e) => e.value).map((e) => e.key).toList();
+    final cats = _hasMorePerCategory.entries
+        .where((e) => e.value)
+        .map((e) => e.key)
+        .toList();
     if (cats.isEmpty) {
       setState(() => _recomputeFiltered());
       return;
@@ -350,27 +356,29 @@ class _PartsScreenState extends State<PartsScreen> {
     final allNew = <(String, Map<String, dynamic>)>[];
 
     // One unlimited request per category – all categories in parallel.
-    await Future.wait(cats.map((cat) async {
-      try {
-        final lastDoc = _lastDocPerCategory[cat];
-        Query<Map<String, dynamic>> query = db.collection(cat);
-        if (lastDoc != null) query = query.startAfterDocument(lastDoc);
-        final snap = await query.get();
-        for (final d in snap.docs) {
-          final data = Map<String, dynamic>.from(d.data());
-          data['_category'] = cat;
-          allNew.add((d.reference.path, data));
+    await Future.wait(
+      cats.map((cat) async {
+        try {
+          final lastDoc = _lastDocPerCategory[cat];
+          Query<Map<String, dynamic>> query = db.collection(cat);
+          if (lastDoc != null) query = query.startAfterDocument(lastDoc);
+          final snap = await query.get();
+          for (final d in snap.docs) {
+            final data = Map<String, dynamic>.from(d.data());
+            data['_category'] = cat;
+            allNew.add((d.reference.path, data));
+          }
+          if (snap.docs.isNotEmpty) _lastDocPerCategory[cat] = snap.docs.last;
+          final loaded = (_loadedCountPerCategory[cat] ?? 0) + snap.docs.length;
+          _loadedCountPerCategory[cat] = loaded;
+          _hasMorePerCategory[cat] = false;
+        } catch (e) {
+          // ignore: avoid_print
+          print('[_loadAllFromDb] $cat: $e');
+          _hasMorePerCategory[cat] = false;
         }
-        if (snap.docs.isNotEmpty) _lastDocPerCategory[cat] = snap.docs.last;
-        final loaded = (_loadedCountPerCategory[cat] ?? 0) + snap.docs.length;
-        _loadedCountPerCategory[cat] = loaded;
-        _hasMorePerCategory[cat] = false;
-      } catch (e) {
-        // ignore: avoid_print
-        print('[_loadAllFromDb] $cat: $e');
-        _hasMorePerCategory[cat] = false;
-      }
-    }));
+      }),
+    );
 
     if (!mounted) return;
     setState(() {
@@ -412,10 +420,7 @@ class _PartsScreenState extends State<PartsScreen> {
           final price = _toDouble(e.$2['price']).isNaN
               ? null
               : _toDouble(e.$2['price']);
-          if (_dataFilter == _DataCompletenessFilter.compatOnly) {
-            return _partMissingDataFields(e.$3.type, e.$2, price).isEmpty;
-          }
-          return _partFullMissingDataFields(e.$3.type, e.$2, price).isEmpty;
+          return _partMissingDataFields(e.$3.type, e.$2, price).isEmpty;
         })
         .toList();
     list.sort((a, b) => _sortCompare(_selectedSort, a.$2, b.$2));
@@ -1190,7 +1195,8 @@ class _PartsScreenState extends State<PartsScreen> {
     // batch and the DB still has documents. This ensures that e.g. a "16+ cores"
     // filter immediately fills the screen instead of stopping at whatever few
     // items happened to be in the first loaded batch.
-    final hasActiveFilters = _searchQuery.trim().isNotEmpty ||
+    final hasActiveFilters =
+        _searchQuery.trim().isNotEmpty ||
         _specFilters.isNotEmpty ||
         _priceRange.start > 0 ||
         _priceRange.end < 5000 ||
@@ -1224,7 +1230,8 @@ class _PartsScreenState extends State<PartsScreen> {
         hasActiveFilters && hasMoreInDb && totalFiltered < _kBatchSize;
     // Show "Load More" if there are more pages in memory OR if the DB has more
     // documents that haven't been loaded yet (they might match the current filter).
-    final showLoadMore = !isAutoFetching &&
+    final showLoadMore =
+        !isAutoFetching &&
         ((_displayedCount < totalFiltered && totalFiltered >= _kBatchSize) ||
             hasMoreInDb);
 
@@ -1583,67 +1590,10 @@ class _PartIndex {
 
 /// Controls which parts are filtered out based on data completeness.
 enum _DataCompletenessFilter {
-  showAll,       // Alle anzeigen – no filter
-  compatOnly,    // Hide parts missing compat-critical fields
-  fullyComplete, // Hide parts missing any known spec field
+  showAll, // Alle anzeigen – no filter
+  compatOnly, // Hide parts missing compat-critical fields
 }
 
-/// Extended version of [_partMissingDataFields] that also checks non-compat
-/// spec fields (e.g. noise_level for cpu-cooler, rpm, airflow…).
-List<String> _partFullMissingDataFields(
-  String type,
-  Map<String, dynamic> rawData,
-  double? price,
-) {
-  // Start with compat-critical fields (superset).
-  final missing = List<String>.from(_partMissingDataFields(type, rawData, price));
-
-  final spec = rawData['spec'];
-  dynamic v(String camel, String snake) {
-    if (spec is Map) {
-      final sv = spec[camel] ?? spec[snake];
-      if (sv != null) return sv;
-    }
-    return rawData[snake] ?? rawData[camel];
-  }
-
-  bool empty(dynamic val) {
-    if (val == null) return true;
-    if (val is String) return val.trim().isEmpty || val == 'null';
-    if (val is List) return val.isEmpty;
-    return false;
-  }
-
-  switch (type) {
-    case 'cpu':
-      if (empty(v('threadCount', 'thread_count'))) missing.add('Thread-Anzahl');
-      if (empty(v('boostClock', 'boost_clock'))) missing.add('Taktfrequenz');
-    case 'video-card':
-      if (empty(v('boostClock', 'boost_clock'))) missing.add('Taktfrequenz');
-      if (empty(v('tdp', 'tdp'))) missing.add('TDP');
-    case 'memory':
-      if (empty(v('casLatency', 'cas_latency'))) missing.add('CAS-Latenz');
-      if (empty(v('firstWordLatency', 'first_word_latency')))
-        missing.add('First-Word-Latenz');
-    case 'internal-hard-drive':
-      if (empty(v('formFactor', 'form_factor'))) missing.add('Formfaktor');
-    case 'motherboard':
-      if (empty(v('maxMemory', 'max_memory'))) missing.add('Max. RAM');
-    case 'power-supply':
-      if (empty(v('efficiency', 'efficiency'))) missing.add('Effizienz');
-      if (empty(v('modular', 'modular'))) missing.add('Modular');
-    case 'case':
-      if (empty(v('sidePanel', 'side_panel'))) missing.add('Seitenpanel');
-    case 'cpu-cooler':
-      if (empty(v('rpm', 'rpm'))) missing.add('RPM');
-      if (empty(v('noiseLevelDb', 'noise_level'))) missing.add('Lautstärke');
-    case 'case-fan':
-      if (empty(v('sizeMm', 'size'))) missing.add('Größe');
-      if (empty(v('noiseLevelDb', 'noise_level'))) missing.add('Lautstärke');
-      if (empty(v('airflow', 'airflow'))) missing.add('Airflow');
-  }
-  return missing;
-}
 
 class _SearchField extends StatelessWidget {
   final TextEditingController controller;
@@ -2842,7 +2792,8 @@ class _SortSheet extends StatefulWidget {
     String sort,
     RangeValues range,
     _DataCompletenessFilter dataFilter,
-  ) onApply;
+  )
+  onApply;
   final ThemeData theme;
 
   const _SortSheet({
@@ -2965,7 +2916,6 @@ class _SortSheetState extends State<_SortSheet> {
                 for (final (filter, label) in [
                   (_DataCompletenessFilter.showAll, 'Alle anzeigen'),
                   (_DataCompletenessFilter.compatOnly, 'Kompatibilität'),
-                  (_DataCompletenessFilter.fullyComplete, 'Vollständig'),
                 ])
                   InkWell(
                     onTap: () => setState(() => _dataFilter = filter),
@@ -2978,7 +2928,9 @@ class _SortSheetState extends State<_SortSheet> {
                       decoration: BoxDecoration(
                         color: _dataFilter == filter
                             ? cs.primary
-                            : cs.surfaceContainerHighest.withValues(alpha: 0.65),
+                            : cs.surfaceContainerHighest.withValues(
+                                alpha: 0.65,
+                              ),
                         borderRadius: BorderRadius.circular(999),
                         border: Border.all(
                           color: cs.outlineVariant.withValues(alpha: 0.35),

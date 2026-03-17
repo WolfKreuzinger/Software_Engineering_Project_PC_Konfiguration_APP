@@ -8,17 +8,212 @@ import '../services/builds_repository.dart';
 import '../widgets/build_list_card.dart';
 import '../widgets/guided_configurator_card.dart';
 import '../widgets/section_header.dart';
+import '../widgets/share_build_sheet.dart';
 import '../widgets/start_new_build_tile.dart';
 
-class Dashboard extends StatelessWidget {
+class Dashboard extends StatefulWidget {
   const Dashboard({super.key});
+
+  @override
+  State<Dashboard> createState() => _DashboardState();
+}
+
+class _DashboardState extends State<Dashboard> {
+  final _repo = BuildsRepository();
+
+  Future<void> _shareBuild(SavedBuild build) async {
+    final user = FirebaseAuth.instance.currentUser;
+    final senderName = user?.displayName ?? '';
+    if (!mounted) return;
+    showModalBottomSheet<void>(
+      context: context,
+      showDragHandle: true,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (_) => ShareBuildSheet(
+        build: build,
+        senderName: senderName,
+        repo: _repo,
+      ),
+    );
+  }
+
+  Future<void> _renameBuild(User user, SavedBuild build) async {
+    final ctrl = TextEditingController(text: build.title);
+    final next = await showDialog<String>(
+      context: context,
+      useRootNavigator: true,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Rename Build'),
+        content: TextField(
+          controller: ctrl,
+          autofocus: true,
+          decoration: const InputDecoration(
+            hintText: 'Build name',
+            border: OutlineInputBorder(),
+          ),
+          textInputAction: TextInputAction.done,
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx, rootNavigator: true).pop(),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () {
+              final trimmed = ctrl.text.trim();
+              Navigator.of(ctx, rootNavigator: true)
+                  .pop(trimmed.isEmpty ? null : trimmed);
+            },
+            child: const Text('Save'),
+          ),
+        ],
+      ),
+    );
+    ctrl.dispose();
+    if (next == null || next == build.title) return;
+    await _repo.renameBuild(
+        uid: user.uid, buildId: build.buildId, title: next);
+  }
+
+  Future<void> _duplicateBuild(User user, SavedBuild build) async {
+    final ctrl = TextEditingController(text: 'Kopie von ${build.title}');
+    final title = await showDialog<String>(
+      context: context,
+      useRootNavigator: true,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Build duplizieren'),
+        content: TextField(
+          controller: ctrl,
+          autofocus: true,
+          decoration: const InputDecoration(
+            hintText: 'Name des Duplikats',
+            border: OutlineInputBorder(),
+          ),
+          textInputAction: TextInputAction.done,
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx, rootNavigator: true).pop(),
+            child: const Text('Abbrechen'),
+          ),
+          FilledButton(
+            onPressed: () {
+              final t = ctrl.text.trim();
+              Navigator.of(ctx, rootNavigator: true)
+                  .pop(t.isEmpty ? null : t);
+            },
+            child: const Text('Duplizieren'),
+          ),
+        ],
+      ),
+    );
+    ctrl.dispose();
+    if (title == null || !mounted) return;
+    try {
+      await _repo.saveBuild(
+        uid: user.uid,
+        selectedParts: build.selectedParts,
+        totalPrice: build.totalPrice,
+        estimatedWattage: build.estimatedWattage,
+        status: build.status,
+        title: title,
+      );
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          behavior: SnackBarBehavior.floating,
+          content: Text('"$title" wurde gespeichert.'),
+        ),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          behavior: SnackBarBehavior.floating,
+          content: Text('Fehler beim Duplizieren: $e'),
+        ),
+      );
+    }
+  }
+
+  Future<void> _deleteBuild(User user, SavedBuild build) async {
+    final ok = await showDialog<bool>(
+      context: context,
+      useRootNavigator: true,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Delete Build'),
+        content: Text('Delete "${build.title}" permanently?'),
+        actions: [
+          TextButton(
+            onPressed: () =>
+                Navigator.of(ctx, rootNavigator: true).pop(false),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () =>
+                Navigator.of(ctx, rootNavigator: true).pop(true),
+            child: const Text('Delete'),
+          ),
+        ],
+      ),
+    );
+    if (ok != true) return;
+    await _repo.deleteBuild(uid: user.uid, buildId: build.buildId);
+  }
+
+  Future<void> _openBuildActions(User user, SavedBuild build) async {
+    final action = await showModalBottomSheet<String>(
+      context: context,
+      showDragHandle: true,
+      builder: (ctx) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ListTile(
+              leading: const Icon(Icons.edit_rounded),
+              title: const Text('Rename'),
+              onTap: () => Navigator.of(ctx).pop('rename'),
+            ),
+            if (!build.readOnly)
+              ListTile(
+                leading: const Icon(Icons.copy_rounded),
+                title: const Text('Duplizieren'),
+                onTap: () => Navigator.of(ctx).pop('duplicate'),
+              ),
+            ListTile(
+              leading: const Icon(Icons.delete_outline_rounded),
+              title: const Text('Delete'),
+              textColor: Colors.red,
+              iconColor: Colors.red,
+              onTap: () => Navigator.of(ctx).pop('delete'),
+            ),
+            const SizedBox(height: 8),
+          ],
+        ),
+      ),
+    );
+    if (!mounted || action == null) return;
+    if (action == 'rename') {
+      await _renameBuild(user, build);
+      return;
+    }
+    if (action == 'duplicate') {
+      await _duplicateBuild(user, build);
+      return;
+    }
+    if (action == 'delete') {
+      await _deleteBuild(user, build);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     final l10n = context.l10n;
     final theme = Theme.of(context);
     final user = FirebaseAuth.instance.currentUser;
-    final repo = BuildsRepository();
 
     return CustomScrollView(
       slivers: [
@@ -44,7 +239,8 @@ class Dashboard extends StatelessWidget {
             ),
             padding: const EdgeInsets.all(1),
             child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              padding:
+                  const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
               decoration: BoxDecoration(
                 color: theme.colorScheme.surface,
                 borderRadius: BorderRadius.circular(998),
@@ -70,7 +266,8 @@ class Dashboard extends StatelessWidget {
                         ),
                         child: CircleAvatar(
                           radius: 18,
-                          backgroundColor: theme.colorScheme.primaryContainer,
+                          backgroundColor:
+                              theme.colorScheme.primaryContainer,
                           child: Icon(
                             Icons.person,
                             color: theme.colorScheme.onPrimaryContainer,
@@ -141,7 +338,7 @@ class Dashboard extends StatelessWidget {
         else
           SliverToBoxAdapter(
             child: StreamBuilder<List<SavedBuild>>(
-              stream: repo.watchBuilds(user.uid),
+              stream: _repo.watchBuilds(user.uid),
               builder: (context, snap) {
                 final builds = snap.data ?? const <SavedBuild>[];
                 if (!snap.hasData) {
@@ -159,10 +356,12 @@ class Dashboard extends StatelessWidget {
                 return SizedBox(
                   height: 170,
                   child: ListView.separated(
-                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 16),
                     scrollDirection: Axis.horizontal,
                     itemCount: shown.length,
-                    separatorBuilder: (_, _) => const SizedBox(width: 12),
+                    separatorBuilder: (_, _) =>
+                        const SizedBox(width: 12),
                     itemBuilder: (context, index) {
                       final build = shown[index];
                       return SizedBox(
@@ -170,8 +369,10 @@ class Dashboard extends StatelessWidget {
                         child: BuildListCard(
                           savedBuild: build,
                           compact: true,
-                          onTap: () => context.go('/configure', extra: build),
-                          onResume: () => context.go('/configure', extra: build),
+                          onTap: () =>
+                              context.go('/configure', extra: build),
+                          onShare: () => _shareBuild(build),
+                          onMore: () => _openBuildActions(user, build),
                         ),
                       );
                     },
@@ -203,7 +404,8 @@ class _DashboardEmptyState extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.4),
+          color: theme.colorScheme.surfaceContainerHighest
+              .withValues(alpha: 0.4),
           borderRadius: BorderRadius.circular(14),
         ),
         child: Row(
@@ -216,7 +418,8 @@ class _DashboardEmptyState extends StatelessWidget {
                 ),
               ),
             ),
-            OutlinedButton(onPressed: onStart, child: const Text('Start new build')),
+            OutlinedButton(
+                onPressed: onStart, child: const Text('Start new build')),
           ],
         ),
       ),
