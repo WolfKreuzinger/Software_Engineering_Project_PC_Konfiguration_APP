@@ -123,6 +123,7 @@ final router = GoRouter(
               return _noAnim(ConfigureScreen(
                 initialBuild: extra.build,
                 readOnly: extra.readOnly,
+                backRoute: extra.backRoute,
               ));
             }
             final initialBuild = extra is SavedBuild ? extra : null;

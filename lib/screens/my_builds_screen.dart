@@ -1,13 +1,12 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
-import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:go_router/go_router.dart';
-import 'package:url_launcher/url_launcher.dart';
 
 import '../models/saved_build.dart';
 import '../services/builds_repository.dart';
 import '../widgets/build_list_card.dart';
+import '../widgets/share_build_sheet.dart';
+import 'configure_screen.dart';
 
 enum _BuildFilter { all, completed, inProgress, draft }
 
@@ -105,7 +104,7 @@ class _MyBuildsScreenState extends State<MyBuildsScreen> {
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
-      builder: (_) => _ShareBuildSheet(
+      builder: (_) => ShareBuildSheet(
         build: build,
         senderName: senderName,
         repo: _repo,
@@ -389,8 +388,8 @@ class _MyBuildsScreenState extends State<MyBuildsScreen> {
                   child: BuildListCard(
                     savedBuild: build,
                     isCurrent: i == 0 && build.isResumable,
-                    onTap: () => context.go('/configure', extra: build),
-                    onResume: () => context.go('/configure', extra: build),
+                    pinCostToBottom: true,
+                    onTap: () => context.go('/configure', extra: ConfigureScreenArgs(build: build, backRoute: '/my-builds')),
                     onMore: () => _openBuildActions(user, build),
                     onShare: () => _shareBuild(build),
                   ),
