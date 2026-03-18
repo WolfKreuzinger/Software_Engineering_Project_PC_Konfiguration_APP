@@ -7,9 +7,14 @@ import '../services/builds_repository.dart';
 import 'configure_screen.dart';
 
 class SharedBuildScreen extends StatefulWidget {
-  const SharedBuildScreen({super.key, required this.buildId});
+  const SharedBuildScreen({
+    super.key,
+    required this.buildId,
+    required this.readOnly,
+  });
 
   final String buildId;
+  final bool readOnly;
 
   @override
   State<SharedBuildScreen> createState() => _SharedBuildScreenState();
@@ -32,8 +37,10 @@ class _SharedBuildScreenState extends State<SharedBuildScreen> {
     });
   }
 
-  String get _shareUrl =>
-      '${BuildsRepository.shareBaseUrl}/build/${widget.buildId}';
+  String get _shareUrl {
+    final suffix = widget.readOnly ? '?ro=1' : '';
+    return '${BuildsRepository.shareBaseUrl}/build/${widget.buildId}$suffix';
+  }
 
   Future<void> _copyLink() async {
     await Clipboard.setData(ClipboardData(text: _shareUrl));
@@ -57,7 +64,7 @@ class _SharedBuildScreenState extends State<SharedBuildScreen> {
     final rawParts = (data['selectedParts'] is Map)
         ? Map<String, dynamic>.from(data['selectedParts'] as Map)
         : <String, dynamic>{};
-    final isReadOnly = data['readOnly'] == true;
+    final isReadOnly = widget.readOnly;
     final senderName = (data['senderName'] ?? '').toString().trim();
     final build = SavedBuild(
       buildId: widget.buildId,

@@ -162,11 +162,11 @@ class BuildsRepository {
       'totalPrice': build.totalPrice,
       'estimatedWattage': build.estimatedWattage,
       'publishedAt': FieldValue.serverTimestamp(),
-      'readOnly': readOnly,
-      if (readOnly && senderName != null && senderName.isNotEmpty)
+      if (senderName != null && senderName.isNotEmpty)
         'senderName': senderName,
     });
-    return '$shareBaseUrl/build/${build.buildId}';
+    final suffix = readOnly ? '?ro=1' : '';
+    return '$shareBaseUrl/build/${build.buildId}$suffix';
   }
 
   /// Reads a previously published build from the `publicBuilds` collection.
