@@ -352,28 +352,29 @@ class _DashboardState extends State<Dashboard> {
                     onStart: () => context.go('/configure'),
                   );
                 }
-                final shown = builds.take(3).toList(growable: false);
+                final shown = builds.take(4).toList(growable: false);
                 return SizedBox(
-                  height: 170,
-                  child: ListView.separated(
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 16),
+                  height: 350,
+                  child: GridView.builder(
                     scrollDirection: Axis.horizontal,
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    gridDelegate:
+                        const SliverGridDelegateWithFixedCrossAxisCount(
+                      crossAxisCount: 2,
+                      crossAxisSpacing: 10,
+                      mainAxisSpacing: 12,
+                      mainAxisExtent: 340,
+                    ),
                     itemCount: shown.length,
-                    separatorBuilder: (_, _) =>
-                        const SizedBox(width: 12),
                     itemBuilder: (context, index) {
                       final build = shown[index];
-                      return SizedBox(
-                        width: 340,
-                        child: BuildListCard(
-                          savedBuild: build,
-                          compact: true,
-                          onTap: () =>
-                              context.go('/configure', extra: build),
-                          onShare: () => _shareBuild(build),
-                          onMore: () => _openBuildActions(user, build),
-                        ),
+                      return BuildListCard(
+                        savedBuild: build,
+                        compact: true,
+                        onTap: () =>
+                            context.go('/configure', extra: build),
+                        onShare: () => _shareBuild(build),
+                        onMore: () => _openBuildActions(user, build),
                       );
                     },
                   ),
