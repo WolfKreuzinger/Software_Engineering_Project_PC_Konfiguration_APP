@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 
 import '../models/saved_build.dart';
 import '../services/builds_repository.dart';
+import '../widgets/build_cover_picker.dart';
 import '../widgets/build_list_card.dart';
 import '../widgets/share_build_sheet.dart';
 import 'configure_screen.dart';
@@ -114,42 +115,72 @@ class _MyBuildsScreenState extends State<MyBuildsScreen> {
 
   Future<void> _renameBuild(User user, SavedBuild build) async {
     final ctrl = TextEditingController(text: build.title);
-    final next = await showDialog<String>(
+    String? selectedCover = build.heroImageUrl;
+    final result =
+        await showDialog<({String title, String? heroImageUrl})>(
       context: context,
       useRootNavigator: true,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Rename Build'),
-        content: TextField(
-          controller: ctrl,
-          autofocus: true,
-          decoration: const InputDecoration(
-            hintText: 'Build name',
-            border: OutlineInputBorder(),
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setDialogState) => AlertDialog(
+          title: const Text('Build bearbeiten'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              TextField(
+                controller: ctrl,
+                autofocus: true,
+                decoration: const InputDecoration(
+                  hintText: 'Build-Name',
+                  border: OutlineInputBorder(),
+                ),
+                textInputAction: TextInputAction.done,
+              ),
+              const SizedBox(height: 16),
+              Text(
+                'Cover-Bild (optional)',
+                style: Theme.of(ctx).textTheme.labelSmall?.copyWith(
+                      color: Theme.of(ctx).colorScheme.onSurfaceVariant,
+                      fontWeight: FontWeight.w700,
+                      letterSpacing: 0.5,
+                    ),
+              ),
+              const SizedBox(height: 8),
+              BuildCoverPicker(
+                selectedCoverId: selectedCover,
+                onChanged: (id) =>
+                    setDialogState(() => selectedCover = id),
+              ),
+            ],
           ),
-          textInputAction: TextInputAction.done,
+          actions: [
+            TextButton(
+              onPressed: () =>
+                  Navigator.of(ctx, rootNavigator: true).pop(),
+              child: const Text('Abbrechen'),
+            ),
+            FilledButton(
+              onPressed: () {
+                final trimmed = ctrl.text.trim();
+                if (trimmed.isEmpty) return;
+                Navigator.of(ctx, rootNavigator: true).pop(
+                  (title: trimmed, heroImageUrl: selectedCover),
+                );
+              },
+              child: const Text('Speichern'),
+            ),
+          ],
         ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(ctx, rootNavigator: true).pop(),
-            child: const Text('Cancel'),
-          ),
-          FilledButton(
-            onPressed: () {
-              final trimmed = ctrl.text.trim();
-              Navigator.of(
-                ctx,
-                rootNavigator: true,
-              ).pop(trimmed.isEmpty ? null : trimmed);
-            },
-            child: const Text('Save'),
-          ),
-        ],
       ),
     );
     ctrl.dispose();
-    if (next == null || next == build.title) return;
-
-    await _repo.renameBuild(uid: user.uid, buildId: build.buildId, title: next);
+    if (result == null) return;
+    await _repo.renameBuild(
+      uid: user.uid,
+      buildId: build.buildId,
+      title: result.title,
+      heroImageUrl: result.heroImageUrl,
+    );
   }
 
   Future<void> _duplicateBuild(User user, SavedBuild build) async {
