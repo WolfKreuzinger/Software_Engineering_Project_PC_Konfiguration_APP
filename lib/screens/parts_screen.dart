@@ -559,84 +559,61 @@ class _PartsScreenState extends State<PartsScreen> {
     final spec = data['spec'];
 
     if (type == 'video-card') {
-      final mem = _toInt(
-        (spec is Map ? spec['memory'] : null) ?? data['memory'],
-      );
       final chipset =
           ((spec is Map ? spec['chipset'] : null) ?? data['chipset'] ?? '')
               .toString();
-      final boost = _toInt(
-        (spec is Map ? spec['boostClock'] : null) ?? data['boost_clock'],
-      );
-      final pieces = <String>[];
-      if (mem > 0) pieces.add('${mem}GB');
-      if (chipset.isNotEmpty) pieces.add(chipset);
-      if (boost > 0) pieces.add('$boost MHz');
-      return pieces.isEmpty ? 'Graphics card' : pieces.join(' • ');
+      return chipset.isEmpty ? 'Graphics card' : chipset;
     }
 
     if (type == 'cpu') {
       final cores = _toInt(
         (spec is Map ? spec['coreCount'] : null) ?? data['core_count'],
       );
-      final threads = _toInt(
-        (spec is Map ? spec['threadCount'] : null) ?? data['thread_count'],
+      final boost = _toDouble(
+        (spec is Map ? spec['boostClock'] : null) ?? data['boost_clock'],
       );
-      final tdp = _toInt((spec is Map ? spec['tdp'] : null) ?? data['tdp']);
       final pieces = <String>[];
       if (cores > 0) pieces.add('$cores cores');
-      if (threads > 0) pieces.add('$threads threads');
-      if (tdp > 0) pieces.add('$tdp W');
-      return pieces.isEmpty ? 'Processor' : pieces.join(' • ');
+      if (!boost.isNaN && boost > 0) pieces.add('$boost GHz');
+      return pieces.isEmpty ? 'Processor' : pieces.join('\n');
     }
 
     if (type == 'memory') {
-      final speed = (spec is Map ? spec['speed'] : null) ?? data['speed'];
       final modules = (spec is Map ? spec['modules'] : null) ?? data['modules'];
-      final cas = _toInt(
-        (spec is Map ? spec['casLatency'] : null) ?? data['cas_latency'],
-      );
+      final speed = (spec is Map ? spec['speed'] : null) ?? data['speed'];
       final pieces = <String>[];
       if (modules is List && modules.length >= 2) {
         final count = _toInt(modules[0]);
         final size = _toInt(modules[1]);
         if (count > 0 && size > 0) pieces.add('${count}x${size}GB');
       }
-      if (speed is List && speed.length >= 2) {
+      if (speed is List && speed.isNotEmpty) {
         final ddr = _toInt(speed[0]);
-        final mhz = _toInt(speed[1]);
-        if (ddr > 0 && mhz > 0) pieces.add('DDR$ddr $mhz');
+        if (ddr > 0) pieces.add('DDR$ddr');
       }
-      if (cas > 0) pieces.add('CL$cas');
-      return pieces.isEmpty ? 'Memory' : pieces.join(' • ');
+      return pieces.isEmpty ? 'Memory' : pieces.join('\n');
     }
 
     if (type == 'internal-hard-drive') {
       final cap = _toInt(
         (spec is Map ? spec['capacityGb'] : null) ?? data['capacity'],
       );
-      final iface =
-          ((spec is Map ? spec['interface'] : null) ?? data['interface'] ?? '')
-              .toString();
-      final pieces = <String>[];
-      if (cap > 0) pieces.add('${cap}GB');
-      if (iface.isNotEmpty) pieces.add(iface);
-      return pieces.isEmpty ? 'Storage' : pieces.join(' • ');
-    }
-
-    if (type == 'motherboard') {
-      final socket =
-          ((spec is Map ? spec['socket'] : null) ?? data['socket'] ?? '')
-              .toString();
       final ff =
           ((spec is Map ? spec['formFactor'] : null) ??
                   data['form_factor'] ??
                   '')
               .toString();
       final pieces = <String>[];
-      if (socket.isNotEmpty) pieces.add(socket);
+      if (cap > 0) pieces.add('${cap}GB');
       if (ff.isNotEmpty) pieces.add(ff);
-      return pieces.isEmpty ? 'Motherboard' : pieces.join(' • ');
+      return pieces.isEmpty ? 'Storage' : pieces.join('\n');
+    }
+
+    if (type == 'motherboard') {
+      final socket =
+          ((spec is Map ? spec['socket'] : null) ?? data['socket'] ?? '')
+              .toString();
+      return socket.isEmpty ? 'Motherboard' : socket;
     }
 
     if (type == 'power-supply') {
@@ -650,17 +627,34 @@ class _PartsScreenState extends State<PartsScreen> {
               .toString();
       final pieces = <String>[];
       if (w > 0) pieces.add('${w}W');
-      if (eff.isNotEmpty) pieces.add(eff);
-      return pieces.isEmpty ? 'Power supply' : pieces.join(' • ');
+      if (eff.isNotEmpty) {
+        final effNorm = eff.trim().toLowerCase();
+        final effDisplay = switch (effNorm) {
+          '80+' => '80+',
+          '80+ bronze' || 'bronze' => '80+ Bronze',
+          '80+ silver' || 'silver' => '80+ Silver',
+          '80+ gold' || 'gold' => '80+ Gold',
+          '80+ platinum' || 'platinum' => '80+ Platinum',
+          '80+ titanium' || 'titanium' => '80+ Titanium',
+          _ => eff.trim(),
+        };
+        pieces.add(effDisplay);
+      }
+      return pieces.isEmpty ? 'Power supply' : pieces.join('\n');
     }
 
     if (type == 'case') {
-      final panel =
-          ((spec is Map ? spec['sidePanel'] : null) ?? data['side_panel'] ?? '')
+      final caseType =
+          ((spec is Map ? spec['type'] : null) ?? data['type'] ?? '')
               .toString();
-      final pieces = <String>[];
-      if (panel.isNotEmpty) pieces.add(panel);
-      return pieces.isEmpty ? 'Case' : pieces.join(' • ');
+      return caseType.isEmpty ? 'Case' : caseType;
+    }
+
+    if (type == 'case-accessory') {
+      final caseType =
+          ((spec is Map ? spec['type'] : null) ?? data['type'] ?? '')
+              .toString();
+      return caseType.isEmpty ? 'Case Accessory' : caseType;
     }
 
     if (type == 'cpu-cooler') {
@@ -674,23 +668,84 @@ class _PartsScreenState extends State<PartsScreen> {
         final single = _toInt(rpm);
         if (single > 0) pieces.add('$single RPM');
       }
-      final noise =
-          (spec is Map ? spec['noiseLevelDb'] : null) ?? data['noise_level'];
-      if (noise is num) pieces.add('${noise.toString()} dBA');
-      return pieces.isEmpty ? 'CPU cooler' : pieces.join(' • ');
+      return pieces.isEmpty ? 'CPU cooler' : pieces.join('\n');
     }
 
     if (type == 'case-fan') {
       final size = _toInt(
         (spec is Map ? spec['sizeMm'] : null) ?? data['size'],
       );
-      final pwm = ((spec is Map ? spec['pwm'] : null) ?? data['pwm']) == true
-          ? 'PWM'
-          : '';
+      final noise =
+          (spec is Map ? spec['noiseLevelDb'] : null) ?? data['noise_level'];
       final pieces = <String>[];
       if (size > 0) pieces.add('${size}mm');
-      if (pwm.isNotEmpty) pieces.add(pwm);
-      return pieces.isEmpty ? 'Case fan' : pieces.join(' • ');
+      if (noise is num) pieces.add('${noise.toString()} dBA');
+      return pieces.isEmpty ? 'Case fan' : pieces.join('\n');
+    }
+
+    if (type == 'fan-controller') {
+      final channels = _toInt(
+        (spec is Map ? spec['channels'] : null) ?? data['channels'],
+      );
+      return channels > 0 ? '$channels Channels' : 'Fan Controller';
+    }
+
+    if (type == 'wired-network-card') {
+      final iface =
+          ((spec is Map ? spec['interface'] : null) ?? data['interface'] ?? '')
+              .toString();
+      return iface.isEmpty ? 'Ethernet Card' : iface;
+    }
+
+    if (type == 'external-hard-drive') {
+      final cap = _toInt(
+        (spec is Map ? spec['capacityGb'] : null) ?? data['capacity'],
+      );
+      return cap > 0 ? '${cap}GB' : 'External Storage';
+    }
+
+    if (type == 'optical-drive') {
+      final bdWrite =
+          (spec is Map ? spec['bd_write'] : null) ?? data['bd_write'];
+      final bdRead = (spec is Map ? spec['bd'] : null) ?? data['bd'];
+      if (bdWrite != null) return 'Blu-ray Writer';
+      if (bdRead != null) return 'Blu-ray Reader';
+      return 'CD/DVD Drive';
+    }
+
+    if (type == 'sound-card') {
+      final channels =
+          (spec is Map ? spec['channels'] : null) ?? data['channels'];
+      final iface =
+          ((spec is Map ? spec['interface'] : null) ?? data['interface'] ?? '')
+              .toString();
+      final pieces = <String>[];
+      if (channels != null) {
+        final ch = channels.toString().trim();
+        if (ch.isNotEmpty) pieces.add(ch);
+      }
+      if (iface.isNotEmpty) pieces.add(iface);
+      return pieces.isEmpty ? 'Sound Card' : pieces.join('\n');
+    }
+
+    if (type == 'ups') {
+      final cap = _toInt(
+        (spec is Map ? spec['capacityW'] : null) ?? data['capacity_w'],
+      );
+      return cap > 0 ? '${cap}W' : 'UPS';
+    }
+
+    if (type == 'wireless-network-card') {
+      final protocol =
+          ((spec is Map ? spec['protocol'] : null) ?? data['protocol'] ?? '')
+              .toString();
+      final iface =
+          ((spec is Map ? spec['interface'] : null) ?? data['interface'] ?? '')
+              .toString();
+      final pieces = <String>[];
+      if (protocol.isNotEmpty) pieces.add(protocol);
+      if (iface.isNotEmpty) pieces.add(iface);
+      return pieces.isEmpty ? 'Wi-Fi Card' : pieces.join('\n');
     }
 
     final extra =
@@ -1798,8 +1853,6 @@ class _PartCard extends StatelessWidget {
                       const SizedBox(height: 10),
                       Text(
                         specs,
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
                         textAlign: TextAlign.center,
                         style: theme.textTheme.labelSmall?.copyWith(
                           color: cs.onSurfaceVariant,
