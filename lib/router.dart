@@ -88,7 +88,8 @@ final router = GoRouter(
       path: '/build/:id',
       pageBuilder: (_, state) {
         final buildId = state.pathParameters['id'] ?? '';
-        return _noAnim(SharedBuildScreen(buildId: buildId));
+        final readOnly = state.uri.queryParameters['ro'] == '1';
+        return _noAnim(SharedBuildScreen(buildId: buildId, readOnly: readOnly));
       },
     ),
     GoRoute(
