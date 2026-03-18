@@ -861,6 +861,12 @@ class _PartsScreenState extends State<PartsScreen> {
         continue;
       }
 
+      if (def.filterMode == _FilterMode.boolTrue) {
+        if ((filter.textValue?.trim() ?? '').isEmpty) continue;
+        if (rawVal != true) return false;
+        continue;
+      }
+
       // ── Normal matching ───────────────────────────────────────────────────
       if (filter.isRange) {
         final filterRange = filter.rangeValues!;
@@ -1089,7 +1095,7 @@ class _PartsScreenState extends State<PartsScreen> {
                   padding: const EdgeInsets.fromLTRB(16, 0, 16, 10),
                   child: _SearchField(
                     controller: _searchCtrl,
-                    hint: 'Search parts (e.g. RTX 3080)',
+                    hint: 'Search parts',
                     onSubmitted: (_) => _applySearch(),
                     onSearchTap: _applySearch,
                   ),
@@ -1610,24 +1616,200 @@ class _PartsScreenState extends State<PartsScreen> {
   }
 
   static List<(String, String)> _detailSpecs(Map<String, dynamic> data) {
-    final rows = <(String, String)>[];
+    final type = _datasetTypeFrom(data);
+    final spec = data['spec'];
 
-    // brand first
-    final brand = data['brand']?.toString().trim() ?? '';
-    if (brand.isNotEmpty && brand != 'null') {
-      rows.add(('Brand', brand));
+    dynamic getVal(String snakeKey, [String? camelKey]) {
+      if (spec is Map) {
+        final sv = camelKey != null
+            ? (spec[camelKey] ?? spec[snakeKey])
+            : spec[snakeKey];
+        if (sv != null) return sv;
+      }
+      return data[snakeKey];
     }
 
-    for (final e in data.entries) {
-      final key = e.key;
-      if (_skipFields.contains(key) || key == 'brand') continue;
-      if (e.value is Map) continue; // skip nested objects
-      final formatted = _formatValue(e.value);
-      if (formatted.isEmpty || formatted == 'null') continue;
-      rows.add((_prettyKey(key), formatted));
+    String fmtVal(dynamic v) {
+      if (v == null) return 'N/A';
+      if (v is bool) return v ? 'Yes' : 'No';
+      if (v is List) {
+        final parts = v
+            .where((e) => e != null)
+            .map((e) => e.toString().trim())
+            .where((e) => e.isNotEmpty && e != 'null')
+            .toList();
+        return parts.isEmpty ? 'N/A' : parts.join(' / ');
+      }
+      final s = v.toString().trim();
+      return (s.isEmpty || s == 'null') ? 'N/A' : s;
     }
 
-    return rows;
+    (String, String) row(String label, String snakeKey, [String? camelKey]) =>
+        (label, fmtVal(getVal(snakeKey, camelKey)));
+
+    switch (type) {
+      case 'case':
+        return [
+          row('Type', 'type'),
+          row('Color', 'color'),
+          row('Side Panel', 'side_panel'),
+          row('Included PSU', 'psu'),
+          row('External Volume', 'external_volume'),
+          row('Internal 3.5" Bays', 'internal_35_bays'),
+        ];
+      case 'case-accessory':
+        return [
+          row('Brand', 'brand'),
+          row('Type', 'type'),
+          row('Form Factor', 'form_factor', 'formFactor'),
+        ];
+      case 'case-fan':
+        return [
+          row('Size', 'size'),
+          row('RPM', 'rpm'),
+          row('Airflow', 'airflow'),
+          row('Noise Level', 'noise_level', 'noiseLevelDb'),
+          row('PWM', 'pwm'),
+          row('Color', 'color'),
+        ];
+      case 'cpu':
+        return [
+          row('Brand', 'brand'),
+          row('Core Count', 'core_count', 'coreCount'),
+          row('Core Clock', 'core_clock', 'coreClock'),
+          row('Boost Clock', 'boost_clock', 'boostClock'),
+          row('TDP', 'tdp'),
+          row('Microarchitecture', 'microarchitecture'),
+          row('Integrated Graphics', 'graphics'),
+        ];
+      case 'cpu-cooler':
+        return [
+          row('Color', 'color'),
+          row('RPM', 'rpm'),
+          row('Noise Level', 'noise_level', 'noiseLevelDb'),
+          row('Size', 'size'),
+        ];
+      case 'external-hard-drive':
+        return [
+          row('Type', 'type'),
+          row('Capacity', 'capacity', 'capacityGb'),
+          row('Interface', 'interface'),
+          row('Color', 'color'),
+          row('Price / GB', 'price_per_gb', 'pricePerGb'),
+        ];
+      case 'fan-controller':
+        return [
+          row('Color', 'color'),
+          row('Channels', 'channels'),
+          row('Channel Wattage', 'channel_wattage', 'channelWattage'),
+          row('Form Factor', 'form_factor', 'formFactor'),
+          row('PWM', 'pwm'),
+        ];
+      case 'video-card':
+        return [
+          row('Chipset', 'chipset'),
+          row('Color', 'color'),
+          row('Core Clock', 'core_clock', 'coreClock'),
+          row('Boost Clock', 'boost_clock', 'boostClock'),
+          row('Memory', 'memory'),
+          row('Length', 'length'),
+        ];
+      case 'motherboard':
+        return [
+          row('Brand', 'brand'),
+          row('Socket', 'socket'),
+          row('Form Factor', 'form_factor', 'formFactor'),
+          row('Color', 'color'),
+          row('Max Memory', 'max_memory', 'maxMemory'),
+          row('Memory Slots', 'memory_slots', 'memorySlots'),
+        ];
+      case 'optical-drive':
+        return [
+          row('Blu-ray Read', 'bd'),
+          row('Blu-ray Write', 'bd_write', 'bdWrite'),
+          row('DVD Read', 'dvd'),
+          row('DVD Write', 'dvd_write', 'dvdWrite'),
+          row('CD Read', 'cd'),
+          row('CD Write', 'cd_write', 'cdWrite'),
+        ];
+      case 'os':
+        return [
+          row('Mode', 'mode'),
+          row('Max Memory', 'max_memory', 'maxMemory'),
+        ];
+      case 'power-supply':
+        return [
+          row('Type', 'type'),
+          row('Color', 'color'),
+          row('Wattage', 'wattage'),
+          row('Efficiency', 'efficiency'),
+          row('Modular', 'modular'),
+        ];
+      case 'memory':
+        return [
+          row('Speed', 'speed'),
+          row('Modules', 'modules'),
+          row('CAS Latency', 'cas_latency', 'casLatency'),
+          row('First Word Latency', 'first_word_latency', 'firstWordLatency'),
+          row('Color', 'color'),
+          row('Price / GB', 'price_per_gb', 'pricePerGb'),
+        ];
+      case 'sound-card':
+        return [
+          row('Brand', 'brand'),
+          row('Chipset', 'chipset'),
+          row('Channels', 'channels'),
+          row('Sample Rate', 'sample_rate', 'sampleRate'),
+          row('SNR', 'snr'),
+          row('Digital Audio', 'digital_audio', 'digitalAudio'),
+          row('Interface', 'interface'),
+        ];
+      case 'thermal-paste':
+        return [
+          row('Amount', 'amount'),
+        ];
+      case 'ups':
+        return [
+          row('Capacity (VA)', 'capacity_va', 'capacityVa'),
+          row('Capacity (W)', 'capacity_w', 'capacityW'),
+        ];
+      case 'internal-hard-drive':
+        return [
+          row('Type', 'type'),
+          row('Capacity', 'capacity', 'capacityGb'),
+          row('Form Factor', 'form_factor', 'formFactor'),
+          row('Interface', 'interface'),
+          row('Cache', 'cache'),
+          row('Price / GB', 'price_per_gb', 'pricePerGb'),
+        ];
+      case 'wired-network-card':
+        return [
+          row('Interface', 'interface'),
+          row('Color', 'color'),
+        ];
+      case 'wireless-network-card':
+        return [
+          row('Protocol', 'protocol'),
+          row('Interface', 'interface'),
+          row('Color', 'color'),
+        ];
+      default:
+        // Fallback for unknown types: show all non-null fields
+        final rows = <(String, String)>[];
+        final brand = data['brand']?.toString().trim() ?? '';
+        if (brand.isNotEmpty && brand != 'null') {
+          rows.add(('Brand', brand));
+        }
+        for (final e in data.entries) {
+          final key = e.key;
+          if (_skipFields.contains(key) || key == 'brand') continue;
+          if (e.value is Map) continue;
+          final formatted = _formatValue(e.value);
+          if (formatted.isEmpty || formatted == 'null') continue;
+          rows.add((_prettyKey(key), formatted));
+        }
+        return rows;
+    }
   }
 }
 
@@ -1648,7 +1830,6 @@ enum _DataCompletenessFilter {
   showAll, // Alle anzeigen – no filter
   compatOnly, // Hide parts missing compat-critical fields
 }
-
 
 class _SearchField extends StatelessWidget {
   final TextEditingController controller;
@@ -2252,6 +2433,7 @@ enum _FilterMode {
   normal, // Standard matching against dataKey field
   driveType, // Multi-field: CD/DVD / Blu-ray Reader / Blu-ray Writer
   nonNull, // Passes only when dataKey field is non-null (e.g. "Writable")
+  boolTrue, // Passes only when the field value is boolean true
 }
 
 class _SpecDef {
@@ -2301,6 +2483,13 @@ const Map<String, List<_SpecDef>> _typeSpecDefs = {
   // ── CPU ──────────────────────────────────────────────────────────────────
   'cpu': [
     _SpecDef(
+      specKey: 'brand',
+      dataKey: 'brand',
+      label: 'Brand',
+      widgetType: _SpecWidgetType.textDropdown,
+      textOptions: ['AMD', 'Intel'],
+    ),
+    _SpecDef(
       specKey: 'coreCount',
       dataKey: 'core_count',
       label: 'Core Count',
@@ -2317,6 +2506,15 @@ const Map<String, List<_SpecDef>> _typeSpecDefs = {
       max: 128,
       widgetType: _SpecWidgetType.minChips,
       chips: [4, 6, 8, 12, 16, 32],
+    ),
+    _SpecDef(
+      specKey: 'coreClock',
+      dataKey: 'core_clock',
+      label: 'Core Clock',
+      min: 500,
+      max: 5000,
+      unit: 'MHz',
+      divisions: 45,
     ),
     _SpecDef(
       specKey: 'boostClock',
@@ -2336,10 +2534,49 @@ const Map<String, List<_SpecDef>> _typeSpecDefs = {
       unit: 'W',
       divisions: 60,
     ),
+    _SpecDef(
+      specKey: 'microarchitecture',
+      dataKey: 'microarchitecture',
+      label: 'Microarchitecture',
+      widgetType: _SpecWidgetType.textDropdown,
+      textOptions: [
+        'Zen 5', 'Zen 4', 'Zen 4c', 'Zen 3', 'Zen 2', 'Zen+', 'Zen',
+        'Arrow Lake', 'Meteor Lake', 'Raptor Lake', 'Alder Lake',
+        'Rocket Lake', 'Comet Lake', 'Ice Lake', 'Kaby Lake', 'Coffee Lake',
+        'Tiger Lake', 'Skylake',
+      ],
+    ),
+    _SpecDef(
+      specKey: 'graphics',
+      dataKey: 'graphics',
+      label: 'Integrated Graphics',
+      widgetType: _SpecWidgetType.textDropdown,
+      containsMatch: true,
+      textOptions: ['Radeon', 'Intel UHD', 'Intel Iris Xe', 'Intel HD'],
+    ),
   ],
 
   // ── GPU ──────────────────────────────────────────────────────────────────
   'video-card': [
+    _SpecDef(
+      specKey: 'chipset',
+      dataKey: 'chipset',
+      label: 'Chipset',
+      widgetType: _SpecWidgetType.textDropdown,
+      containsMatch: true,
+      textOptions: [
+        'RTX 50', 'RTX 40', 'RTX 30', 'RTX 20', 'GTX 16', 'GTX 10',
+        'RX 9', 'RX 7', 'RX 6', 'RX 5', 'Arc',
+      ],
+    ),
+    _SpecDef(
+      specKey: 'color',
+      dataKey: 'color',
+      label: 'Color',
+      widgetType: _SpecWidgetType.textDropdown,
+      containsMatch: true,
+      textOptions: ['Black', 'White', 'Silver', 'Red', 'Blue', 'Gray', 'RGB'],
+    ),
     _SpecDef(
       specKey: 'memory',
       dataKey: 'memory',
@@ -2383,6 +2620,14 @@ const Map<String, List<_SpecDef>> _typeSpecDefs = {
   // speed field is [ddrGen, mhz], modules field is [count, sizeGb]
   'memory': [
     _SpecDef(
+      specKey: 'color',
+      dataKey: 'color',
+      label: 'Color',
+      widgetType: _SpecWidgetType.textDropdown,
+      containsMatch: true,
+      textOptions: ['Black', 'White', 'Silver', 'Red', 'Blue', 'Gray', 'RGB'],
+    ),
+    _SpecDef(
       specKey: 'speedGen',
       dataKey: 'speed',
       label: 'DDR Generation',
@@ -2403,6 +2648,17 @@ const Map<String, List<_SpecDef>> _typeSpecDefs = {
       widgetType: _SpecWidgetType.exactChips,
       chips: [1, 2, 4],
       listIndex: 0,
+    ),
+    _SpecDef(
+      specKey: 'moduleGb',
+      dataKey: 'modules',
+      label: 'Module Size',
+      min: 4,
+      max: 128,
+      unit: 'GB',
+      widgetType: _SpecWidgetType.minChips,
+      chips: [4, 8, 16, 32, 64],
+      listIndex: 1,
     ),
     _SpecDef(
       specKey: 'speedMhz',
@@ -2431,6 +2687,15 @@ const Map<String, List<_SpecDef>> _typeSpecDefs = {
       max: 20,
       unit: 'ns',
       divisions: 38,
+    ),
+    _SpecDef(
+      specKey: 'pricePerGb',
+      dataKey: 'price_per_gb',
+      label: 'Price / GB',
+      min: 0,
+      max: 0.5,
+      unit: '\$/GB',
+      divisions: 50,
     ),
   ],
 
@@ -2480,25 +2745,44 @@ const Map<String, List<_SpecDef>> _typeSpecDefs = {
       containsMatch: true,
       textOptions: ['SATA', 'PCIe 3.0', 'PCIe 4.0', 'PCIe 5.0', 'NVMe'],
     ),
+    _SpecDef(
+      specKey: 'pricePerGb',
+      dataKey: 'price_per_gb',
+      label: 'Price / GB',
+      min: 0,
+      max: 0.5,
+      unit: '\$/GB',
+      divisions: 50,
+    ),
   ],
 
   // ── Motherboard ───────────────────────────────────────────────────────────
   'motherboard': [
+    _SpecDef(
+      specKey: 'brand',
+      dataKey: 'brand',
+      label: 'Brand',
+      widgetType: _SpecWidgetType.textDropdown,
+      textOptions: [
+        'ASRock', 'ASUS', 'MSI', 'Gigabyte', 'Biostar', 'EVGA', 'Supermicro',
+      ],
+    ),
+    _SpecDef(
+      specKey: 'color',
+      dataKey: 'color',
+      label: 'Color',
+      widgetType: _SpecWidgetType.textDropdown,
+      containsMatch: true,
+      textOptions: ['Black', 'White', 'Silver', 'Red', 'Blue', 'Gray', 'RGB'],
+    ),
     _SpecDef(
       specKey: 'socket',
       dataKey: 'socket',
       label: 'Socket',
       widgetType: _SpecWidgetType.textDropdown,
       textOptions: [
-        'AM4',
-        'AM5',
-        'LGA1700',
-        'LGA1200',
-        'LGA1151',
-        'LGA1155',
-        'TR4',
-        'sTRX4',
-        'LGA2066',
+        'AM4', 'AM5', 'LGA1700', 'LGA1200', 'LGA1151', 'LGA1155',
+        'TR4', 'sTRX4', 'LGA2066',
       ],
     ),
     _SpecDef(
@@ -2532,6 +2816,21 @@ const Map<String, List<_SpecDef>> _typeSpecDefs = {
   // ── Power Supply ──────────────────────────────────────────────────────────
   'power-supply': [
     _SpecDef(
+      specKey: 'color',
+      dataKey: 'color',
+      label: 'Color',
+      widgetType: _SpecWidgetType.textDropdown,
+      containsMatch: true,
+      textOptions: ['Black', 'White', 'Silver', 'Red', 'Blue', 'Gray'],
+    ),
+    _SpecDef(
+      specKey: 'type',
+      dataKey: 'type',
+      label: 'Type',
+      widgetType: _SpecWidgetType.textChips,
+      textOptions: ['ATX', 'SFX', 'SFX-L', 'TFX', 'Flex ATX'],
+    ),
+    _SpecDef(
       specKey: 'wattage',
       dataKey: 'wattage',
       label: 'Wattage',
@@ -2547,12 +2846,8 @@ const Map<String, List<_SpecDef>> _typeSpecDefs = {
       label: 'Efficiency Certification',
       widgetType: _SpecWidgetType.textChips,
       textOptions: [
-        '80+',
-        '80+ Bronze',
-        '80+ Silver',
-        '80+ Gold',
-        '80+ Platinum',
-        '80+ Titanium',
+        '80+', '80+ Bronze', '80+ Silver', '80+ Gold',
+        '80+ Platinum', '80+ Titanium',
       ],
     ),
     _SpecDef(
@@ -2566,6 +2861,34 @@ const Map<String, List<_SpecDef>> _typeSpecDefs = {
 
   // ── Case ──────────────────────────────────────────────────────────────────
   'case': [
+    _SpecDef(
+      specKey: 'brand',
+      dataKey: 'brand',
+      label: 'Brand',
+      widgetType: _SpecWidgetType.textDropdown,
+      textOptions: [
+        'Corsair', 'NZXT', 'Fractal Design', 'Lian Li', 'be quiet!',
+        'Thermaltake', 'Cooler Master', 'Phanteks', 'Silverstone', 'BitFenix',
+      ],
+    ),
+    _SpecDef(
+      specKey: 'color',
+      dataKey: 'color',
+      label: 'Color',
+      widgetType: _SpecWidgetType.textDropdown,
+      containsMatch: true,
+      textOptions: ['Black', 'White', 'Silver', 'Red', 'Blue', 'Gray'],
+    ),
+    _SpecDef(
+      specKey: 'type',
+      dataKey: 'type',
+      label: 'Type',
+      widgetType: _SpecWidgetType.textChips,
+      textOptions: [
+        'Mini ITX Tower', 'MicroATX Mid Tower', 'ATX Mid Tower',
+        'ATX Full Tower', 'Mini Tower', 'Desktop', 'HTPC',
+      ],
+    ),
     _SpecDef(
       specKey: 'internal35Bays',
       dataKey: 'internal_35_bays',
@@ -2581,17 +2904,39 @@ const Map<String, List<_SpecDef>> _typeSpecDefs = {
       label: 'Side Panel',
       widgetType: _SpecWidgetType.textChips,
       textOptions: [
-        'Tempered Glass',
-        'Tinted Tempered Glass',
-        'Acrylic',
-        'Mesh',
+        'Tempered Glass', 'Tinted Tempered Glass', 'Acrylic', 'Mesh',
         'Solid Steel',
       ],
+    ),
+    _SpecDef(
+      specKey: 'psu',
+      dataKey: 'psu',
+      label: 'Included PSU',
+      widgetType: _SpecWidgetType.textChips,
+      filterMode: _FilterMode.nonNull,
+      textOptions: ['Included'],
+    ),
+    _SpecDef(
+      specKey: 'externalVolume',
+      dataKey: 'external_volume',
+      label: 'External Volume',
+      min: 0,
+      max: 100,
+      unit: 'L',
+      divisions: 50,
     ),
   ],
 
   // ── CPU Cooler ────────────────────────────────────────────────────────────
   'cpu-cooler': [
+    _SpecDef(
+      specKey: 'color',
+      dataKey: 'color',
+      label: 'Color',
+      widgetType: _SpecWidgetType.textDropdown,
+      containsMatch: true,
+      textOptions: ['Black', 'White', 'Silver', 'Red', 'Blue', 'Gray', 'RGB'],
+    ),
     _SpecDef(
       specKey: 'noiseLevelDb',
       dataKey: 'noise_level',
@@ -2611,10 +2956,28 @@ const Map<String, List<_SpecDef>> _typeSpecDefs = {
       unit: 'RPM',
       divisions: 50,
     ),
+    _SpecDef(
+      specKey: 'sizeMm',
+      dataKey: 'size',
+      label: 'Size',
+      min: 40,
+      max: 420,
+      unit: 'mm',
+      widgetType: _SpecWidgetType.exactChips,
+      chips: [92, 120, 140, 240, 280, 360],
+    ),
   ],
 
   // ── Case Fan ──────────────────────────────────────────────────────────────
   'case-fan': [
+    _SpecDef(
+      specKey: 'color',
+      dataKey: 'color',
+      label: 'Color',
+      widgetType: _SpecWidgetType.textDropdown,
+      containsMatch: true,
+      textOptions: ['Black', 'White', 'Silver', 'Red', 'Blue', 'Gray', 'RGB'],
+    ),
     _SpecDef(
       specKey: 'sizeMm',
       dataKey: 'size',
@@ -2624,6 +2987,15 @@ const Map<String, List<_SpecDef>> _typeSpecDefs = {
       unit: 'mm',
       widgetType: _SpecWidgetType.exactChips,
       chips: [80, 92, 120, 140, 200],
+    ),
+    _SpecDef(
+      specKey: 'rpm',
+      dataKey: 'rpm',
+      label: 'RPM',
+      min: 200,
+      max: 3000,
+      unit: 'RPM',
+      divisions: 56,
     ),
     _SpecDef(
       specKey: 'noiseLevelDb',
@@ -2643,10 +3015,33 @@ const Map<String, List<_SpecDef>> _typeSpecDefs = {
       unit: 'CFM',
       divisions: 50,
     ),
+    _SpecDef(
+      specKey: 'pwm',
+      dataKey: 'pwm',
+      label: 'PWM',
+      widgetType: _SpecWidgetType.textChips,
+      filterMode: _FilterMode.boolTrue,
+      textOptions: ['PWM Support'],
+    ),
   ],
 
   // ── External Hard Drive ───────────────────────────────────────────────────
   'external-hard-drive': [
+    _SpecDef(
+      specKey: 'color',
+      dataKey: 'color',
+      label: 'Color',
+      widgetType: _SpecWidgetType.textDropdown,
+      containsMatch: true,
+      textOptions: ['Black', 'White', 'Silver', 'Red', 'Blue', 'Gray'],
+    ),
+    _SpecDef(
+      specKey: 'type',
+      dataKey: 'type',
+      label: 'Type',
+      widgetType: _SpecWidgetType.textDropdown,
+      textOptions: ['Portable', 'Desktop'],
+    ),
     _SpecDef(
       specKey: 'capacityGb',
       dataKey: 'capacity',
@@ -2657,12 +3052,7 @@ const Map<String, List<_SpecDef>> _typeSpecDefs = {
       widgetType: _SpecWidgetType.minChips,
       chips: [128, 256, 512, 1000, 2000, 4000],
       chipLabelOverrides: [
-        '128 GB+',
-        '256 GB+',
-        '512 GB+',
-        '1 TB+',
-        '2 TB+',
-        '4 TB+',
+        '128 GB+', '256 GB+', '512 GB+', '1 TB+', '2 TB+', '4 TB+',
       ],
     ),
     _SpecDef(
@@ -2670,19 +3060,40 @@ const Map<String, List<_SpecDef>> _typeSpecDefs = {
       dataKey: 'interface',
       label: 'Interface',
       widgetType: _SpecWidgetType.textChips,
+      containsMatch: true,
       textOptions: [
-        'USB 3.0',
-        'USB 3.1',
-        'USB 3.2',
-        'USB-C',
-        'Thunderbolt 3',
+        'USB 3.0', 'USB 3.1', 'USB 3.2', 'USB-C', 'Thunderbolt 3',
         'Thunderbolt 4',
       ],
+    ),
+    _SpecDef(
+      specKey: 'pricePerGb',
+      dataKey: 'price_per_gb',
+      label: 'Price / GB',
+      min: 0,
+      max: 0.2,
+      unit: '\$/GB',
+      divisions: 40,
     ),
   ],
 
   // ── Sound Card ────────────────────────────────────────────────────────────
   'sound-card': [
+    _SpecDef(
+      specKey: 'brand',
+      dataKey: 'brand',
+      label: 'Brand',
+      widgetType: _SpecWidgetType.textDropdown,
+      textOptions: ['ASUS', 'Creative', 'Sound Blaster', 'M-Audio', 'EVGA'],
+    ),
+    _SpecDef(
+      specKey: 'chipset',
+      dataKey: 'chipset',
+      label: 'Chipset',
+      widgetType: _SpecWidgetType.textDropdown,
+      containsMatch: true,
+      textOptions: ['AV100', 'AV200', 'CA0132', 'CA0108', 'AK4396'],
+    ),
     _SpecDef(
       specKey: 'channels',
       dataKey: 'channels',
@@ -2690,6 +3101,24 @@ const Map<String, List<_SpecDef>> _typeSpecDefs = {
       widgetType: _SpecWidgetType.exactChips,
       chips: [2, 5.1, 7.1],
       chipLabelOverrides: ['2.0', '5.1', '7.1'],
+    ),
+    _SpecDef(
+      specKey: 'snr',
+      dataKey: 'snr',
+      label: 'SNR',
+      min: 90,
+      max: 130,
+      unit: 'dB',
+      divisions: 40,
+    ),
+    _SpecDef(
+      specKey: 'sampleRate',
+      dataKey: 'sample_rate',
+      label: 'Sample Rate',
+      min: 44,
+      max: 384,
+      unit: 'kHz',
+      divisions: 17,
     ),
     _SpecDef(
       specKey: 'interface',
@@ -2706,19 +3135,18 @@ const Map<String, List<_SpecDef>> _typeSpecDefs = {
       widgetType: _SpecWidgetType.textChips,
       textOptions: ['Optical', 'Coaxial', 'HDMI'],
     ),
-    _SpecDef(
-      specKey: 'sampleRate',
-      dataKey: 'sample_rate',
-      label: 'Sample Rate',
-      min: 44,
-      max: 384,
-      unit: 'kHz',
-      divisions: 17,
-    ),
   ],
 
   // ── Wired Network Card ────────────────────────────────────────────────────
   'wired-network-card': [
+    _SpecDef(
+      specKey: 'color',
+      dataKey: 'color',
+      label: 'Color',
+      widgetType: _SpecWidgetType.textDropdown,
+      containsMatch: true,
+      textOptions: ['Black', 'White', 'Silver', 'Red', 'Blue', 'Gray'],
+    ),
     _SpecDef(
       specKey: 'interface',
       dataKey: 'interface',
@@ -2731,6 +3159,14 @@ const Map<String, List<_SpecDef>> _typeSpecDefs = {
 
   // ── Wireless Network Card ─────────────────────────────────────────────────
   'wireless-network-card': [
+    _SpecDef(
+      specKey: 'color',
+      dataKey: 'color',
+      label: 'Color',
+      widgetType: _SpecWidgetType.textDropdown,
+      containsMatch: true,
+      textOptions: ['Black', 'White', 'Silver', 'Red', 'Blue', 'Gray'],
+    ),
     _SpecDef(
       specKey: 'interface',
       dataKey: 'interface',
@@ -2752,6 +3188,14 @@ const Map<String, List<_SpecDef>> _typeSpecDefs = {
   // ── Fan Controller ────────────────────────────────────────────────────────
   'fan-controller': [
     _SpecDef(
+      specKey: 'color',
+      dataKey: 'color',
+      label: 'Color',
+      widgetType: _SpecWidgetType.textDropdown,
+      containsMatch: true,
+      textOptions: ['Black', 'White', 'Silver', 'Red', 'Blue', 'Gray'],
+    ),
+    _SpecDef(
       specKey: 'channels',
       dataKey: 'channels',
       label: 'Channels',
@@ -2769,6 +3213,21 @@ const Map<String, List<_SpecDef>> _typeSpecDefs = {
       unit: 'W',
       divisions: 25,
     ),
+    _SpecDef(
+      specKey: 'formFactor',
+      dataKey: 'form_factor',
+      label: 'Form Factor',
+      widgetType: _SpecWidgetType.textChips,
+      textOptions: ['5.25', '3.5', '2.5'],
+    ),
+    _SpecDef(
+      specKey: 'pwm',
+      dataKey: 'pwm',
+      label: 'PWM',
+      widgetType: _SpecWidgetType.textChips,
+      filterMode: _FilterMode.boolTrue,
+      textOptions: ['PWM Support'],
+    ),
   ],
 
   // ── Optical Drive ─────────────────────────────────────────────────────────
@@ -2780,6 +3239,16 @@ const Map<String, List<_SpecDef>> _typeSpecDefs = {
       widgetType: _SpecWidgetType.textChips,
       filterMode: _FilterMode.driveType,
       textOptions: ['CD/DVD Drive', 'Blu-ray Reader', 'Blu-ray Writer'],
+    ),
+    _SpecDef(
+      specKey: 'cdSpeed',
+      dataKey: 'cd',
+      label: 'CD Read Speed',
+      min: 1,
+      max: 56,
+      unit: 'x',
+      widgetType: _SpecWidgetType.minChips,
+      chips: [24, 32, 40, 48, 52],
     ),
     _SpecDef(
       specKey: 'dvdSpeed',
@@ -2802,6 +3271,14 @@ const Map<String, List<_SpecDef>> _typeSpecDefs = {
       chips: [4, 6, 8, 12],
     ),
     _SpecDef(
+      specKey: 'cdWritable',
+      dataKey: 'cd_write',
+      label: 'CD Writing',
+      widgetType: _SpecWidgetType.textChips,
+      filterMode: _FilterMode.nonNull,
+      textOptions: ['Writable'],
+    ),
+    _SpecDef(
       specKey: 'dvdWritable',
       dataKey: 'dvd_write',
       label: 'DVD Writing',
@@ -2822,6 +3299,16 @@ const Map<String, List<_SpecDef>> _typeSpecDefs = {
   // ── UPS ───────────────────────────────────────────────────────────────────
   'ups': [
     _SpecDef(
+      specKey: 'capacityVa',
+      dataKey: 'capacity_va',
+      label: 'Capacity (VA)',
+      min: 300,
+      max: 10000,
+      unit: 'VA',
+      widgetType: _SpecWidgetType.minChips,
+      chips: [500, 1000, 1500, 2000, 3000, 5000],
+    ),
+    _SpecDef(
       specKey: 'capacityW',
       dataKey: 'capacity_w',
       label: 'Capacity (Watt)',
@@ -2830,6 +3317,79 @@ const Map<String, List<_SpecDef>> _typeSpecDefs = {
       unit: 'W',
       widgetType: _SpecWidgetType.minChips,
       chips: [200, 300, 400, 600, 800, 1000, 1500, 2000],
+    ),
+  ],
+
+  // ── Case Accessory ────────────────────────────────────────────────────────
+  'case-accessory': [
+    _SpecDef(
+      specKey: 'brand',
+      dataKey: 'brand',
+      label: 'Brand',
+      widgetType: _SpecWidgetType.textDropdown,
+      textOptions: [
+        'Corsair', 'NZXT', 'Lian Li', 'Thermaltake', 'Cooler Master',
+        'BitFenix', 'Phanteks', 'Silverstone',
+      ],
+    ),
+    _SpecDef(
+      specKey: 'color',
+      dataKey: 'color',
+      label: 'Color',
+      widgetType: _SpecWidgetType.textDropdown,
+      containsMatch: true,
+      textOptions: ['Black', 'White', 'Silver', 'Red', 'Blue', 'Gray'],
+    ),
+    _SpecDef(
+      specKey: 'type',
+      dataKey: 'type',
+      label: 'Type',
+      widgetType: _SpecWidgetType.textChips,
+      textOptions: [
+        'Card Reader', 'Front Panel', 'Drive Cage', 'USB Hub', 'Temp Display',
+      ],
+    ),
+    _SpecDef(
+      specKey: 'formFactor',
+      dataKey: 'form_factor',
+      label: 'Form Factor',
+      widgetType: _SpecWidgetType.textChips,
+      textOptions: ['5.25', '3.5', '2.5'],
+    ),
+  ],
+
+  // ── OS ────────────────────────────────────────────────────────────────────
+  'os': [
+    _SpecDef(
+      specKey: 'mode',
+      dataKey: 'mode',
+      label: 'Mode',
+      widgetType: _SpecWidgetType.exactChips,
+      chips: [32, 64],
+      unit: '-bit',
+    ),
+    _SpecDef(
+      specKey: 'maxMemory',
+      dataKey: 'max_memory',
+      label: 'Max Memory',
+      min: 4,
+      max: 2048,
+      unit: 'GB',
+      widgetType: _SpecWidgetType.minChips,
+      chips: [4, 8, 16, 32, 64, 128],
+    ),
+  ],
+
+  // ── Thermal Paste ─────────────────────────────────────────────────────────
+  'thermal-paste': [
+    _SpecDef(
+      specKey: 'amount',
+      dataKey: 'amount',
+      label: 'Amount',
+      min: 1,
+      max: 30,
+      unit: 'g',
+      divisions: 29,
     ),
   ],
 };
