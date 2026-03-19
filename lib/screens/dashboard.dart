@@ -50,7 +50,7 @@ class _DashboardState extends State<Dashboard> {
       useRootNavigator: true,
       builder: (ctx) => StatefulBuilder(
         builder: (ctx, setDialogState) => AlertDialog(
-          title: const Text('Build bearbeiten'),
+          title: Text(ctx.l10n.buildDialogEditTitle),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -58,15 +58,15 @@ class _DashboardState extends State<Dashboard> {
               TextField(
                 controller: ctrl,
                 autofocus: true,
-                decoration: const InputDecoration(
-                  hintText: 'Build-Name',
-                  border: OutlineInputBorder(),
+                decoration: InputDecoration(
+                  hintText: ctx.l10n.buildDialogNameHint,
+                  border: const OutlineInputBorder(),
                 ),
                 textInputAction: TextInputAction.done,
               ),
               const SizedBox(height: 16),
               Text(
-                'Cover-Bild (optional)',
+                ctx.l10n.buildDialogCoverLabel,
                 style: Theme.of(ctx).textTheme.labelSmall?.copyWith(
                       color: Theme.of(ctx).colorScheme.onSurfaceVariant,
                       fontWeight: FontWeight.w700,
@@ -85,7 +85,7 @@ class _DashboardState extends State<Dashboard> {
             TextButton(
               onPressed: () =>
                   Navigator.of(ctx, rootNavigator: true).pop(),
-              child: const Text('Abbrechen'),
+              child: Text(ctx.l10n.settingsCancel),
             ),
             FilledButton(
               onPressed: () {
@@ -95,7 +95,7 @@ class _DashboardState extends State<Dashboard> {
                   (title: trimmed, heroImageUrl: selectedCover),
                 );
               },
-              child: const Text('Speichern'),
+              child: Text(ctx.l10n.settingsSave),
             ),
           ],
         ),
@@ -112,25 +112,25 @@ class _DashboardState extends State<Dashboard> {
   }
 
   Future<void> _duplicateBuild(User user, SavedBuild build) async {
-    final ctrl = TextEditingController(text: 'Kopie von ${build.title}');
+    final ctrl = TextEditingController(text: context.l10n.buildDialogCopyOf(build.title));
     final title = await showDialog<String>(
       context: context,
       useRootNavigator: true,
       builder: (ctx) => AlertDialog(
-        title: const Text('Build duplizieren'),
+        title: Text(ctx.l10n.buildDialogDuplicateTitle),
         content: TextField(
           controller: ctrl,
           autofocus: true,
-          decoration: const InputDecoration(
-            hintText: 'Name des Duplikats',
-            border: OutlineInputBorder(),
+          decoration: InputDecoration(
+            hintText: ctx.l10n.buildDialogDuplicateNameHint,
+            border: const OutlineInputBorder(),
           ),
           textInputAction: TextInputAction.done,
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(ctx, rootNavigator: true).pop(),
-            child: const Text('Abbrechen'),
+            child: Text(ctx.l10n.settingsCancel),
           ),
           FilledButton(
             onPressed: () {
@@ -138,7 +138,7 @@ class _DashboardState extends State<Dashboard> {
               Navigator.of(ctx, rootNavigator: true)
                   .pop(t.isEmpty ? null : t);
             },
-            child: const Text('Duplizieren'),
+            child: Text(ctx.l10n.commonDuplicate),
           ),
         ],
       ),
@@ -158,7 +158,7 @@ class _DashboardState extends State<Dashboard> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           behavior: SnackBarBehavior.floating,
-          content: Text('"$title" wurde gespeichert.'),
+          content: Text(context.l10n.buildDialogSaved(title)),
         ),
       );
     } catch (e) {
@@ -166,7 +166,7 @@ class _DashboardState extends State<Dashboard> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           behavior: SnackBarBehavior.floating,
-          content: Text('Fehler beim Duplizieren: $e'),
+          content: Text(context.l10n.buildDialogDuplicateError(e.toString())),
         ),
       );
     }
@@ -177,18 +177,18 @@ class _DashboardState extends State<Dashboard> {
       context: context,
       useRootNavigator: true,
       builder: (ctx) => AlertDialog(
-        title: const Text('Delete Build'),
-        content: Text('Delete "${build.title}" permanently?'),
+        title: Text(ctx.l10n.buildDialogDeleteTitle),
+        content: Text(ctx.l10n.buildDialogDeleteContent(build.title)),
         actions: [
           TextButton(
             onPressed: () =>
                 Navigator.of(ctx, rootNavigator: true).pop(false),
-            child: const Text('Cancel'),
+            child: Text(ctx.l10n.settingsCancel),
           ),
           FilledButton(
             onPressed: () =>
                 Navigator.of(ctx, rootNavigator: true).pop(true),
-            child: const Text('Delete'),
+            child: Text(ctx.l10n.commonDelete),
           ),
         ],
       ),
@@ -207,18 +207,18 @@ class _DashboardState extends State<Dashboard> {
           children: [
             ListTile(
               leading: const Icon(Icons.edit_rounded),
-              title: const Text('Rename'),
+              title: Text(ctx.l10n.commonRename),
               onTap: () => Navigator.of(ctx).pop('rename'),
             ),
             if (!build.readOnly)
               ListTile(
                 leading: const Icon(Icons.copy_rounded),
-                title: const Text('Duplizieren'),
+                title: Text(ctx.l10n.commonDuplicate),
                 onTap: () => Navigator.of(ctx).pop('duplicate'),
               ),
             ListTile(
               leading: const Icon(Icons.delete_outline_rounded),
-              title: const Text('Delete'),
+              title: Text(ctx.l10n.commonDelete),
               textColor: Colors.red,
               iconColor: Colors.red,
               onTap: () => Navigator.of(ctx).pop('delete'),
@@ -362,10 +362,10 @@ class _DashboardState extends State<Dashboard> {
         ),
         const SliverToBoxAdapter(child: SizedBox(height: 12)),
         if (user == null || user.isAnonymous)
-          const SliverToBoxAdapter(
+          SliverToBoxAdapter(
             child: Padding(
-              padding: EdgeInsets.symmetric(horizontal: 16),
-              child: Text('Sign in to see saved builds.'),
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: Text(l10n.buildsSignInPrompt),
             ),
           )
         else
@@ -447,14 +447,14 @@ class _DashboardEmptyState extends StatelessWidget {
           children: [
             Expanded(
               child: Text(
-                'No builds saved yet',
+                context.l10n.buildsNoBuilds,
                 style: theme.textTheme.titleMedium?.copyWith(
                   fontWeight: FontWeight.w800,
                 ),
               ),
             ),
             OutlinedButton(
-                onPressed: onStart, child: const Text('Start new build')),
+                onPressed: onStart, child: Text(context.l10n.buildsStartNew)),
           ],
         ),
       ),

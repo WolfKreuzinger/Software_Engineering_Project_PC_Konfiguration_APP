@@ -1,3 +1,4 @@
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import '../auth_service.dart';
@@ -112,6 +113,7 @@ class _AuthScreenState extends State<AuthScreen> {
 
     setState(() => _loading = true);
     try {
+      FirebaseAuth.instance.setLanguageCode(Localizations.localeOf(context).languageCode);
       await _auth.sendPasswordResetEmail(email: email);
       _failedLoginAttempts.remove(email);
       _resetRequiredEmails.remove(email);
@@ -250,7 +252,7 @@ class _AuthScreenState extends State<AuthScreen> {
                             children: [
                               Expanded(
                                 child: _SegmentButton(
-                                  label: 'Login',
+                                  label: l10n.authLogin,
                                   selected: _isLogin,
                                   onTap: _loading
                                       ? null
@@ -260,7 +262,7 @@ class _AuthScreenState extends State<AuthScreen> {
                               const SizedBox(width: 8),
                               Expanded(
                                 child: _SegmentButton(
-                                  label: 'Register',
+                                  label: l10n.authRegister,
                                   selected: !_isLogin,
                                   onTap: _loading
                                       ? null

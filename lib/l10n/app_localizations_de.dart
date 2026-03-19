@@ -42,7 +42,7 @@ class AppLocalizationsDe extends AppLocalizations {
   String get authEmailLabel => 'E-Mail-Adresse';
 
   @override
-  String get authEmailHint => 'name@example.com';
+  String get authEmailHint => 'name@beispiel.de';
 
   @override
   String get authEmailRequired => 'Bitte E-Mail eingeben.';
@@ -113,6 +113,12 @@ class AppLocalizationsDe extends AppLocalizations {
   @override
   String get authResetRequiredAfterFailedLogins =>
       'Zu viele falsche Passwortversuche. Bitte nutze \"Vergessen?\", um dein Passwort zurückzusetzen.';
+
+  @override
+  String get authLogin => 'Anmelden';
+
+  @override
+  String get authRegister => 'Registrieren';
 
   @override
   String get configureTitle => 'PC konfigurieren';
@@ -553,4 +559,676 @@ class AppLocalizationsDe extends AppLocalizations {
   @override
   String get compatibilityNoIssues =>
       'Alle geprüften Komponenten sind kompatibel.';
+
+  @override
+  String get commonDelete => 'Löschen';
+
+  @override
+  String get commonRename => 'Umbenennen';
+
+  @override
+  String get commonDuplicate => 'Duplizieren';
+
+  @override
+  String get commonView => 'Ansehen';
+
+  @override
+  String get commonApply => 'Anwenden';
+
+  @override
+  String get commonAdd => 'Hinzufügen';
+
+  @override
+  String get commonYes => 'Ja';
+
+  @override
+  String get commonNo => 'Nein';
+
+  @override
+  String get buildDialogEditTitle => 'Build bearbeiten';
+
+  @override
+  String get buildDialogNameHint => 'Build-Name';
+
+  @override
+  String get buildDialogCoverLabel => 'Cover-Bild (optional)';
+
+  @override
+  String get buildDialogDuplicateTitle => 'Build duplizieren';
+
+  @override
+  String get buildDialogDuplicateNameHint => 'Name des Duplikats';
+
+  @override
+  String buildDialogCopyOf(String title) {
+    return 'Kopie von $title';
+  }
+
+  @override
+  String get buildDialogDeleteTitle => 'Build löschen';
+
+  @override
+  String buildDialogDeleteContent(String title) {
+    return '\"$title\" dauerhaft löschen?';
+  }
+
+  @override
+  String buildDialogSaved(String title) {
+    return '\"$title\" wurde gespeichert.';
+  }
+
+  @override
+  String buildDialogDuplicateError(String error) {
+    return 'Fehler beim Duplizieren: $error';
+  }
+
+  @override
+  String get buildsNoBuilds => 'Noch keine Builds gespeichert';
+
+  @override
+  String get buildsStartNew => 'Neuen Build starten';
+
+  @override
+  String get buildsSignInPrompt => 'Anmelden, um deine Builds zu sehen.';
+
+  @override
+  String get myBuildsTitle => 'Meine Builds';
+
+  @override
+  String get myBuildsSearchHint => 'Builds durchsuchen…';
+
+  @override
+  String get myBuildsFilters => 'Filter';
+
+  @override
+  String get myBuildsFilterAll => 'Alle Builds';
+
+  @override
+  String get myBuildsFilterCompleted => 'Abgeschlossen';
+
+  @override
+  String get myBuildsFilterInProgress => 'In Bearbeitung';
+
+  @override
+  String get myBuildsFilterImported => 'Importiert';
+
+  @override
+  String get buildStatusCompleted => 'ABGESCHLOSSEN';
+
+  @override
+  String get buildStatusDraft => 'ENTWURF';
+
+  @override
+  String get buildStatusArchived => 'ARCHIVIERT';
+
+  @override
+  String get buildStatusInProgress => 'IN BEARBEITUNG';
+
+  @override
+  String get buildStatusImported => 'IMPORTIERT';
+
+  @override
+  String get buildCardEstimatedCost => 'GESCHÄTZTE KOSTEN';
+
+  @override
+  String get buildCardProgress => 'FORTSCHRITT';
+
+  @override
+  String get buildCardShare => 'Teilen';
+
+  @override
+  String get buildCardMore => 'Mehr';
+
+  @override
+  String get templateTitle => 'Build-Vorlagen';
+
+  @override
+  String get templateDescription =>
+      'Wähle eine Vorlage als Ausgangspunkt für dein Build. Alle Komponenten können anschließend frei angepasst werden.';
+
+  @override
+  String get templateBudgetGamingTagline =>
+      'Maximale Performance für kleines Budget';
+
+  @override
+  String get templateHighEndGamingTagline =>
+      'Kompromisslose Performance für 4K & 144 Hz';
+
+  @override
+  String get templateOfficeTagline =>
+      'Zuverlässig und effizient für den Büroalltag';
+
+  @override
+  String get templateWorkstationTagline =>
+      'Professionelle Leistung für anspruchsvolle Aufgaben';
+
+  @override
+  String get templateMiniItxTagline =>
+      'Maximale Leistung im kleinsten Formfaktor';
+
+  @override
+  String get templateSilentTagline =>
+      'Leise wie eine Bibliothek – maximaler Komfort';
+
+  @override
+  String get sharedLinkCopied => 'Link kopiert!';
+
+  @override
+  String get sharedBuildNotFound => 'Build nicht gefunden';
+
+  @override
+  String get sharedBuildNotFoundDesc =>
+      'Dieser Link ist ungültig oder wurde noch nicht geteilt.';
+
+  @override
+  String get shareTitle => 'Build teilen';
+
+  @override
+  String get shareReadOnly => 'Nur ansehen';
+
+  @override
+  String get shareGenerating => 'Link wird generiert…';
+
+  @override
+  String get shareGeneratingError => 'Fehler beim Generieren';
+
+  @override
+  String get shareCopy => 'Kopieren';
+
+  @override
+  String get shareDirectSection => 'DIREKT TEILEN';
+
+  @override
+  String get shareInstagramCopied =>
+      'Link kopiert – füge ihn in Instagram DM ein.';
+
+  @override
+  String get shareCouldNotOpen => 'Konnte nicht geöffnet werden.';
+
+  @override
+  String shareMessageText(String title, String url) {
+    return 'Schau dir meinen PC-Build \"$title\" an: $url';
+  }
+
+  @override
+  String shareEmailSubject(String title) {
+    return 'BuildMyPC – $title';
+  }
+
+  @override
+  String get partsSearchHint => 'Teile suchen';
+
+  @override
+  String partsProductsFound(int count) {
+    return '$count Produkte gefunden';
+  }
+
+  @override
+  String get partsNoProductsFound => '0 Produkte gefunden';
+
+  @override
+  String get partsComponentType => 'Komponententyp';
+
+  @override
+  String get partsSpecs => 'Spezifikationen';
+
+  @override
+  String get partsSort => 'Sortierung';
+
+  @override
+  String get partsOrder => 'Reihenfolge';
+
+  @override
+  String get partsNoData => 'Keine Daten geladen';
+
+  @override
+  String get partsNoDataSubtitle => 'Keine Teile in einer Kollektion gefunden.';
+
+  @override
+  String get partsNoResults => 'Keine Ergebnisse';
+
+  @override
+  String get partsNoResultsSubtitle => 'Filter oder Suche anpassen.';
+
+  @override
+  String get partsLoadMore => 'Mehr laden';
+
+  @override
+  String get partsAddToConfig => 'Hinzufügen';
+
+  @override
+  String get partsNoSpecs => 'Keine Spezifikationen verfügbar.';
+
+  @override
+  String get partsDataCompleteness => 'Datenvollständigkeit';
+
+  @override
+  String get partsDataCompletenessHint =>
+      'Komponenten nach Vollständigkeit der Spezifikationsdaten filtern';
+
+  @override
+  String get partsShowAll => 'Alle anzeigen';
+
+  @override
+  String get partsCompatibilityOnly => 'Kompatibilität';
+
+  @override
+  String get partsAllComponents => 'Alle Komponenten';
+
+  @override
+  String get partsSortPriceLowToHigh => 'Preis: Aufsteigend';
+
+  @override
+  String get partsSortPriceHighToLow => 'Preis: Absteigend';
+
+  @override
+  String get partsSortNameAtoZ => 'Name: A bis Z';
+
+  @override
+  String get partsPriceRange => 'Preisbereich';
+
+  @override
+  String get configureSelectComponent =>
+      'Mindestens eine Komponente auswählen, um den Build zu speichern.';
+
+  @override
+  String get configureSignInPrompt =>
+      'Bitte anmelden. Dein Build wird automatisch gespeichert.';
+
+  @override
+  String configureSaveBuildError(String error) {
+    return 'Build konnte nicht gespeichert werden: $error';
+  }
+
+  @override
+  String get configureSaveBuildTitle => 'Build speichern';
+
+  @override
+  String get configureSaving => 'WIRD GESPEICHERT...';
+
+  @override
+  String get configureAddToMyBuilds => 'ZU MEINEN BUILDS';
+
+  @override
+  String configureMissingData(String slot, String fields) {
+    return '$slot: Fehlende Daten – $fields';
+  }
+
+  @override
+  String configureMissingDataTooltip(String fields) {
+    return 'Fehlende Daten: $fields';
+  }
+
+  @override
+  String get configureAdd => 'Hinzufügen';
+
+  @override
+  String get configureExtras => 'EXTRAS';
+
+  @override
+  String configureSelectedCount(int count) {
+    return '$count ausgewählt';
+  }
+
+  @override
+  String configureImportedFrom(String title, String author) {
+    return '$title von $author';
+  }
+
+  @override
+  String get compatIncompatible => 'Inkompatibel';
+
+  @override
+  String get compatSingleError => '1 kritischer Fehler';
+
+  @override
+  String compatMultipleErrors(int count) {
+    return '$count kritische Fehler';
+  }
+
+  @override
+  String get compatSingleWarning => '1 Warnung erkannt';
+
+  @override
+  String compatMultipleWarnings(int count) {
+    return '$count Warnungen erkannt';
+  }
+
+  @override
+  String get compatWarning => 'Warnung';
+
+  @override
+  String get compatCompatible => 'Kompatibel';
+
+  @override
+  String get compatAllCompatible => 'Alle Komponenten sind kompatibel';
+
+  @override
+  String get compatOverallStatus => 'GESAMTSTATUS';
+
+  @override
+  String get guidedCardHeader => 'BUILD-VORLAGEN';
+
+  @override
+  String get guidedCardDescription =>
+      'Starte mit einer vorkonfigurierten Vorlage – Budget Gaming, Office, High-End oder Workstation.';
+
+  @override
+  String get guidedCardButton => 'Vorlage auswählen';
+
+  @override
+  String get startNewBuildTitle => 'Neuen Build starten';
+
+  @override
+  String get startNewBuildSubtitle => 'Manuell · Teileauswahl';
+
+  @override
+  String get partsSpecsReset => 'Zurücksetzen';
+
+  @override
+  String get partsSpecsAny => 'Beliebig';
+
+  @override
+  String get specLabelSize => 'Größe';
+
+  @override
+  String get specLabelAirflow => 'Luftdurchsatz';
+
+  @override
+  String get specLabelChannels => 'Kanäle';
+
+  @override
+  String get specLabelChannelWattage => 'Kanalleistung';
+
+  @override
+  String get specLabelMemory => 'VRAM';
+
+  @override
+  String get specLabelEfficiency => 'Effizienz';
+
+  @override
+  String get specLabelBluRayRead => 'Blu-ray (Lesen)';
+
+  @override
+  String get specLabelBluRayWrite => 'Blu-ray (Schreiben)';
+
+  @override
+  String get specLabelDvdRead => 'DVD (Lesen)';
+
+  @override
+  String get specLabelDvdWrite => 'DVD (Schreiben)';
+
+  @override
+  String get specLabelCdRead => 'CD (Lesen)';
+
+  @override
+  String get specLabelCdWrite => 'CD (Schreiben)';
+
+  @override
+  String get specLabelMode => 'Modus';
+
+  @override
+  String get specLabelCapacityVa => 'Kapazität (VA)';
+
+  @override
+  String get specLabelCapacityW => 'Kapazität (W)';
+
+  @override
+  String get specLabelProtocol => 'Protokoll';
+
+  @override
+  String get specLabelSampleRate => 'Abtastrate';
+
+  @override
+  String get specLabelSnr => 'Rauschabstand';
+
+  @override
+  String get specLabelDigitalAudio => 'Digital-Audio';
+
+  @override
+  String get specLabelAmount => 'Menge';
+
+  @override
+  String get specLabelInternal35Bays => 'Interne 3,5\"-Schächte';
+
+  @override
+  String get partsTypeCpuCooler => 'CPU-Kühler';
+
+  @override
+  String get partsTypeStorage => 'Speicher';
+
+  @override
+  String get partsTypePowerSupply => 'Netzteil';
+
+  @override
+  String get partsTypeCase => 'Gehäuse';
+
+  @override
+  String get partsTypeCaseFan => 'Gehäuselüfter';
+
+  @override
+  String get partsTypeEthernetCard => 'LAN-Karte';
+
+  @override
+  String get partsTypeWifiCard => 'WLAN-Karte';
+
+  @override
+  String get partsTypeSoundCard => 'Soundkarte';
+
+  @override
+  String get partsTypeOpticalDrive => 'Optisches Laufwerk';
+
+  @override
+  String get partsTypeFanController => 'Lüftersteuerung';
+
+  @override
+  String get partsTypeThermalPaste => 'Wärmeleitpaste';
+
+  @override
+  String get partsTypeExternalStorage => 'Externe Festplatte';
+
+  @override
+  String get partsTypeUps => 'USV';
+
+  @override
+  String get partsTypeCaseAccessory => 'Gehäuse-Zubehör';
+
+  @override
+  String get specLabelBrand => 'Marke';
+
+  @override
+  String get specLabelCoreCount => 'Kernanzahl';
+
+  @override
+  String get specLabelCoreClock => 'Kerntakt';
+
+  @override
+  String get specLabelBoostClock => 'Boost-Takt';
+
+  @override
+  String get specLabelMicroarchitecture => 'Mikroarchitektur';
+
+  @override
+  String get specLabelIntegratedGraphics => 'Integrierte Grafik';
+
+  @override
+  String get specLabelChipset => 'Chipsatz';
+
+  @override
+  String get specLabelColor => 'Farbe';
+
+  @override
+  String get specLabelVram => 'VRAM';
+
+  @override
+  String get specLabelLength => 'Länge';
+
+  @override
+  String get specLabelDdrGeneration => 'DDR-Generation';
+
+  @override
+  String get specLabelModules => 'Module';
+
+  @override
+  String get specLabelModuleSize => 'Modulkapazität';
+
+  @override
+  String get specLabelSpeed => 'Takt';
+
+  @override
+  String get specLabelCasLatency => 'CAS-Latenz';
+
+  @override
+  String get specLabelFirstWordLatency => 'Erste-Wort-Latenz';
+
+  @override
+  String get specLabelPricePerGb => 'Preis / GB';
+
+  @override
+  String get specLabelCapacity => 'Kapazität';
+
+  @override
+  String get specLabelFormFactor => 'Formfaktor';
+
+  @override
+  String get specLabelInterface => 'Schnittstelle';
+
+  @override
+  String get specLabelSocket => 'Sockel';
+
+  @override
+  String get specLabelMaxMemory => 'Max. Arbeitsspeicher';
+
+  @override
+  String get specLabelMemorySlots => 'Speichersteckplätze';
+
+  @override
+  String get specLabelType => 'Typ';
+
+  @override
+  String get specLabelWattage => 'Leistung';
+
+  @override
+  String get specLabelEfficiencyCertification => 'Effizienz-Zertifizierung';
+
+  @override
+  String get specLabelNoiseLevel => 'Lautstärke';
+
+  @override
+  String get specLabelRpm => 'U/min';
+
+  @override
+  String get specLabelSidePanel => 'Seitenblende';
+
+  @override
+  String get specLabelIncludedPsu => 'Enthaltenes Netzteil';
+
+  @override
+  String get specLabelExternalVolume => 'Externes Volumen';
+
+  @override
+  String get specLabelBays35 => '3,5\"-Schächte';
+
+  @override
+  String compatPowerLoad(int percent) {
+    return '$percent% Auslastung';
+  }
+
+  @override
+  String compatPowerBuffer(int watts) {
+    return '${watts}W Puffer';
+  }
+
+  @override
+  String compatPowerInsufficient(int watts) {
+    return '${watts}W zu wenig';
+  }
+
+  @override
+  String get compatCriticalErrors => 'Kritische Fehler';
+
+  @override
+  String get compatWarnings => 'Warnungen';
+
+  @override
+  String compatMissingRequiredParts(String parts) {
+    return 'Fehlende Pflichtteile: $parts.';
+  }
+
+  @override
+  String compatSocketMismatch(String cpuSocket, String mbSocket) {
+    return 'Der Sockel des Prozessors ($cpuSocket) passt nicht zum Mainboard ($mbSocket).';
+  }
+
+  @override
+  String compatSocketOk(String socket) {
+    return 'Prozessor und Mainboard sind sockelkompatibel ($socket).';
+  }
+
+  @override
+  String compatDdr5Required(String socket, int ddrGen) {
+    return 'Das Mainboard ($socket) unterstützt nur DDR5-RAM – ausgewählt ist DDR$ddrGen.';
+  }
+
+  @override
+  String compatDdr4Required(String socket, int ddrGen) {
+    return 'Das Mainboard ($socket) unterstützt nur DDR4-RAM – ausgewählt ist DDR$ddrGen.';
+  }
+
+  @override
+  String compatRamOk(int ddrGen) {
+    return 'Arbeitsspeicher (DDR$ddrGen) ist mit dem Mainboard kompatibel.';
+  }
+
+  @override
+  String compatFormFactorIncompatible(String formFactor) {
+    return 'Das Gehäuse unterstützt den Formfaktor des Mainboards ($formFactor) nicht.';
+  }
+
+  @override
+  String compatFormFactorOk(String formFactor) {
+    return 'Das Mainboard ($formFactor) ist mit dem Gehäuse kompatibel.';
+  }
+
+  @override
+  String compatPsuInsufficient(int psuW, int estimatedW) {
+    return 'Das Netzteil (${psuW}W) reicht für den geschätzten Verbrauch (~${estimatedW}W) nicht aus.';
+  }
+
+  @override
+  String compatPsuLowBuffer(int psuW, int estimatedW) {
+    return 'Netzteil-Puffer gering: ${psuW}W für ~${estimatedW}W Verbrauch – empfohlen sind mind. 20% Reserve.';
+  }
+
+  @override
+  String compatPsuAdequate(int psuW, int estimatedW) {
+    return 'Das Netzteil (${psuW}W) hat ausreichend Reserve für den geschätzten Verbrauch (~${estimatedW}W).';
+  }
+
+  @override
+  String get compatBiosUpdateAmd =>
+      'Ryzen 9000 auf Nicht-X870-Board: möglicherweise ist ein BIOS-Update nötig, bevor der Prozessor erkannt wird.';
+
+  @override
+  String get compatBiosUpdateIntel =>
+      'Intel 14. Gen auf 600er-Board: BIOS-Update erforderlich, bevor der Prozessor erkannt wird.';
+
+  @override
+  String compatXmpRequired(int ramMhz, int jedecMhz) {
+    return 'RAM läuft mit ${ramMhz}MHz über dem JEDEC-Standard (${jedecMhz}MHz) – XMP/EXPO muss im BIOS aktiviert werden.';
+  }
+
+  @override
+  String get compatDdr5BudgetBoard =>
+      'DDR5 auf Einstiegs-Board: Bei hohen Taktraten kann es zu Stabilitätsproblemen kommen – QVL-Liste des Mainboards prüfen.';
+
+  @override
+  String compatTooManyRamSticks(int totalSticks, int maxSlots) {
+    return '$totalSticks RAM-Riegel ausgewählt, das Mainboard unterstützt jedoch nur $maxSlots Steckplätze.';
+  }
+
+  @override
+  String compatRamSlotsOk(int totalSticks, int maxSlots) {
+    return 'Die $totalSticks gewählten RAM-Riegel passen in die $maxSlots Steckplätze des Mainboards.';
+  }
 }

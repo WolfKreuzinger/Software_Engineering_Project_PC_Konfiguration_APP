@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../l10n/l10n_ext.dart';
 import '../models/saved_build.dart';
 import '../screens/parts_screen.dart';
 import '../services/compatibility_checker.dart';
@@ -78,11 +79,20 @@ class BuildListCard extends StatelessWidget {
     final thumbHeight = compact ? 145.0 : 160.0;
     final cardPadding = compact ? 10.0 : 12.0;
 
-    final statusText = savedBuild.statusLabel;
+    final l10n = context.l10n;
+    final statusText = savedBuild.readOnly
+        ? l10n.buildStatusImported
+        : switch (savedBuild.status) {
+            BuildStatus.completed => l10n.buildStatusCompleted,
+            BuildStatus.draft => l10n.buildStatusDraft,
+            BuildStatus.archived => l10n.buildStatusArchived,
+            BuildStatus.inProgress => l10n.buildStatusInProgress,
+          };
 
     final compatResult = CompatibilityChecker.check(
       parts: _buildPartSelections(savedBuild.selectedParts),
       estimatedWatts: savedBuild.estimatedWattage,
+      l10n: l10n,
     );
     final compatLevel = compatResult.overallLevel;
 
@@ -209,7 +219,7 @@ class BuildListCard extends StatelessWidget {
                       else
                         const SizedBox(height: 10),
                       Text(
-                        'ESTIMATED COST',
+                        l10n.buildCardEstimatedCost,
                         style: theme.textTheme.labelSmall?.copyWith(
                           letterSpacing: 1.0,
                           fontWeight: FontWeight.w800,
@@ -234,12 +244,12 @@ class BuildListCard extends StatelessWidget {
                   IconButton(
                     onPressed: onShare,
                     icon: const Icon(Icons.share_outlined),
-                    tooltip: 'Share',
+                    tooltip: l10n.buildCardShare,
                   ),
                   IconButton(
                     onPressed: onMore,
                     icon: const Icon(Icons.more_horiz_rounded),
-                    tooltip: 'More',
+                    tooltip: l10n.buildCardMore,
                   ),
                 ],
               ),
@@ -272,6 +282,7 @@ class _MiniProgressBar extends StatelessWidget {
     final slashColor =
         theme.brightness == Brightness.dark ? Colors.white : Colors.black;
 
+    final l10n = context.l10n;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       mainAxisSize: MainAxisSize.min,
@@ -279,7 +290,7 @@ class _MiniProgressBar extends StatelessWidget {
         Row(
           children: [
             Text(
-              'PROGRESS',
+              l10n.buildCardProgress,
               style: theme.textTheme.labelSmall?.copyWith(
                 fontWeight: FontWeight.w800,
                 letterSpacing: 1.0,

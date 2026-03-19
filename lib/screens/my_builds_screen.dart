@@ -2,6 +2,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
+import '../l10n/l10n_ext.dart';
 import '../models/saved_build.dart';
 import '../services/builds_repository.dart';
 import '../widgets/build_cover_picker.dart';
@@ -30,6 +31,7 @@ class _MyBuildsScreenState extends State<MyBuildsScreen> {
   }
 
   void _openFiltersSheet() {
+    final l10n = context.l10n;
     showModalBottomSheet<void>(
       context: context,
       showDragHandle: true,
@@ -38,28 +40,28 @@ class _MyBuildsScreenState extends State<MyBuildsScreen> {
           mainAxisSize: MainAxisSize.min,
           children: [
             ListTile(
-              title: const Text('All builds'),
+              title: Text(l10n.myBuildsFilterAll),
               onTap: () {
                 Navigator.of(context).pop();
                 setState(() => _filter = _BuildFilter.all);
               },
             ),
             ListTile(
-              title: const Text('Completed'),
+              title: Text(l10n.myBuildsFilterCompleted),
               onTap: () {
                 Navigator.of(context).pop();
                 setState(() => _filter = _BuildFilter.completed);
               },
             ),
             ListTile(
-              title: const Text('In Progress'),
+              title: Text(l10n.myBuildsFilterInProgress),
               onTap: () {
                 Navigator.of(context).pop();
                 setState(() => _filter = _BuildFilter.inProgress);
               },
             ),
             ListTile(
-              title: const Text('Importiert'),
+              title: Text(l10n.myBuildsFilterImported),
               onTap: () {
                 Navigator.of(context).pop();
                 setState(() => _filter = _BuildFilter.draft);
@@ -122,7 +124,7 @@ class _MyBuildsScreenState extends State<MyBuildsScreen> {
       useRootNavigator: true,
       builder: (ctx) => StatefulBuilder(
         builder: (ctx, setDialogState) => AlertDialog(
-          title: const Text('Build bearbeiten'),
+          title: Text(ctx.l10n.buildDialogEditTitle),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -130,15 +132,15 @@ class _MyBuildsScreenState extends State<MyBuildsScreen> {
               TextField(
                 controller: ctrl,
                 autofocus: true,
-                decoration: const InputDecoration(
-                  hintText: 'Build-Name',
-                  border: OutlineInputBorder(),
+                decoration: InputDecoration(
+                  hintText: ctx.l10n.buildDialogNameHint,
+                  border: const OutlineInputBorder(),
                 ),
                 textInputAction: TextInputAction.done,
               ),
               const SizedBox(height: 16),
               Text(
-                'Cover-Bild (optional)',
+                ctx.l10n.buildDialogCoverLabel,
                 style: Theme.of(ctx).textTheme.labelSmall?.copyWith(
                       color: Theme.of(ctx).colorScheme.onSurfaceVariant,
                       fontWeight: FontWeight.w700,
@@ -157,7 +159,7 @@ class _MyBuildsScreenState extends State<MyBuildsScreen> {
             TextButton(
               onPressed: () =>
                   Navigator.of(ctx, rootNavigator: true).pop(),
-              child: const Text('Abbrechen'),
+              child: Text(ctx.l10n.settingsCancel),
             ),
             FilledButton(
               onPressed: () {
@@ -167,7 +169,7 @@ class _MyBuildsScreenState extends State<MyBuildsScreen> {
                   (title: trimmed, heroImageUrl: selectedCover),
                 );
               },
-              child: const Text('Speichern'),
+              child: Text(ctx.l10n.settingsSave),
             ),
           ],
         ),
@@ -184,32 +186,32 @@ class _MyBuildsScreenState extends State<MyBuildsScreen> {
   }
 
   Future<void> _duplicateBuild(User user, SavedBuild build) async {
-    final ctrl = TextEditingController(text: 'Kopie von ${build.title}');
+    final ctrl = TextEditingController(text: context.l10n.buildDialogCopyOf(build.title));
     final title = await showDialog<String>(
       context: context,
       useRootNavigator: true,
       builder: (ctx) => AlertDialog(
-        title: const Text('Build duplizieren'),
+        title: Text(ctx.l10n.buildDialogDuplicateTitle),
         content: TextField(
           controller: ctrl,
           autofocus: true,
-          decoration: const InputDecoration(
-            hintText: 'Name des Duplikats',
-            border: OutlineInputBorder(),
+          decoration: InputDecoration(
+            hintText: ctx.l10n.buildDialogDuplicateNameHint,
+            border: const OutlineInputBorder(),
           ),
           textInputAction: TextInputAction.done,
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(ctx, rootNavigator: true).pop(),
-            child: const Text('Abbrechen'),
+            child: Text(ctx.l10n.settingsCancel),
           ),
           FilledButton(
             onPressed: () {
               final t = ctrl.text.trim();
               Navigator.of(ctx, rootNavigator: true).pop(t.isEmpty ? null : t);
             },
-            child: const Text('Duplizieren'),
+            child: Text(ctx.l10n.commonDuplicate),
           ),
         ],
       ),
@@ -230,7 +232,7 @@ class _MyBuildsScreenState extends State<MyBuildsScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           behavior: SnackBarBehavior.floating,
-          content: Text('"$title" wurde gespeichert.'),
+          content: Text(context.l10n.buildDialogSaved(title)),
         ),
       );
     } catch (e) {
@@ -238,7 +240,7 @@ class _MyBuildsScreenState extends State<MyBuildsScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           behavior: SnackBarBehavior.floating,
-          content: Text('Fehler beim Duplizieren: $e'),
+          content: Text(context.l10n.buildDialogDuplicateError(e.toString())),
         ),
       );
     }
@@ -249,16 +251,16 @@ class _MyBuildsScreenState extends State<MyBuildsScreen> {
       context: context,
       useRootNavigator: true,
       builder: (ctx) => AlertDialog(
-        title: const Text('Delete Build'),
-        content: Text('Delete "${build.title}" permanently?'),
+        title: Text(ctx.l10n.buildDialogDeleteTitle),
+        content: Text(ctx.l10n.buildDialogDeleteContent(build.title)),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(ctx, rootNavigator: true).pop(false),
-            child: const Text('Cancel'),
+            child: Text(ctx.l10n.settingsCancel),
           ),
           FilledButton(
             onPressed: () => Navigator.of(ctx, rootNavigator: true).pop(true),
-            child: const Text('Delete'),
+            child: Text(ctx.l10n.commonDelete),
           ),
         ],
       ),
@@ -277,18 +279,18 @@ class _MyBuildsScreenState extends State<MyBuildsScreen> {
           children: [
             ListTile(
               leading: const Icon(Icons.edit_rounded),
-              title: const Text('Rename'),
+              title: Text(ctx.l10n.commonRename),
               onTap: () => Navigator.of(ctx).pop('rename'),
             ),
             if (!build.readOnly)
               ListTile(
                 leading: const Icon(Icons.copy_rounded),
-                title: const Text('Duplizieren'),
+                title: Text(ctx.l10n.commonDuplicate),
                 onTap: () => Navigator.of(ctx).pop('duplicate'),
               ),
             ListTile(
               leading: const Icon(Icons.delete_outline_rounded),
-              title: const Text('Delete'),
+              title: Text(ctx.l10n.commonDelete),
               textColor: Colors.red,
               iconColor: Colors.red,
               onTap: () => Navigator.of(ctx).pop('delete'),
@@ -317,7 +319,7 @@ class _MyBuildsScreenState extends State<MyBuildsScreen> {
     final theme = Theme.of(context);
     final user = FirebaseAuth.instance.currentUser;
     if (user == null || user.isAnonymous) {
-      return const Center(child: Text('Sign in to view your builds.'));
+      return Center(child: Text(context.l10n.buildsSignInPrompt));
     }
 
     return StreamBuilder<List<SavedBuild>>(
@@ -338,7 +340,7 @@ class _MyBuildsScreenState extends State<MyBuildsScreen> {
                 ),
                 const SizedBox(width: 8),
                 Text(
-                  'My Builds',
+                  context.l10n.myBuildsTitle,
                   style: theme.textTheme.headlineSmall?.copyWith(
                     fontWeight: FontWeight.w900,
                   ),
@@ -350,7 +352,7 @@ class _MyBuildsScreenState extends State<MyBuildsScreen> {
               controller: _searchCtrl,
               onChanged: (_) => setState(() {}),
               decoration: InputDecoration(
-                hintText: 'Search your builds…',
+                hintText: context.l10n.myBuildsSearchHint,
                 prefixIcon: const Icon(Icons.search_rounded),
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(14),
@@ -363,7 +365,7 @@ class _MyBuildsScreenState extends State<MyBuildsScreen> {
                 OutlinedButton.icon(
                   onPressed: _openFiltersSheet,
                   icon: const Icon(Icons.tune_rounded),
-                  label: const Text('Filters'),
+                  label: Text(context.l10n.myBuildsFilters),
                 ),
               ],
             ),
@@ -373,27 +375,27 @@ class _MyBuildsScreenState extends State<MyBuildsScreen> {
               child: Row(
                 children: [
                   FilterChip(
-                    label: const Text('All builds'),
+                    label: Text(context.l10n.myBuildsFilterAll),
                     selected: _filter == _BuildFilter.all,
                     onSelected: (_) => setState(() => _filter = _BuildFilter.all),
                   ),
                   const SizedBox(width: 8),
                   FilterChip(
-                    label: const Text('Completed'),
+                    label: Text(context.l10n.myBuildsFilterCompleted),
                     selected: _filter == _BuildFilter.completed,
                     onSelected: (_) =>
                         setState(() => _filter = _BuildFilter.completed),
                   ),
                   const SizedBox(width: 8),
                   FilterChip(
-                    label: const Text('In Progress'),
+                    label: Text(context.l10n.myBuildsFilterInProgress),
                     selected: _filter == _BuildFilter.inProgress,
                     onSelected: (_) =>
                         setState(() => _filter = _BuildFilter.inProgress),
                   ),
                   const SizedBox(width: 8),
                   FilterChip(
-                    label: const Text('Importiert'),
+                    label: Text(context.l10n.myBuildsFilterImported),
                     selected: _filter == _BuildFilter.draft,
                     onSelected: (_) => setState(() => _filter = _BuildFilter.draft),
                   ),
@@ -450,13 +452,13 @@ class _EmptyBuildState extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'No builds saved yet',
+            context.l10n.buildsNoBuilds,
             style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800),
           ),
           const SizedBox(height: 10),
           OutlinedButton(
             onPressed: onStart,
-            child: const Text('Start new build'),
+            child: Text(context.l10n.buildsStartNew),
           ),
         ],
       ),

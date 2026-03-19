@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
+import '../l10n/l10n_ext.dart';
+
 class StartNewBuildTile extends StatelessWidget {
   const StartNewBuildTile({super.key});
 
@@ -61,14 +63,14 @@ class StartNewBuildTile extends StatelessWidget {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          'Neuen Build starten',
+                          context.l10n.startNewBuildTitle,
                           style: theme.textTheme.titleSmall?.copyWith(
                             fontWeight: FontWeight.w800,
                           ),
                         ),
                         const SizedBox(height: 2),
                         Text(
-                          'Manuell · Teileauswahl',
+                          context.l10n.startNewBuildSubtitle,
                           style: theme.textTheme.bodySmall?.copyWith(
                             color: theme.colorScheme.onSurfaceVariant,
                           ),

@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+import '../l10n/l10n_ext.dart';
 import '../models/saved_build.dart';
 import '../services/builds_repository.dart';
 
@@ -74,9 +75,9 @@ class _ShareBuildSheetState extends State<ShareBuildSheet> {
     if (!await launchUrl(uri, mode: LaunchMode.externalApplication)) {
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
+          SnackBar(
             behavior: SnackBarBehavior.floating,
-            content: Text('Konnte nicht geöffnet werden.'),
+            content: Text(context.l10n.shareCouldNotOpen),
           ),
         );
       }
@@ -89,9 +90,9 @@ class _ShareBuildSheetState extends State<ShareBuildSheet> {
     await Clipboard.setData(ClipboardData(text: url));
     if (context.mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
+        SnackBar(
           behavior: SnackBarBehavior.floating,
-          content: Text('Link kopiert!'),
+          content: Text(context.l10n.sharedLinkCopied),
         ),
       );
     }
@@ -100,14 +101,14 @@ class _ShareBuildSheetState extends State<ShareBuildSheet> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final l10n = context.l10n;
     final shareUrl = _shareUrl ?? '';
     final buildTitle = widget.build.title;
 
     final encodedText = shareUrl.isEmpty
         ? ''
-        : Uri.encodeComponent(
-            'Schau dir meinen PC-Build "$buildTitle" an: $shareUrl');
-    final encodedSubject = Uri.encodeComponent('BuildMyPC – $buildTitle');
+        : Uri.encodeComponent(l10n.shareMessageText(buildTitle, shareUrl));
+    final encodedSubject = Uri.encodeComponent(l10n.shareEmailSubject(buildTitle));
 
     final channels = shareUrl.isEmpty
         ? <(String, Widget, Widget, String, bool)>[]
@@ -197,14 +198,14 @@ class _ShareBuildSheetState extends State<ShareBuildSheet> {
               crossAxisAlignment: CrossAxisAlignment.center,
               children: [
                 Text(
-                  'Build teilen',
+                  l10n.shareTitle,
                   style: theme.textTheme.titleLarge?.copyWith(
                     fontWeight: FontWeight.w800,
                   ),
                 ),
                 const Spacer(),
                 Text(
-                  'Nur ansehen',
+                  l10n.shareReadOnly,
                   style: theme.textTheme.labelMedium?.copyWith(
                     fontWeight: FontWeight.w600,
                     color: theme.colorScheme.onSurfaceVariant,
@@ -248,7 +249,7 @@ class _ShareBuildSheetState extends State<ShareBuildSheet> {
                               ),
                               const SizedBox(width: 10),
                               Text(
-                                'Link wird generiert…',
+                                l10n.shareGenerating,
                                 style: theme.textTheme.bodySmall?.copyWith(
                                   color: theme.colorScheme.onSurfaceVariant,
                                 ),
@@ -257,7 +258,7 @@ class _ShareBuildSheetState extends State<ShareBuildSheet> {
                           )
                         : _error != null && _shareUrl == null
                             ? Text(
-                                'Fehler beim Generieren',
+                                l10n.shareGeneratingError,
                                 style: theme.textTheme.bodySmall?.copyWith(
                                   color: theme.colorScheme.error,
                                 ),
@@ -289,7 +290,7 @@ class _ShareBuildSheetState extends State<ShareBuildSheet> {
                     FilledButton.icon(
                       onPressed: shareUrl.isEmpty ? null : () => _copy(context),
                       icon: const Icon(Icons.copy_rounded, size: 16),
-                      label: const Text('Kopieren'),
+                      label: Text(l10n.shareCopy),
                       style: FilledButton.styleFrom(
                         padding: const EdgeInsets.symmetric(
                           horizontal: 12,
@@ -305,7 +306,7 @@ class _ShareBuildSheetState extends State<ShareBuildSheet> {
             if (channels.isNotEmpty) ...[
               const SizedBox(height: 24),
               Text(
-                'DIREKT TEILEN',
+                l10n.shareDirectSection,
                 style: theme.textTheme.labelSmall?.copyWith(
                   fontWeight: FontWeight.w900,
                   letterSpacing: 1.2,
@@ -329,10 +330,9 @@ class _ShareBuildSheetState extends State<ShareBuildSheet> {
                                 ClipboardData(text: shareUrl));
                             if (!context.mounted) return;
                             ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(
+                              SnackBar(
                                 behavior: SnackBarBehavior.floating,
-                                content: Text(
-                                    'Link kopiert – füge ihn in Instagram DM ein.'),
+                                content: Text(context.l10n.shareInstagramCopied),
                               ),
                             );
                           }

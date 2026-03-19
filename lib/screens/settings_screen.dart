@@ -403,6 +403,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
               onPressed: () async {
                 Navigator.of(ctx).pop();
                 try {
+                  FirebaseAuth.instance.setLanguageCode(Localizations.localeOf(context).languageCode);
                   await FirebaseAuth.instance
                       .sendPasswordResetEmail(email: user.email!);
                   if (context.mounted) {
