@@ -387,7 +387,7 @@ class _DashboardState extends State<Dashboard> {
                 }
                 final shown = builds.take(4).toList(growable: false);
                 return SizedBox(
-                  height: 350,
+                  height: 360,
                   child: GridView.builder(
                     scrollDirection: Axis.horizontal,
                     padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -404,6 +404,7 @@ class _DashboardState extends State<Dashboard> {
                       return BuildListCard(
                         savedBuild: build,
                         compact: true,
+                        pinCostToBottom: true,
                         onTap: () =>
                             context.go('/configure', extra: build),
                         onShare: () => _shareBuild(build),
