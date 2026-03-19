@@ -481,21 +481,10 @@ class _AuthScreenState extends State<AuthScreen> {
                                                 }
                                               }
                                             },
-                                      child: const Text('Google'),
-                                    ),
-                                  ),
-                                  const SizedBox(width: 10),
-                                  Expanded(
-                                    child: OutlinedButton(
-                                      onPressed: _loading ? null : () {},
-                                      child: const Text('Apple'),
-                                    ),
-                                  ),
-                                  const SizedBox(width: 10),
-                                  Expanded(
-                                    child: OutlinedButton(
-                                      onPressed: _loading ? null : () {},
-                                      child: const Text('GitHub'),
+                                      child: Image.asset(
+                                        'assets/images/google_text.png',
+                                        height: 20,
+                                      ),
                                     ),
                                   ),
                                 ],
