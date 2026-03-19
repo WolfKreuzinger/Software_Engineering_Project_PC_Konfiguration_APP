@@ -208,25 +208,19 @@ class BuildCoverThumbnail extends StatelessWidget {
       child: SizedBox(
         width: width,
         height: height,
-        child: Image.asset(
-          coverId!,
-          fit: BoxFit.cover,
-          errorBuilder: (_, _, _) => Container(
-            width: width,
-            height: height,
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(14),
-              gradient: LinearGradient(
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-                colors: [
-                  theme.colorScheme.primary.withValues(alpha: 0.24),
-                  theme.colorScheme.tertiary.withValues(alpha: 0.20),
-                  theme.colorScheme.surfaceContainerHighest,
-                ],
+        child: Stack(
+          fit: StackFit.expand,
+          children: [
+            _DefaultGradient(theme: theme),
+            Padding(
+              padding: const EdgeInsets.all(8),
+              child: Image.asset(
+                coverId!,
+                fit: BoxFit.contain,
+                errorBuilder: (_, _, _) => const SizedBox.shrink(),
               ),
             ),
-          ),
+          ],
         ),
       ),
     );
