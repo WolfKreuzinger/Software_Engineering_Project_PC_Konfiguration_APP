@@ -167,7 +167,7 @@ abstract class AppLocalizations {
   /// No description provided for @authEmailHint.
   ///
   /// In de, this message translates to:
-  /// **'name@example.com'**
+  /// **'name@beispiel.de'**
   String get authEmailHint;
 
   /// No description provided for @authEmailRequired.
@@ -301,6 +301,18 @@ abstract class AppLocalizations {
   /// In de, this message translates to:
   /// **'Zu viele falsche Passwortversuche. Bitte nutze \"Vergessen?\", um dein Passwort zurückzusetzen.'**
   String get authResetRequiredAfterFailedLogins;
+
+  /// No description provided for @authLogin.
+  ///
+  /// In de, this message translates to:
+  /// **'Anmelden'**
+  String get authLogin;
+
+  /// No description provided for @authRegister.
+  ///
+  /// In de, this message translates to:
+  /// **'Registrieren'**
+  String get authRegister;
 
   /// No description provided for @configureTitle.
   ///
@@ -1123,6 +1135,1194 @@ abstract class AppLocalizations {
   /// In de, this message translates to:
   /// **'Alle geprüften Komponenten sind kompatibel.'**
   String get compatibilityNoIssues;
+
+  /// No description provided for @commonDelete.
+  ///
+  /// In de, this message translates to:
+  /// **'Löschen'**
+  String get commonDelete;
+
+  /// No description provided for @commonRename.
+  ///
+  /// In de, this message translates to:
+  /// **'Umbenennen'**
+  String get commonRename;
+
+  /// No description provided for @commonDuplicate.
+  ///
+  /// In de, this message translates to:
+  /// **'Duplizieren'**
+  String get commonDuplicate;
+
+  /// No description provided for @commonView.
+  ///
+  /// In de, this message translates to:
+  /// **'Ansehen'**
+  String get commonView;
+
+  /// No description provided for @commonApply.
+  ///
+  /// In de, this message translates to:
+  /// **'Anwenden'**
+  String get commonApply;
+
+  /// No description provided for @commonAdd.
+  ///
+  /// In de, this message translates to:
+  /// **'Hinzufügen'**
+  String get commonAdd;
+
+  /// No description provided for @commonYes.
+  ///
+  /// In de, this message translates to:
+  /// **'Ja'**
+  String get commonYes;
+
+  /// No description provided for @commonNo.
+  ///
+  /// In de, this message translates to:
+  /// **'Nein'**
+  String get commonNo;
+
+  /// No description provided for @buildDialogEditTitle.
+  ///
+  /// In de, this message translates to:
+  /// **'Build bearbeiten'**
+  String get buildDialogEditTitle;
+
+  /// No description provided for @buildDialogNameHint.
+  ///
+  /// In de, this message translates to:
+  /// **'Build-Name'**
+  String get buildDialogNameHint;
+
+  /// No description provided for @buildDialogCoverLabel.
+  ///
+  /// In de, this message translates to:
+  /// **'Cover-Bild (optional)'**
+  String get buildDialogCoverLabel;
+
+  /// No description provided for @buildDialogDuplicateTitle.
+  ///
+  /// In de, this message translates to:
+  /// **'Build duplizieren'**
+  String get buildDialogDuplicateTitle;
+
+  /// No description provided for @buildDialogDuplicateNameHint.
+  ///
+  /// In de, this message translates to:
+  /// **'Name des Duplikats'**
+  String get buildDialogDuplicateNameHint;
+
+  /// No description provided for @buildDialogCopyOf.
+  ///
+  /// In de, this message translates to:
+  /// **'Kopie von {title}'**
+  String buildDialogCopyOf(String title);
+
+  /// No description provided for @buildDialogDeleteTitle.
+  ///
+  /// In de, this message translates to:
+  /// **'Build löschen'**
+  String get buildDialogDeleteTitle;
+
+  /// No description provided for @buildDialogDeleteContent.
+  ///
+  /// In de, this message translates to:
+  /// **'\"{title}\" dauerhaft löschen?'**
+  String buildDialogDeleteContent(String title);
+
+  /// No description provided for @buildDialogSaved.
+  ///
+  /// In de, this message translates to:
+  /// **'\"{title}\" wurde gespeichert.'**
+  String buildDialogSaved(String title);
+
+  /// No description provided for @buildDialogDuplicateError.
+  ///
+  /// In de, this message translates to:
+  /// **'Fehler beim Duplizieren: {error}'**
+  String buildDialogDuplicateError(String error);
+
+  /// No description provided for @buildsNoBuilds.
+  ///
+  /// In de, this message translates to:
+  /// **'Noch keine Builds gespeichert'**
+  String get buildsNoBuilds;
+
+  /// No description provided for @buildsStartNew.
+  ///
+  /// In de, this message translates to:
+  /// **'Neuen Build starten'**
+  String get buildsStartNew;
+
+  /// No description provided for @buildsSignInPrompt.
+  ///
+  /// In de, this message translates to:
+  /// **'Anmelden, um deine Builds zu sehen.'**
+  String get buildsSignInPrompt;
+
+  /// No description provided for @myBuildsTitle.
+  ///
+  /// In de, this message translates to:
+  /// **'Meine Builds'**
+  String get myBuildsTitle;
+
+  /// No description provided for @myBuildsSearchHint.
+  ///
+  /// In de, this message translates to:
+  /// **'Builds durchsuchen…'**
+  String get myBuildsSearchHint;
+
+  /// No description provided for @myBuildsFilters.
+  ///
+  /// In de, this message translates to:
+  /// **'Filter'**
+  String get myBuildsFilters;
+
+  /// No description provided for @myBuildsFilterAll.
+  ///
+  /// In de, this message translates to:
+  /// **'Alle Builds'**
+  String get myBuildsFilterAll;
+
+  /// No description provided for @myBuildsFilterCompleted.
+  ///
+  /// In de, this message translates to:
+  /// **'Abgeschlossen'**
+  String get myBuildsFilterCompleted;
+
+  /// No description provided for @myBuildsFilterInProgress.
+  ///
+  /// In de, this message translates to:
+  /// **'In Bearbeitung'**
+  String get myBuildsFilterInProgress;
+
+  /// No description provided for @myBuildsFilterImported.
+  ///
+  /// In de, this message translates to:
+  /// **'Importiert'**
+  String get myBuildsFilterImported;
+
+  /// No description provided for @buildStatusCompleted.
+  ///
+  /// In de, this message translates to:
+  /// **'ABGESCHLOSSEN'**
+  String get buildStatusCompleted;
+
+  /// No description provided for @buildStatusDraft.
+  ///
+  /// In de, this message translates to:
+  /// **'ENTWURF'**
+  String get buildStatusDraft;
+
+  /// No description provided for @buildStatusArchived.
+  ///
+  /// In de, this message translates to:
+  /// **'ARCHIVIERT'**
+  String get buildStatusArchived;
+
+  /// No description provided for @buildStatusInProgress.
+  ///
+  /// In de, this message translates to:
+  /// **'IN BEARBEITUNG'**
+  String get buildStatusInProgress;
+
+  /// No description provided for @buildStatusImported.
+  ///
+  /// In de, this message translates to:
+  /// **'IMPORTIERT'**
+  String get buildStatusImported;
+
+  /// No description provided for @buildCardEstimatedCost.
+  ///
+  /// In de, this message translates to:
+  /// **'GESCHÄTZTE KOSTEN'**
+  String get buildCardEstimatedCost;
+
+  /// No description provided for @buildCardProgress.
+  ///
+  /// In de, this message translates to:
+  /// **'FORTSCHRITT'**
+  String get buildCardProgress;
+
+  /// No description provided for @buildCardShare.
+  ///
+  /// In de, this message translates to:
+  /// **'Teilen'**
+  String get buildCardShare;
+
+  /// No description provided for @buildCardMore.
+  ///
+  /// In de, this message translates to:
+  /// **'Mehr'**
+  String get buildCardMore;
+
+  /// No description provided for @templateTitle.
+  ///
+  /// In de, this message translates to:
+  /// **'Build-Vorlagen'**
+  String get templateTitle;
+
+  /// No description provided for @templateDescription.
+  ///
+  /// In de, this message translates to:
+  /// **'Wähle eine Vorlage als Ausgangspunkt für dein Build. Alle Komponenten können anschließend frei angepasst werden.'**
+  String get templateDescription;
+
+  /// No description provided for @templateBudgetGamingTagline.
+  ///
+  /// In de, this message translates to:
+  /// **'Maximale Performance für kleines Budget'**
+  String get templateBudgetGamingTagline;
+
+  /// No description provided for @templateHighEndGamingTagline.
+  ///
+  /// In de, this message translates to:
+  /// **'Kompromisslose Performance für 4K & 144 Hz'**
+  String get templateHighEndGamingTagline;
+
+  /// No description provided for @templateOfficeTagline.
+  ///
+  /// In de, this message translates to:
+  /// **'Zuverlässig und effizient für den Büroalltag'**
+  String get templateOfficeTagline;
+
+  /// No description provided for @templateWorkstationTagline.
+  ///
+  /// In de, this message translates to:
+  /// **'Professionelle Leistung für anspruchsvolle Aufgaben'**
+  String get templateWorkstationTagline;
+
+  /// No description provided for @templateMiniItxTagline.
+  ///
+  /// In de, this message translates to:
+  /// **'Maximale Leistung im kleinsten Formfaktor'**
+  String get templateMiniItxTagline;
+
+  /// No description provided for @templateSilentTagline.
+  ///
+  /// In de, this message translates to:
+  /// **'Leise wie eine Bibliothek – maximaler Komfort'**
+  String get templateSilentTagline;
+
+  /// No description provided for @sharedLinkCopied.
+  ///
+  /// In de, this message translates to:
+  /// **'Link kopiert!'**
+  String get sharedLinkCopied;
+
+  /// No description provided for @sharedBuildNotFound.
+  ///
+  /// In de, this message translates to:
+  /// **'Build nicht gefunden'**
+  String get sharedBuildNotFound;
+
+  /// No description provided for @sharedBuildNotFoundDesc.
+  ///
+  /// In de, this message translates to:
+  /// **'Dieser Link ist ungültig oder wurde noch nicht geteilt.'**
+  String get sharedBuildNotFoundDesc;
+
+  /// No description provided for @shareTitle.
+  ///
+  /// In de, this message translates to:
+  /// **'Build teilen'**
+  String get shareTitle;
+
+  /// No description provided for @shareReadOnly.
+  ///
+  /// In de, this message translates to:
+  /// **'Nur ansehen'**
+  String get shareReadOnly;
+
+  /// No description provided for @shareGenerating.
+  ///
+  /// In de, this message translates to:
+  /// **'Link wird generiert…'**
+  String get shareGenerating;
+
+  /// No description provided for @shareGeneratingError.
+  ///
+  /// In de, this message translates to:
+  /// **'Fehler beim Generieren'**
+  String get shareGeneratingError;
+
+  /// No description provided for @shareCopy.
+  ///
+  /// In de, this message translates to:
+  /// **'Kopieren'**
+  String get shareCopy;
+
+  /// No description provided for @shareDirectSection.
+  ///
+  /// In de, this message translates to:
+  /// **'DIREKT TEILEN'**
+  String get shareDirectSection;
+
+  /// No description provided for @shareInstagramCopied.
+  ///
+  /// In de, this message translates to:
+  /// **'Link kopiert – füge ihn in Instagram DM ein.'**
+  String get shareInstagramCopied;
+
+  /// No description provided for @shareCouldNotOpen.
+  ///
+  /// In de, this message translates to:
+  /// **'Konnte nicht geöffnet werden.'**
+  String get shareCouldNotOpen;
+
+  /// No description provided for @shareMessageText.
+  ///
+  /// In de, this message translates to:
+  /// **'Schau dir meinen PC-Build \"{title}\" an: {url}'**
+  String shareMessageText(String title, String url);
+
+  /// No description provided for @shareEmailSubject.
+  ///
+  /// In de, this message translates to:
+  /// **'BuildMyPC – {title}'**
+  String shareEmailSubject(String title);
+
+  /// No description provided for @partsSearchHint.
+  ///
+  /// In de, this message translates to:
+  /// **'Teile suchen'**
+  String get partsSearchHint;
+
+  /// No description provided for @partsProductsFound.
+  ///
+  /// In de, this message translates to:
+  /// **'{count} Produkte gefunden'**
+  String partsProductsFound(int count);
+
+  /// No description provided for @partsNoProductsFound.
+  ///
+  /// In de, this message translates to:
+  /// **'0 Produkte gefunden'**
+  String get partsNoProductsFound;
+
+  /// No description provided for @partsComponentType.
+  ///
+  /// In de, this message translates to:
+  /// **'Komponententyp'**
+  String get partsComponentType;
+
+  /// No description provided for @partsSpecs.
+  ///
+  /// In de, this message translates to:
+  /// **'Spezifikationen'**
+  String get partsSpecs;
+
+  /// No description provided for @partsSort.
+  ///
+  /// In de, this message translates to:
+  /// **'Sortierung'**
+  String get partsSort;
+
+  /// No description provided for @partsOrder.
+  ///
+  /// In de, this message translates to:
+  /// **'Reihenfolge'**
+  String get partsOrder;
+
+  /// No description provided for @partsNoData.
+  ///
+  /// In de, this message translates to:
+  /// **'Keine Daten geladen'**
+  String get partsNoData;
+
+  /// No description provided for @partsNoDataSubtitle.
+  ///
+  /// In de, this message translates to:
+  /// **'Keine Teile in einer Kollektion gefunden.'**
+  String get partsNoDataSubtitle;
+
+  /// No description provided for @partsNoResults.
+  ///
+  /// In de, this message translates to:
+  /// **'Keine Ergebnisse'**
+  String get partsNoResults;
+
+  /// No description provided for @partsNoResultsSubtitle.
+  ///
+  /// In de, this message translates to:
+  /// **'Filter oder Suche anpassen.'**
+  String get partsNoResultsSubtitle;
+
+  /// No description provided for @partsLoadMore.
+  ///
+  /// In de, this message translates to:
+  /// **'Mehr laden'**
+  String get partsLoadMore;
+
+  /// No description provided for @partsAddToConfig.
+  ///
+  /// In de, this message translates to:
+  /// **'Hinzufügen'**
+  String get partsAddToConfig;
+
+  /// No description provided for @partsNoSpecs.
+  ///
+  /// In de, this message translates to:
+  /// **'Keine Spezifikationen verfügbar.'**
+  String get partsNoSpecs;
+
+  /// No description provided for @partsDataCompleteness.
+  ///
+  /// In de, this message translates to:
+  /// **'Datenvollständigkeit'**
+  String get partsDataCompleteness;
+
+  /// No description provided for @partsDataCompletenessHint.
+  ///
+  /// In de, this message translates to:
+  /// **'Komponenten nach Vollständigkeit der Spezifikationsdaten filtern'**
+  String get partsDataCompletenessHint;
+
+  /// No description provided for @partsShowAll.
+  ///
+  /// In de, this message translates to:
+  /// **'Alle anzeigen'**
+  String get partsShowAll;
+
+  /// No description provided for @partsCompatibilityOnly.
+  ///
+  /// In de, this message translates to:
+  /// **'Kompatibilität'**
+  String get partsCompatibilityOnly;
+
+  /// No description provided for @partsAllComponents.
+  ///
+  /// In de, this message translates to:
+  /// **'Alle Komponenten'**
+  String get partsAllComponents;
+
+  /// No description provided for @partsSortPriceLowToHigh.
+  ///
+  /// In de, this message translates to:
+  /// **'Preis: Aufsteigend'**
+  String get partsSortPriceLowToHigh;
+
+  /// No description provided for @partsSortPriceHighToLow.
+  ///
+  /// In de, this message translates to:
+  /// **'Preis: Absteigend'**
+  String get partsSortPriceHighToLow;
+
+  /// No description provided for @partsSortNameAtoZ.
+  ///
+  /// In de, this message translates to:
+  /// **'Name: A bis Z'**
+  String get partsSortNameAtoZ;
+
+  /// No description provided for @partsPriceRange.
+  ///
+  /// In de, this message translates to:
+  /// **'Preisbereich'**
+  String get partsPriceRange;
+
+  /// No description provided for @configureSelectComponent.
+  ///
+  /// In de, this message translates to:
+  /// **'Mindestens eine Komponente auswählen, um den Build zu speichern.'**
+  String get configureSelectComponent;
+
+  /// No description provided for @configureSignInPrompt.
+  ///
+  /// In de, this message translates to:
+  /// **'Bitte anmelden. Dein Build wird automatisch gespeichert.'**
+  String get configureSignInPrompt;
+
+  /// No description provided for @configureSaveBuildError.
+  ///
+  /// In de, this message translates to:
+  /// **'Build konnte nicht gespeichert werden: {error}'**
+  String configureSaveBuildError(String error);
+
+  /// No description provided for @configureSaveBuildTitle.
+  ///
+  /// In de, this message translates to:
+  /// **'Build speichern'**
+  String get configureSaveBuildTitle;
+
+  /// No description provided for @configureSaving.
+  ///
+  /// In de, this message translates to:
+  /// **'WIRD GESPEICHERT...'**
+  String get configureSaving;
+
+  /// No description provided for @configureAddToMyBuilds.
+  ///
+  /// In de, this message translates to:
+  /// **'ZU MEINEN BUILDS'**
+  String get configureAddToMyBuilds;
+
+  /// No description provided for @configureMissingData.
+  ///
+  /// In de, this message translates to:
+  /// **'{slot}: Fehlende Daten – {fields}'**
+  String configureMissingData(String slot, String fields);
+
+  /// No description provided for @configureMissingDataTooltip.
+  ///
+  /// In de, this message translates to:
+  /// **'Fehlende Daten: {fields}'**
+  String configureMissingDataTooltip(String fields);
+
+  /// No description provided for @configureAdd.
+  ///
+  /// In de, this message translates to:
+  /// **'Hinzufügen'**
+  String get configureAdd;
+
+  /// No description provided for @configureExtras.
+  ///
+  /// In de, this message translates to:
+  /// **'EXTRAS'**
+  String get configureExtras;
+
+  /// No description provided for @configureSelectedCount.
+  ///
+  /// In de, this message translates to:
+  /// **'{count} ausgewählt'**
+  String configureSelectedCount(int count);
+
+  /// No description provided for @configureImportedFrom.
+  ///
+  /// In de, this message translates to:
+  /// **'{title} von {author}'**
+  String configureImportedFrom(String title, String author);
+
+  /// No description provided for @compatIncompatible.
+  ///
+  /// In de, this message translates to:
+  /// **'Inkompatibel'**
+  String get compatIncompatible;
+
+  /// No description provided for @compatSingleError.
+  ///
+  /// In de, this message translates to:
+  /// **'1 kritischer Fehler'**
+  String get compatSingleError;
+
+  /// No description provided for @compatMultipleErrors.
+  ///
+  /// In de, this message translates to:
+  /// **'{count} kritische Fehler'**
+  String compatMultipleErrors(int count);
+
+  /// No description provided for @compatSingleWarning.
+  ///
+  /// In de, this message translates to:
+  /// **'1 Warnung erkannt'**
+  String get compatSingleWarning;
+
+  /// No description provided for @compatMultipleWarnings.
+  ///
+  /// In de, this message translates to:
+  /// **'{count} Warnungen erkannt'**
+  String compatMultipleWarnings(int count);
+
+  /// No description provided for @compatWarning.
+  ///
+  /// In de, this message translates to:
+  /// **'Warnung'**
+  String get compatWarning;
+
+  /// No description provided for @compatCompatible.
+  ///
+  /// In de, this message translates to:
+  /// **'Kompatibel'**
+  String get compatCompatible;
+
+  /// No description provided for @compatAllCompatible.
+  ///
+  /// In de, this message translates to:
+  /// **'Alle Komponenten sind kompatibel'**
+  String get compatAllCompatible;
+
+  /// No description provided for @compatOverallStatus.
+  ///
+  /// In de, this message translates to:
+  /// **'GESAMTSTATUS'**
+  String get compatOverallStatus;
+
+  /// No description provided for @guidedCardHeader.
+  ///
+  /// In de, this message translates to:
+  /// **'BUILD-VORLAGEN'**
+  String get guidedCardHeader;
+
+  /// No description provided for @guidedCardDescription.
+  ///
+  /// In de, this message translates to:
+  /// **'Starte mit einer vorkonfigurierten Vorlage – Budget Gaming, Office, High-End oder Workstation.'**
+  String get guidedCardDescription;
+
+  /// No description provided for @guidedCardButton.
+  ///
+  /// In de, this message translates to:
+  /// **'Vorlage auswählen'**
+  String get guidedCardButton;
+
+  /// No description provided for @startNewBuildTitle.
+  ///
+  /// In de, this message translates to:
+  /// **'Neuen Build starten'**
+  String get startNewBuildTitle;
+
+  /// No description provided for @startNewBuildSubtitle.
+  ///
+  /// In de, this message translates to:
+  /// **'Manuell · Teileauswahl'**
+  String get startNewBuildSubtitle;
+
+  /// No description provided for @partsSpecsReset.
+  ///
+  /// In de, this message translates to:
+  /// **'Zurücksetzen'**
+  String get partsSpecsReset;
+
+  /// No description provided for @partsSpecsAny.
+  ///
+  /// In de, this message translates to:
+  /// **'Beliebig'**
+  String get partsSpecsAny;
+
+  /// No description provided for @specLabelSize.
+  ///
+  /// In de, this message translates to:
+  /// **'Größe'**
+  String get specLabelSize;
+
+  /// No description provided for @specLabelAirflow.
+  ///
+  /// In de, this message translates to:
+  /// **'Luftdurchsatz'**
+  String get specLabelAirflow;
+
+  /// No description provided for @specLabelChannels.
+  ///
+  /// In de, this message translates to:
+  /// **'Kanäle'**
+  String get specLabelChannels;
+
+  /// No description provided for @specLabelChannelWattage.
+  ///
+  /// In de, this message translates to:
+  /// **'Kanalleistung'**
+  String get specLabelChannelWattage;
+
+  /// No description provided for @specLabelMemory.
+  ///
+  /// In de, this message translates to:
+  /// **'VRAM'**
+  String get specLabelMemory;
+
+  /// No description provided for @specLabelEfficiency.
+  ///
+  /// In de, this message translates to:
+  /// **'Effizienz'**
+  String get specLabelEfficiency;
+
+  /// No description provided for @specLabelBluRayRead.
+  ///
+  /// In de, this message translates to:
+  /// **'Blu-ray (Lesen)'**
+  String get specLabelBluRayRead;
+
+  /// No description provided for @specLabelBluRayWrite.
+  ///
+  /// In de, this message translates to:
+  /// **'Blu-ray (Schreiben)'**
+  String get specLabelBluRayWrite;
+
+  /// No description provided for @specLabelDvdRead.
+  ///
+  /// In de, this message translates to:
+  /// **'DVD (Lesen)'**
+  String get specLabelDvdRead;
+
+  /// No description provided for @specLabelDvdWrite.
+  ///
+  /// In de, this message translates to:
+  /// **'DVD (Schreiben)'**
+  String get specLabelDvdWrite;
+
+  /// No description provided for @specLabelCdRead.
+  ///
+  /// In de, this message translates to:
+  /// **'CD (Lesen)'**
+  String get specLabelCdRead;
+
+  /// No description provided for @specLabelCdWrite.
+  ///
+  /// In de, this message translates to:
+  /// **'CD (Schreiben)'**
+  String get specLabelCdWrite;
+
+  /// No description provided for @specLabelMode.
+  ///
+  /// In de, this message translates to:
+  /// **'Modus'**
+  String get specLabelMode;
+
+  /// No description provided for @specLabelCapacityVa.
+  ///
+  /// In de, this message translates to:
+  /// **'Kapazität (VA)'**
+  String get specLabelCapacityVa;
+
+  /// No description provided for @specLabelCapacityW.
+  ///
+  /// In de, this message translates to:
+  /// **'Kapazität (W)'**
+  String get specLabelCapacityW;
+
+  /// No description provided for @specLabelProtocol.
+  ///
+  /// In de, this message translates to:
+  /// **'Protokoll'**
+  String get specLabelProtocol;
+
+  /// No description provided for @specLabelSampleRate.
+  ///
+  /// In de, this message translates to:
+  /// **'Abtastrate'**
+  String get specLabelSampleRate;
+
+  /// No description provided for @specLabelSnr.
+  ///
+  /// In de, this message translates to:
+  /// **'Rauschabstand'**
+  String get specLabelSnr;
+
+  /// No description provided for @specLabelDigitalAudio.
+  ///
+  /// In de, this message translates to:
+  /// **'Digital-Audio'**
+  String get specLabelDigitalAudio;
+
+  /// No description provided for @specLabelAmount.
+  ///
+  /// In de, this message translates to:
+  /// **'Menge'**
+  String get specLabelAmount;
+
+  /// No description provided for @specLabelInternal35Bays.
+  ///
+  /// In de, this message translates to:
+  /// **'Interne 3,5\"-Schächte'**
+  String get specLabelInternal35Bays;
+
+  /// No description provided for @partsTypeCpuCooler.
+  ///
+  /// In de, this message translates to:
+  /// **'CPU-Kühler'**
+  String get partsTypeCpuCooler;
+
+  /// No description provided for @partsTypeStorage.
+  ///
+  /// In de, this message translates to:
+  /// **'Speicher'**
+  String get partsTypeStorage;
+
+  /// No description provided for @partsTypePowerSupply.
+  ///
+  /// In de, this message translates to:
+  /// **'Netzteil'**
+  String get partsTypePowerSupply;
+
+  /// No description provided for @partsTypeCase.
+  ///
+  /// In de, this message translates to:
+  /// **'Gehäuse'**
+  String get partsTypeCase;
+
+  /// No description provided for @partsTypeCaseFan.
+  ///
+  /// In de, this message translates to:
+  /// **'Gehäuselüfter'**
+  String get partsTypeCaseFan;
+
+  /// No description provided for @partsTypeEthernetCard.
+  ///
+  /// In de, this message translates to:
+  /// **'LAN-Karte'**
+  String get partsTypeEthernetCard;
+
+  /// No description provided for @partsTypeWifiCard.
+  ///
+  /// In de, this message translates to:
+  /// **'WLAN-Karte'**
+  String get partsTypeWifiCard;
+
+  /// No description provided for @partsTypeSoundCard.
+  ///
+  /// In de, this message translates to:
+  /// **'Soundkarte'**
+  String get partsTypeSoundCard;
+
+  /// No description provided for @partsTypeOpticalDrive.
+  ///
+  /// In de, this message translates to:
+  /// **'Optisches Laufwerk'**
+  String get partsTypeOpticalDrive;
+
+  /// No description provided for @partsTypeFanController.
+  ///
+  /// In de, this message translates to:
+  /// **'Lüftersteuerung'**
+  String get partsTypeFanController;
+
+  /// No description provided for @partsTypeThermalPaste.
+  ///
+  /// In de, this message translates to:
+  /// **'Wärmeleitpaste'**
+  String get partsTypeThermalPaste;
+
+  /// No description provided for @partsTypeExternalStorage.
+  ///
+  /// In de, this message translates to:
+  /// **'Externe Festplatte'**
+  String get partsTypeExternalStorage;
+
+  /// No description provided for @partsTypeUps.
+  ///
+  /// In de, this message translates to:
+  /// **'USV'**
+  String get partsTypeUps;
+
+  /// No description provided for @partsTypeCaseAccessory.
+  ///
+  /// In de, this message translates to:
+  /// **'Gehäuse-Zubehör'**
+  String get partsTypeCaseAccessory;
+
+  /// No description provided for @specLabelBrand.
+  ///
+  /// In de, this message translates to:
+  /// **'Marke'**
+  String get specLabelBrand;
+
+  /// No description provided for @specLabelCoreCount.
+  ///
+  /// In de, this message translates to:
+  /// **'Kernanzahl'**
+  String get specLabelCoreCount;
+
+  /// No description provided for @specLabelCoreClock.
+  ///
+  /// In de, this message translates to:
+  /// **'Kerntakt'**
+  String get specLabelCoreClock;
+
+  /// No description provided for @specLabelBoostClock.
+  ///
+  /// In de, this message translates to:
+  /// **'Boost-Takt'**
+  String get specLabelBoostClock;
+
+  /// No description provided for @specLabelMicroarchitecture.
+  ///
+  /// In de, this message translates to:
+  /// **'Mikroarchitektur'**
+  String get specLabelMicroarchitecture;
+
+  /// No description provided for @specLabelIntegratedGraphics.
+  ///
+  /// In de, this message translates to:
+  /// **'Integrierte Grafik'**
+  String get specLabelIntegratedGraphics;
+
+  /// No description provided for @specLabelChipset.
+  ///
+  /// In de, this message translates to:
+  /// **'Chipsatz'**
+  String get specLabelChipset;
+
+  /// No description provided for @specLabelColor.
+  ///
+  /// In de, this message translates to:
+  /// **'Farbe'**
+  String get specLabelColor;
+
+  /// No description provided for @specLabelVram.
+  ///
+  /// In de, this message translates to:
+  /// **'VRAM'**
+  String get specLabelVram;
+
+  /// No description provided for @specLabelLength.
+  ///
+  /// In de, this message translates to:
+  /// **'Länge'**
+  String get specLabelLength;
+
+  /// No description provided for @specLabelDdrGeneration.
+  ///
+  /// In de, this message translates to:
+  /// **'DDR-Generation'**
+  String get specLabelDdrGeneration;
+
+  /// No description provided for @specLabelModules.
+  ///
+  /// In de, this message translates to:
+  /// **'Module'**
+  String get specLabelModules;
+
+  /// No description provided for @specLabelModuleSize.
+  ///
+  /// In de, this message translates to:
+  /// **'Modulkapazität'**
+  String get specLabelModuleSize;
+
+  /// No description provided for @specLabelSpeed.
+  ///
+  /// In de, this message translates to:
+  /// **'Takt'**
+  String get specLabelSpeed;
+
+  /// No description provided for @specLabelCasLatency.
+  ///
+  /// In de, this message translates to:
+  /// **'CAS-Latenz'**
+  String get specLabelCasLatency;
+
+  /// No description provided for @specLabelFirstWordLatency.
+  ///
+  /// In de, this message translates to:
+  /// **'Erste-Wort-Latenz'**
+  String get specLabelFirstWordLatency;
+
+  /// No description provided for @specLabelPricePerGb.
+  ///
+  /// In de, this message translates to:
+  /// **'Preis / GB'**
+  String get specLabelPricePerGb;
+
+  /// No description provided for @specLabelCapacity.
+  ///
+  /// In de, this message translates to:
+  /// **'Kapazität'**
+  String get specLabelCapacity;
+
+  /// No description provided for @specLabelFormFactor.
+  ///
+  /// In de, this message translates to:
+  /// **'Formfaktor'**
+  String get specLabelFormFactor;
+
+  /// No description provided for @specLabelInterface.
+  ///
+  /// In de, this message translates to:
+  /// **'Schnittstelle'**
+  String get specLabelInterface;
+
+  /// No description provided for @specLabelSocket.
+  ///
+  /// In de, this message translates to:
+  /// **'Sockel'**
+  String get specLabelSocket;
+
+  /// No description provided for @specLabelMaxMemory.
+  ///
+  /// In de, this message translates to:
+  /// **'Max. Arbeitsspeicher'**
+  String get specLabelMaxMemory;
+
+  /// No description provided for @specLabelMemorySlots.
+  ///
+  /// In de, this message translates to:
+  /// **'Speichersteckplätze'**
+  String get specLabelMemorySlots;
+
+  /// No description provided for @specLabelType.
+  ///
+  /// In de, this message translates to:
+  /// **'Typ'**
+  String get specLabelType;
+
+  /// No description provided for @specLabelWattage.
+  ///
+  /// In de, this message translates to:
+  /// **'Leistung'**
+  String get specLabelWattage;
+
+  /// No description provided for @specLabelEfficiencyCertification.
+  ///
+  /// In de, this message translates to:
+  /// **'Effizienz-Zertifizierung'**
+  String get specLabelEfficiencyCertification;
+
+  /// No description provided for @specLabelNoiseLevel.
+  ///
+  /// In de, this message translates to:
+  /// **'Lautstärke'**
+  String get specLabelNoiseLevel;
+
+  /// No description provided for @specLabelRpm.
+  ///
+  /// In de, this message translates to:
+  /// **'U/min'**
+  String get specLabelRpm;
+
+  /// No description provided for @specLabelSidePanel.
+  ///
+  /// In de, this message translates to:
+  /// **'Seitenblende'**
+  String get specLabelSidePanel;
+
+  /// No description provided for @specLabelIncludedPsu.
+  ///
+  /// In de, this message translates to:
+  /// **'Enthaltenes Netzteil'**
+  String get specLabelIncludedPsu;
+
+  /// No description provided for @specLabelExternalVolume.
+  ///
+  /// In de, this message translates to:
+  /// **'Externes Volumen'**
+  String get specLabelExternalVolume;
+
+  /// No description provided for @specLabelBays35.
+  ///
+  /// In de, this message translates to:
+  /// **'3,5\"-Schächte'**
+  String get specLabelBays35;
+
+  /// No description provided for @compatPowerLoad.
+  ///
+  /// In de, this message translates to:
+  /// **'{percent}% Auslastung'**
+  String compatPowerLoad(int percent);
+
+  /// No description provided for @compatPowerBuffer.
+  ///
+  /// In de, this message translates to:
+  /// **'{watts}W Puffer'**
+  String compatPowerBuffer(int watts);
+
+  /// No description provided for @compatPowerInsufficient.
+  ///
+  /// In de, this message translates to:
+  /// **'{watts}W zu wenig'**
+  String compatPowerInsufficient(int watts);
+
+  /// No description provided for @compatCriticalErrors.
+  ///
+  /// In de, this message translates to:
+  /// **'Kritische Fehler'**
+  String get compatCriticalErrors;
+
+  /// No description provided for @compatWarnings.
+  ///
+  /// In de, this message translates to:
+  /// **'Warnungen'**
+  String get compatWarnings;
+
+  /// No description provided for @compatMissingRequiredParts.
+  ///
+  /// In de, this message translates to:
+  /// **'Fehlende Pflichtteile: {parts}.'**
+  String compatMissingRequiredParts(String parts);
+
+  /// No description provided for @compatSocketMismatch.
+  ///
+  /// In de, this message translates to:
+  /// **'Der Sockel des Prozessors ({cpuSocket}) passt nicht zum Mainboard ({mbSocket}).'**
+  String compatSocketMismatch(String cpuSocket, String mbSocket);
+
+  /// No description provided for @compatSocketOk.
+  ///
+  /// In de, this message translates to:
+  /// **'Prozessor und Mainboard sind sockelkompatibel ({socket}).'**
+  String compatSocketOk(String socket);
+
+  /// No description provided for @compatDdr5Required.
+  ///
+  /// In de, this message translates to:
+  /// **'Das Mainboard ({socket}) unterstützt nur DDR5-RAM – ausgewählt ist DDR{ddrGen}.'**
+  String compatDdr5Required(String socket, int ddrGen);
+
+  /// No description provided for @compatDdr4Required.
+  ///
+  /// In de, this message translates to:
+  /// **'Das Mainboard ({socket}) unterstützt nur DDR4-RAM – ausgewählt ist DDR{ddrGen}.'**
+  String compatDdr4Required(String socket, int ddrGen);
+
+  /// No description provided for @compatRamOk.
+  ///
+  /// In de, this message translates to:
+  /// **'Arbeitsspeicher (DDR{ddrGen}) ist mit dem Mainboard kompatibel.'**
+  String compatRamOk(int ddrGen);
+
+  /// No description provided for @compatFormFactorIncompatible.
+  ///
+  /// In de, this message translates to:
+  /// **'Das Gehäuse unterstützt den Formfaktor des Mainboards ({formFactor}) nicht.'**
+  String compatFormFactorIncompatible(String formFactor);
+
+  /// No description provided for @compatFormFactorOk.
+  ///
+  /// In de, this message translates to:
+  /// **'Das Mainboard ({formFactor}) ist mit dem Gehäuse kompatibel.'**
+  String compatFormFactorOk(String formFactor);
+
+  /// No description provided for @compatPsuInsufficient.
+  ///
+  /// In de, this message translates to:
+  /// **'Das Netzteil ({psuW}W) reicht für den geschätzten Verbrauch (~{estimatedW}W) nicht aus.'**
+  String compatPsuInsufficient(int psuW, int estimatedW);
+
+  /// No description provided for @compatPsuLowBuffer.
+  ///
+  /// In de, this message translates to:
+  /// **'Netzteil-Puffer gering: {psuW}W für ~{estimatedW}W Verbrauch – empfohlen sind mind. 20% Reserve.'**
+  String compatPsuLowBuffer(int psuW, int estimatedW);
+
+  /// No description provided for @compatPsuAdequate.
+  ///
+  /// In de, this message translates to:
+  /// **'Das Netzteil ({psuW}W) hat ausreichend Reserve für den geschätzten Verbrauch (~{estimatedW}W).'**
+  String compatPsuAdequate(int psuW, int estimatedW);
+
+  /// No description provided for @compatBiosUpdateAmd.
+  ///
+  /// In de, this message translates to:
+  /// **'Ryzen 9000 auf Nicht-X870-Board: möglicherweise ist ein BIOS-Update nötig, bevor der Prozessor erkannt wird.'**
+  String get compatBiosUpdateAmd;
+
+  /// No description provided for @compatBiosUpdateIntel.
+  ///
+  /// In de, this message translates to:
+  /// **'Intel 14. Gen auf 600er-Board: BIOS-Update erforderlich, bevor der Prozessor erkannt wird.'**
+  String get compatBiosUpdateIntel;
+
+  /// No description provided for @compatXmpRequired.
+  ///
+  /// In de, this message translates to:
+  /// **'RAM läuft mit {ramMhz}MHz über dem JEDEC-Standard ({jedecMhz}MHz) – XMP/EXPO muss im BIOS aktiviert werden.'**
+  String compatXmpRequired(int ramMhz, int jedecMhz);
+
+  /// No description provided for @compatDdr5BudgetBoard.
+  ///
+  /// In de, this message translates to:
+  /// **'DDR5 auf Einstiegs-Board: Bei hohen Taktraten kann es zu Stabilitätsproblemen kommen – QVL-Liste des Mainboards prüfen.'**
+  String get compatDdr5BudgetBoard;
+
+  /// No description provided for @compatTooManyRamSticks.
+  ///
+  /// In de, this message translates to:
+  /// **'{totalSticks} RAM-Riegel ausgewählt, das Mainboard unterstützt jedoch nur {maxSlots} Steckplätze.'**
+  String compatTooManyRamSticks(int totalSticks, int maxSlots);
+
+  /// No description provided for @compatRamSlotsOk.
+  ///
+  /// In de, this message translates to:
+  /// **'Die {totalSticks} gewählten RAM-Riegel passen in die {maxSlots} Steckplätze des Mainboards.'**
+  String compatRamSlotsOk(int totalSticks, int maxSlots);
 }
 
 class _AppLocalizationsDelegate

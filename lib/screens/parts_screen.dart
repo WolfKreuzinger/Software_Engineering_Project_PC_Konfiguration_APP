@@ -1,6 +1,8 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 
+import '../l10n/l10n_ext.dart';
+
 String _typeDisplayName(String value) {
   switch (value.trim().toLowerCase().replaceAll('_', '-')) {
     case 'cpu':
@@ -45,6 +47,125 @@ String _typeDisplayName(String value) {
       return 'All Components';
     default:
       return value;
+  }
+}
+
+String _localizedSortName(String sort, AppLocalizations l10n) {
+  switch (sort) {
+    case 'Price: Low to High':
+      return l10n.partsSortPriceLowToHigh;
+    case 'Price: High to Low':
+      return l10n.partsSortPriceHighToLow;
+    case 'Name: A to Z':
+      return l10n.partsSortNameAtoZ;
+    default:
+      return sort;
+  }
+}
+
+String _localizedTypeName(String value, AppLocalizations l10n) {
+  switch (value.trim().toLowerCase().replaceAll('_', '-')) {
+    case 'cpu':
+      return 'CPU';
+    case 'motherboard':
+      return 'Motherboard';
+    case 'video-card':
+      return 'GPU';
+    case 'memory':
+      return 'RAM';
+    case 'internal-hard-drive':
+      return l10n.partsTypeStorage;
+    case 'power-supply':
+      return l10n.partsTypePowerSupply;
+    case 'case':
+      return l10n.partsTypeCase;
+    case 'cpu-cooler':
+      return l10n.partsTypeCpuCooler;
+    case 'case-fan':
+      return l10n.partsTypeCaseFan;
+    case 'wired-network-card':
+      return l10n.partsTypeEthernetCard;
+    case 'wireless-network-card':
+      return l10n.partsTypeWifiCard;
+    case 'sound-card':
+      return l10n.partsTypeSoundCard;
+    case 'optical-drive':
+      return l10n.partsTypeOpticalDrive;
+    case 'fan-controller':
+      return l10n.partsTypeFanController;
+    case 'thermal-paste':
+      return l10n.partsTypeThermalPaste;
+    case 'external-hard-drive':
+      return l10n.partsTypeExternalStorage;
+    case 'ups':
+      return l10n.partsTypeUps;
+    case 'case-accessory':
+      return l10n.partsTypeCaseAccessory;
+    case 'os':
+      return 'OS';
+    case 'all components':
+      return l10n.partsAllComponents;
+    default:
+      return value;
+  }
+}
+
+String _localizedSpecLabel(String label, AppLocalizations l10n) {
+  switch (label) {
+    case 'Brand': return l10n.specLabelBrand;
+    case 'Core Count': return l10n.specLabelCoreCount;
+    case 'Core Clock': return l10n.specLabelCoreClock;
+    case 'Boost Clock': return l10n.specLabelBoostClock;
+    case 'Microarchitecture': return l10n.specLabelMicroarchitecture;
+    case 'Integrated Graphics': return l10n.specLabelIntegratedGraphics;
+    case 'Chipset': return l10n.specLabelChipset;
+    case 'Color': return l10n.specLabelColor;
+    case 'VRAM': return l10n.specLabelVram;
+    case 'Length': return l10n.specLabelLength;
+    case 'DDR Generation': return l10n.specLabelDdrGeneration;
+    case 'Modules': return l10n.specLabelModules;
+    case 'Module Size': return l10n.specLabelModuleSize;
+    case 'Speed': return l10n.specLabelSpeed;
+    case 'CAS Latency': return l10n.specLabelCasLatency;
+    case 'First Word Latency': return l10n.specLabelFirstWordLatency;
+    case 'Price / GB': return l10n.specLabelPricePerGb;
+    case 'Capacity': return l10n.specLabelCapacity;
+    case 'Form Factor': return l10n.specLabelFormFactor;
+    case 'Interface': return l10n.specLabelInterface;
+    case 'Socket': return l10n.specLabelSocket;
+    case 'Max Memory': return l10n.specLabelMaxMemory;
+    case 'Memory Slots': return l10n.specLabelMemorySlots;
+    case 'Type': return l10n.specLabelType;
+    case 'Wattage': return l10n.specLabelWattage;
+    case 'Efficiency Certification': return l10n.specLabelEfficiencyCertification;
+    case 'Noise Level': return l10n.specLabelNoiseLevel;
+    case 'RPM': return l10n.specLabelRpm;
+    case 'Side Panel': return l10n.specLabelSidePanel;
+    case 'Included PSU': return l10n.specLabelIncludedPsu;
+    case 'External Volume': return l10n.specLabelExternalVolume;
+    case '3.5" Bays': return l10n.specLabelBays35;
+    case 'Size': return l10n.specLabelSize;
+    case 'Airflow': return l10n.specLabelAirflow;
+    case 'Channels': return l10n.specLabelChannels;
+    case 'Channel Wattage': return l10n.specLabelChannelWattage;
+    case 'Memory': return l10n.specLabelMemory;
+    case 'Efficiency': return l10n.specLabelEfficiency;
+    case 'Blu-ray Read': return l10n.specLabelBluRayRead;
+    case 'Blu-ray Write': return l10n.specLabelBluRayWrite;
+    case 'DVD Read': return l10n.specLabelDvdRead;
+    case 'DVD Write': return l10n.specLabelDvdWrite;
+    case 'CD Read': return l10n.specLabelCdRead;
+    case 'CD Write': return l10n.specLabelCdWrite;
+    case 'Mode': return l10n.specLabelMode;
+    case 'Capacity (VA)': return l10n.specLabelCapacityVa;
+    case 'Capacity (W)': return l10n.specLabelCapacityW;
+    case 'Protocol': return l10n.specLabelProtocol;
+    case 'Sample Rate': return l10n.specLabelSampleRate;
+    case 'SNR': return l10n.specLabelSnr;
+    case 'Digital Audio': return l10n.specLabelDigitalAudio;
+    case 'Amount': return l10n.specLabelAmount;
+    case 'Internal 3.5" Bays': return l10n.specLabelInternal35Bays;
+    default: return label;
   }
 }
 
@@ -1006,7 +1127,7 @@ class _PartsScreenState extends State<PartsScreen> {
                           crossAxisAlignment: CrossAxisAlignment.center,
                           children: [
                             Text(
-                              'Components',
+                              context.l10n.partsTitle,
                               style: theme.textTheme.titleLarge?.copyWith(
                                 fontWeight: FontWeight.w800,
                               ),
@@ -1016,7 +1137,7 @@ class _PartsScreenState extends State<PartsScreen> {
                               builder: (context) {
                                 if (_isLoading) {
                                   return Text(
-                                    '0 Products Found',
+                                    context.l10n.partsNoProductsFound,
                                     style: theme.textTheme.bodySmall?.copyWith(
                                       color: cs.onSurfaceVariant,
                                       fontWeight: FontWeight.w600,
@@ -1045,7 +1166,7 @@ class _PartsScreenState extends State<PartsScreen> {
                                       0;
                                 }
                                 return Text(
-                                  '$count Products Found',
+                                  context.l10n.partsProductsFound(count),
                                   style: theme.textTheme.bodySmall?.copyWith(
                                     color: cs.onSurfaceVariant,
                                     fontWeight: FontWeight.w600,
@@ -1097,7 +1218,7 @@ class _PartsScreenState extends State<PartsScreen> {
                   padding: const EdgeInsets.fromLTRB(16, 0, 16, 10),
                   child: _SearchField(
                     controller: _searchCtrl,
-                    hint: 'Search parts',
+                    hint: context.l10n.partsSearchHint,
                     onSubmitted: (_) => _applySearch(),
                     onSearchTap: _applySearch,
                   ),
@@ -1114,14 +1235,14 @@ class _PartsScreenState extends State<PartsScreen> {
                             _LockedPill(label: _displayType(_selectedType))
                           else
                             _Pill(
-                              label: _typeDisplayName(_selectedType),
+                              label: _localizedTypeName(_selectedType, context.l10n),
                               selected: true,
                               onTap: () {
                                 showModalBottomSheet(
                                   context: context,
                                   showDragHandle: true,
                                   builder: (_) => _SimplePickerSheet(
-                                    title: 'Component Type',
+                                    title: context.l10n.partsComponentType,
                                     items: _types,
                                     selected: _selectedType,
                                     onPick: (v) {
@@ -1135,7 +1256,7 @@ class _PartsScreenState extends State<PartsScreen> {
                                       Navigator.of(context).pop();
                                     },
                                     theme: theme,
-                                    labelFor: _typeDisplayName,
+                                    labelFor: (t) => _localizedTypeName(t, context.l10n),
                                   ),
                                 );
                               },
@@ -1146,8 +1267,8 @@ class _PartsScreenState extends State<PartsScreen> {
                             const SizedBox(width: 10),
                             _Pill(
                               label: _specFilters.isEmpty
-                                  ? 'Specs'
-                                  : 'Specs (${_specFilters.length})',
+                                  ? context.l10n.partsSpecs
+                                  : '${context.l10n.partsSpecs} (${_specFilters.length})',
                               selected: _specFilters.isNotEmpty,
                               onTap: () {
                                 showModalBottomSheet(
@@ -1174,7 +1295,7 @@ class _PartsScreenState extends State<PartsScreen> {
                           ],
                           const SizedBox(width: 10),
                           _Pill(
-                            label: 'Sort',
+                            label: context.l10n.partsSort,
                             selected:
                                 _selectedSort != _sorts[0] ||
                                 _priceRange.start > 0 ||
@@ -1245,8 +1366,8 @@ class _PartsScreenState extends State<PartsScreen> {
     if (_allParts.isEmpty) {
       return _EmptyState(
         icon: Icons.cloud_off_rounded,
-        title: 'No data loaded',
-        subtitle: 'No parts found in any collection.',
+        title: context.l10n.partsNoData,
+        subtitle: context.l10n.partsNoDataSubtitle,
         theme: theme,
       );
     }
@@ -1279,8 +1400,8 @@ class _PartsScreenState extends State<PartsScreen> {
     if (filtered.isEmpty) {
       return _EmptyState(
         icon: Icons.search_off_rounded,
-        title: 'No results',
-        subtitle: 'Try adjusting filters or search.',
+        title: context.l10n.partsNoResults,
+        subtitle: context.l10n.partsNoResultsSubtitle,
         theme: theme,
       );
     }
@@ -1324,7 +1445,7 @@ class _PartsScreenState extends State<PartsScreen> {
                           fontWeight: FontWeight.w700,
                         ),
                       ),
-                      child: const Text('Load More'),
+                      child: Text(context.l10n.partsLoadMore),
                     ),
             ),
           );
@@ -1344,8 +1465,8 @@ class _PartsScreenState extends State<PartsScreen> {
           title: title,
           specs: subtitle,
           price: price,
-          actionText: widget.returnSelection ? 'Add to Configuration' : 'View',
-          secondaryActionText: widget.returnSelection ? 'View' : null,
+          actionText: widget.returnSelection ? context.l10n.partsAddToConfig : context.l10n.commonView,
+          secondaryActionText: widget.returnSelection ? context.l10n.commonView : null,
           actionEnabled: true,
           onTapAction: () {
             if (widget.returnSelection) {
@@ -1482,7 +1603,7 @@ class _PartsScreenState extends State<PartsScreen> {
                 child: specs.isEmpty
                     ? Center(
                         child: Text(
-                          'No specs available.',
+                          context.l10n.partsNoSpecs,
                           style: theme.textTheme.bodyMedium?.copyWith(
                             color: cs.onSurfaceVariant,
                           ),
@@ -1501,7 +1622,7 @@ class _PartsScreenState extends State<PartsScreen> {
                               SizedBox(
                                 width: 150,
                                 child: Text(
-                                  specs[i].$1,
+                                  _localizedSpecLabel(specs[i].$1, context.l10n),
                                   style: theme.textTheme.bodySmall?.copyWith(
                                     color: cs.onSurfaceVariant,
                                     fontWeight: FontWeight.w600,
@@ -2227,14 +2348,14 @@ class _FiltersSheetState extends State<_FiltersSheet> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'Filters',
+                  context.l10n.myBuildsFilters,
                   style: theme.textTheme.titleLarge?.copyWith(
                     fontWeight: FontWeight.w900,
                   ),
                 ),
                 const SizedBox(height: 14),
                 Text(
-                  'Component Type',
+                  context.l10n.partsComponentType,
                   style: theme.textTheme.labelLarge?.copyWith(
                     fontWeight: FontWeight.w800,
                     color: cs.onSurfaceVariant,
@@ -2264,7 +2385,7 @@ class _FiltersSheetState extends State<_FiltersSheet> {
                           ),
                         ),
                         child: Text(
-                          _typeDisplayName(t),
+                          _localizedTypeName(t, context.l10n),
                           style: theme.textTheme.bodyMedium?.copyWith(
                             color: selected ? cs.onPrimary : cs.onSurface,
                             fontWeight: FontWeight.w800,
@@ -2276,7 +2397,7 @@ class _FiltersSheetState extends State<_FiltersSheet> {
                 ),
                 const SizedBox(height: 16),
                 Text(
-                  'Price Range',
+                  context.l10n.partsPriceRange,
                   style: theme.textTheme.labelLarge?.copyWith(
                     fontWeight: FontWeight.w800,
                     color: cs.onSurfaceVariant,
@@ -2294,7 +2415,7 @@ class _FiltersSheetState extends State<_FiltersSheet> {
                 ),
                 const SizedBox(height: 8),
                 Text(
-                  'Sort',
+                  context.l10n.partsSort,
                   style: theme.textTheme.labelLarge?.copyWith(
                     fontWeight: FontWeight.w800,
                     color: cs.onSurfaceVariant,
@@ -2324,7 +2445,7 @@ class _FiltersSheetState extends State<_FiltersSheet> {
                           ),
                         ),
                         child: Text(
-                          s,
+                          _localizedSortName(s, context.l10n),
                           style: theme.textTheme.bodyMedium?.copyWith(
                             color: selected ? cs.onPrimary : cs.onSurface,
                             fontWeight: FontWeight.w800,
@@ -2346,7 +2467,7 @@ class _FiltersSheetState extends State<_FiltersSheet> {
                         fontWeight: FontWeight.w900,
                       ),
                     ),
-                    child: const Text('Apply'),
+                    child: Text(context.l10n.commonApply),
                   ),
                 ),
               ],
@@ -3465,14 +3586,14 @@ class _SortSheetState extends State<_SortSheet> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              'Sort',
+              context.l10n.partsSort,
               style: theme.textTheme.titleLarge?.copyWith(
                 fontWeight: FontWeight.w900,
               ),
             ),
             const SizedBox(height: 14),
             Text(
-              'Order',
+              context.l10n.partsOrder,
               style: theme.textTheme.labelLarge?.copyWith(
                 fontWeight: FontWeight.w800,
                 color: cs.onSurfaceVariant,
@@ -3502,7 +3623,7 @@ class _SortSheetState extends State<_SortSheet> {
                       ),
                     ),
                     child: Text(
-                      s,
+                      _localizedSortName(s, context.l10n),
                       style: theme.textTheme.bodyMedium?.copyWith(
                         color: selected ? cs.onPrimary : cs.onSurface,
                         fontWeight: FontWeight.w800,
@@ -3514,7 +3635,7 @@ class _SortSheetState extends State<_SortSheet> {
             ),
             const SizedBox(height: 16),
             Text(
-              'Price Range',
+              context.l10n.partsPriceRange,
               style: theme.textTheme.labelLarge?.copyWith(
                 fontWeight: FontWeight.w800,
                 color: cs.onSurfaceVariant,
@@ -3532,7 +3653,7 @@ class _SortSheetState extends State<_SortSheet> {
             ),
             const SizedBox(height: 16),
             Text(
-              'Datenvollständigkeit',
+              context.l10n.partsDataCompleteness,
               style: theme.textTheme.labelLarge?.copyWith(
                 fontWeight: FontWeight.w800,
                 color: cs.onSurfaceVariant,
@@ -3540,7 +3661,7 @@ class _SortSheetState extends State<_SortSheet> {
             ),
             const SizedBox(height: 4),
             Text(
-              'Komponenten nach Vollständigkeit der Spezifikationsdaten filtern',
+              context.l10n.partsDataCompletenessHint,
               style: theme.textTheme.bodySmall?.copyWith(
                 color: cs.onSurfaceVariant.withValues(alpha: 0.7),
               ),
@@ -3551,8 +3672,8 @@ class _SortSheetState extends State<_SortSheet> {
               runSpacing: 8,
               children: [
                 for (final (filter, label) in [
-                  (_DataCompletenessFilter.showAll, 'Alle anzeigen'),
-                  (_DataCompletenessFilter.compatOnly, 'Kompatibilität'),
+                  (_DataCompletenessFilter.showAll, context.l10n.partsShowAll),
+                  (_DataCompletenessFilter.compatOnly, context.l10n.partsCompatibilityOnly),
                 ])
                   InkWell(
                     onTap: () => setState(() => _dataFilter = filter),
@@ -3598,7 +3719,7 @@ class _SortSheetState extends State<_SortSheet> {
                     fontWeight: FontWeight.w900,
                   ),
                 ),
-                child: const Text('Apply'),
+                child: Text(context.l10n.commonApply),
               ),
             ),
           ],
@@ -3783,7 +3904,7 @@ class _SpecsSheetState extends State<_SpecsSheet> {
             DropdownMenuItem<String>(
               value: '',
               child: Text(
-                'Any',
+                context.l10n.partsSpecsAny,
                 style: theme.textTheme.bodyMedium?.copyWith(
                   color: cs.onSurface,
                   fontWeight: FontWeight.w600,
@@ -3920,7 +4041,7 @@ class _SpecsSheetState extends State<_SpecsSheet> {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Text(
-                  'Specs',
+                  context.l10n.partsSpecs,
                   style: theme.textTheme.titleLarge?.copyWith(
                     fontWeight: FontWeight.w900,
                   ),
@@ -3928,7 +4049,7 @@ class _SpecsSheetState extends State<_SpecsSheet> {
                 if (_filters.isNotEmpty)
                   TextButton(
                     onPressed: () => setState(() => _filters.clear()),
-                    child: const Text('Reset'),
+                    child: Text(context.l10n.partsSpecsReset),
                   ),
               ],
             ),
@@ -3967,7 +4088,7 @@ class _SpecsSheetState extends State<_SpecsSheet> {
                     fontWeight: FontWeight.w900,
                   ),
                 ),
-                child: const Text('Apply'),
+                child: Text(context.l10n.commonApply),
               ),
             ),
           ],
@@ -3999,7 +4120,7 @@ class _SpecSection extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          label,
+          _localizedSpecLabel(label, context.l10n),
           style: theme.textTheme.labelLarge?.copyWith(
             fontWeight: FontWeight.w800,
             color: cs.onSurfaceVariant,

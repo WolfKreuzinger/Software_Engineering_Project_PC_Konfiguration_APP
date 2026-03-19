@@ -14,7 +14,7 @@
 
   "authTagline": "Forge your ultimate battlestation",
   "authEmailLabel": "E-Mail-Adresse",
-  "authEmailHint": "name@example.com",
+  "authEmailHint": "name@beispiel.de",
   "authEmailRequired": "Bitte E-Mail eingeben.",
   "authEmailInvalid": "Ungültige E-Mail.",
   "authPasswordLabel": "Passwort",
@@ -37,6 +37,8 @@
   "authForgotPasswordValid": "Bitte gib oben eine gültige E-Mail ein.",
   "authForgotPasswordSent": "Wenn ein Konto existiert, wurde eine E-Mail gesendet.",
   "authResetRequiredAfterFailedLogins": "Zu viele falsche Passwortversuche. Bitte nutze \"Vergessen?\", um dein Passwort zurückzusetzen.",
+  "authLogin": "Anmelden",
+  "authRegister": "Registrieren",
 
   "configureTitle": "PC konfigurieren",
   "configurePlaceholder": "Hier kommt euer Wizard / Konfigurator rein.",
@@ -197,5 +199,351 @@
   "compatibilityError": "KOMPATIBILITÄTSFEHLER",
   "compatibilityViewDetails": "DETAILS",
   "compatibilityDetails": "Kompatibilitäts-Details",
-  "compatibilityNoIssues": "Alle geprüften Komponenten sind kompatibel."
+  "compatibilityNoIssues": "Alle geprüften Komponenten sind kompatibel.",
+
+  "commonDelete": "Löschen",
+  "commonRename": "Umbenennen",
+  "commonDuplicate": "Duplizieren",
+  "commonView": "Ansehen",
+  "commonApply": "Anwenden",
+  "commonAdd": "Hinzufügen",
+  "commonYes": "Ja",
+  "commonNo": "Nein",
+
+  "buildDialogEditTitle": "Build bearbeiten",
+  "buildDialogNameHint": "Build-Name",
+  "buildDialogCoverLabel": "Cover-Bild (optional)",
+  "buildDialogDuplicateTitle": "Build duplizieren",
+  "buildDialogDuplicateNameHint": "Name des Duplikats",
+  "buildDialogCopyOf": "Kopie von {title}",
+  "@buildDialogCopyOf": {
+    "placeholders": { "title": { "type": "String" } }
+  },
+  "buildDialogDeleteTitle": "Build löschen",
+  "buildDialogDeleteContent": "\"{title}\" dauerhaft löschen?",
+  "@buildDialogDeleteContent": {
+    "placeholders": { "title": { "type": "String" } }
+  },
+  "buildDialogSaved": "\"{title}\" wurde gespeichert.",
+  "@buildDialogSaved": {
+    "placeholders": { "title": { "type": "String" } }
+  },
+  "buildDialogDuplicateError": "Fehler beim Duplizieren: {error}",
+  "@buildDialogDuplicateError": {
+    "placeholders": { "error": { "type": "String" } }
+  },
+  "buildsNoBuilds": "Noch keine Builds gespeichert",
+  "buildsStartNew": "Neuen Build starten",
+  "buildsSignInPrompt": "Anmelden, um deine Builds zu sehen.",
+
+  "myBuildsTitle": "Meine Builds",
+  "myBuildsSearchHint": "Builds durchsuchen\u2026",
+  "myBuildsFilters": "Filter",
+  "myBuildsFilterAll": "Alle Builds",
+  "myBuildsFilterCompleted": "Abgeschlossen",
+  "myBuildsFilterInProgress": "In Bearbeitung",
+  "myBuildsFilterImported": "Importiert",
+
+  "buildStatusCompleted": "ABGESCHLOSSEN",
+  "buildStatusDraft": "ENTWURF",
+  "buildStatusArchived": "ARCHIVIERT",
+  "buildStatusInProgress": "IN BEARBEITUNG",
+  "buildStatusImported": "IMPORTIERT",
+
+  "buildCardEstimatedCost": "GESCHÄTZTE KOSTEN",
+  "buildCardProgress": "FORTSCHRITT",
+  "buildCardShare": "Teilen",
+  "buildCardMore": "Mehr",
+
+  "templateTitle": "Build-Vorlagen",
+  "templateDescription": "Wähle eine Vorlage als Ausgangspunkt für dein Build. Alle Komponenten können anschließend frei angepasst werden.",
+  "templateBudgetGamingTagline": "Maximale Performance für kleines Budget",
+  "templateHighEndGamingTagline": "Kompromisslose Performance für 4K & 144 Hz",
+  "templateOfficeTagline": "Zuverlässig und effizient für den Büroalltag",
+  "templateWorkstationTagline": "Professionelle Leistung für anspruchsvolle Aufgaben",
+  "templateMiniItxTagline": "Maximale Leistung im kleinsten Formfaktor",
+  "templateSilentTagline": "Leise wie eine Bibliothek \u2013 maximaler Komfort",
+
+  "sharedLinkCopied": "Link kopiert!",
+  "sharedBuildNotFound": "Build nicht gefunden",
+  "sharedBuildNotFoundDesc": "Dieser Link ist ungültig oder wurde noch nicht geteilt.",
+
+  "shareTitle": "Build teilen",
+  "shareReadOnly": "Nur ansehen",
+  "shareGenerating": "Link wird generiert\u2026",
+  "shareGeneratingError": "Fehler beim Generieren",
+  "shareCopy": "Kopieren",
+  "shareDirectSection": "DIREKT TEILEN",
+  "shareInstagramCopied": "Link kopiert \u2013 füge ihn in Instagram DM ein.",
+  "shareCouldNotOpen": "Konnte nicht geöffnet werden.",
+  "shareMessageText": "Schau dir meinen PC-Build \"{title}\" an: {url}",
+  "@shareMessageText": {
+    "placeholders": {
+      "title": { "type": "String" },
+      "url": { "type": "String" }
+    }
+  },
+  "shareEmailSubject": "BuildMyPC \u2013 {title}",
+  "@shareEmailSubject": {
+    "placeholders": { "title": { "type": "String" } }
+  },
+
+  "partsSearchHint": "Teile suchen",
+  "partsProductsFound": "{count} Produkte gefunden",
+  "@partsProductsFound": {
+    "placeholders": { "count": { "type": "int" } }
+  },
+  "partsNoProductsFound": "0 Produkte gefunden",
+  "partsComponentType": "Komponententyp",
+  "partsSpecs": "Spezifikationen",
+  "partsSort": "Sortierung",
+  "partsOrder": "Reihenfolge",
+  "partsNoData": "Keine Daten geladen",
+  "partsNoDataSubtitle": "Keine Teile in einer Kollektion gefunden.",
+  "partsNoResults": "Keine Ergebnisse",
+  "partsNoResultsSubtitle": "Filter oder Suche anpassen.",
+  "partsLoadMore": "Mehr laden",
+  "partsAddToConfig": "Hinzufügen",
+  "partsNoSpecs": "Keine Spezifikationen verfügbar.",
+  "partsDataCompleteness": "Datenvollständigkeit",
+  "partsDataCompletenessHint": "Komponenten nach Vollständigkeit der Spezifikationsdaten filtern",
+  "partsShowAll": "Alle anzeigen",
+  "partsCompatibilityOnly": "Kompatibilität",
+  "partsAllComponents": "Alle Komponenten",
+  "partsSortPriceLowToHigh": "Preis: Aufsteigend",
+  "partsSortPriceHighToLow": "Preis: Absteigend",
+  "partsSortNameAtoZ": "Name: A bis Z",
+  "partsPriceRange": "Preisbereich",
+
+  "configureSelectComponent": "Mindestens eine Komponente auswählen, um den Build zu speichern.",
+  "configureSignInPrompt": "Bitte anmelden. Dein Build wird automatisch gespeichert.",
+  "configureSaveBuildError": "Build konnte nicht gespeichert werden: {error}",
+  "@configureSaveBuildError": {
+    "placeholders": { "error": { "type": "String" } }
+  },
+  "configureSaveBuildTitle": "Build speichern",
+  "configureSaving": "WIRD GESPEICHERT...",
+  "configureAddToMyBuilds": "ZU MEINEN BUILDS",
+  "configureMissingData": "{slot}: Fehlende Daten \u2013 {fields}",
+  "@configureMissingData": {
+    "placeholders": {
+      "slot": { "type": "String" },
+      "fields": { "type": "String" }
+    }
+  },
+  "configureMissingDataTooltip": "Fehlende Daten: {fields}",
+  "@configureMissingDataTooltip": {
+    "placeholders": { "fields": { "type": "String" } }
+  },
+  "configureAdd": "Hinzufügen",
+  "configureExtras": "EXTRAS",
+  "configureSelectedCount": "{count} ausgewählt",
+  "@configureSelectedCount": {
+    "placeholders": { "count": { "type": "int" } }
+  },
+  "configureImportedFrom": "{title} von {author}",
+  "@configureImportedFrom": {
+    "placeholders": {
+      "title": { "type": "String" },
+      "author": { "type": "String" }
+    }
+  },
+
+  "compatIncompatible": "Inkompatibel",
+  "compatSingleError": "1 kritischer Fehler",
+  "compatMultipleErrors": "{count} kritische Fehler",
+  "@compatMultipleErrors": {
+    "placeholders": { "count": { "type": "int" } }
+  },
+  "compatSingleWarning": "1 Warnung erkannt",
+  "compatMultipleWarnings": "{count} Warnungen erkannt",
+  "@compatMultipleWarnings": {
+    "placeholders": { "count": { "type": "int" } }
+  },
+  "compatWarning": "Warnung",
+  "compatCompatible": "Kompatibel",
+  "compatAllCompatible": "Alle Komponenten sind kompatibel",
+  "compatOverallStatus": "GESAMTSTATUS",
+
+  "guidedCardHeader": "BUILD-VORLAGEN",
+  "guidedCardDescription": "Starte mit einer vorkonfigurierten Vorlage \u2013 Budget Gaming, Office, High-End oder Workstation.",
+  "guidedCardButton": "Vorlage auswählen",
+
+  "startNewBuildTitle": "Neuen Build starten",
+  "startNewBuildSubtitle": "Manuell \u00b7 Teileauswahl",
+
+  "partsSpecsReset": "Zur\u00fccksetzen",
+  "partsSpecsAny": "Beliebig",
+
+  "specLabelSize": "Gr\u00f6\u00dfe",
+  "specLabelAirflow": "Luftdurchsatz",
+  "specLabelChannels": "Kan\u00e4le",
+  "specLabelChannelWattage": "Kanalleistung",
+  "specLabelMemory": "VRAM",
+  "specLabelEfficiency": "Effizienz",
+  "specLabelBluRayRead": "Blu-ray (Lesen)",
+  "specLabelBluRayWrite": "Blu-ray (Schreiben)",
+  "specLabelDvdRead": "DVD (Lesen)",
+  "specLabelDvdWrite": "DVD (Schreiben)",
+  "specLabelCdRead": "CD (Lesen)",
+  "specLabelCdWrite": "CD (Schreiben)",
+  "specLabelMode": "Modus",
+  "specLabelCapacityVa": "Kapazit\u00e4t (VA)",
+  "specLabelCapacityW": "Kapazit\u00e4t (W)",
+  "specLabelProtocol": "Protokoll",
+  "specLabelSampleRate": "Abtastrate",
+  "specLabelSnr": "Rauschabstand",
+  "specLabelDigitalAudio": "Digital-Audio",
+  "specLabelAmount": "Menge",
+  "specLabelInternal35Bays": "Interne 3,5\"-Sch\u00e4chte",
+
+  "partsTypeCpuCooler": "CPU-K\u00fchler",
+  "partsTypeStorage": "Speicher",
+  "partsTypePowerSupply": "Netzteil",
+  "partsTypeCase": "Geh\u00e4use",
+  "partsTypeCaseFan": "Geh\u00e4usel\u00fcfter",
+  "partsTypeEthernetCard": "LAN-Karte",
+  "partsTypeWifiCard": "WLAN-Karte",
+  "partsTypeSoundCard": "Soundkarte",
+  "partsTypeOpticalDrive": "Optisches Laufwerk",
+  "partsTypeFanController": "L\u00fcftersteuerung",
+  "partsTypeThermalPaste": "W\u00e4rmeleitpaste",
+  "partsTypeExternalStorage": "Externe Festplatte",
+  "partsTypeUps": "USV",
+  "partsTypeCaseAccessory": "Geh\u00e4use-Zubeh\u00f6r",
+
+  "specLabelBrand": "Marke",
+  "specLabelCoreCount": "Kernanzahl",
+  "specLabelCoreClock": "Kerntakt",
+  "specLabelBoostClock": "Boost-Takt",
+  "specLabelMicroarchitecture": "Mikroarchitektur",
+  "specLabelIntegratedGraphics": "Integrierte Grafik",
+  "specLabelChipset": "Chipsatz",
+  "specLabelColor": "Farbe",
+  "specLabelVram": "VRAM",
+  "specLabelLength": "L\u00e4nge",
+  "specLabelDdrGeneration": "DDR-Generation",
+  "specLabelModules": "Module",
+  "specLabelModuleSize": "Modulkapazit\u00e4t",
+  "specLabelSpeed": "Takt",
+  "specLabelCasLatency": "CAS-Latenz",
+  "specLabelFirstWordLatency": "Erste-Wort-Latenz",
+  "specLabelPricePerGb": "Preis / GB",
+  "specLabelCapacity": "Kapazit\u00e4t",
+  "specLabelFormFactor": "Formfaktor",
+  "specLabelInterface": "Schnittstelle",
+  "specLabelSocket": "Sockel",
+  "specLabelMaxMemory": "Max. Arbeitsspeicher",
+  "specLabelMemorySlots": "Speichersteckpl\u00e4tze",
+  "specLabelType": "Typ",
+  "specLabelWattage": "Leistung",
+  "specLabelEfficiencyCertification": "Effizienz-Zertifizierung",
+  "specLabelNoiseLevel": "Lautst\u00e4rke",
+  "specLabelRpm": "U/min",
+  "specLabelSidePanel": "Seitenblende",
+  "specLabelIncludedPsu": "Enthaltenes Netzteil",
+  "specLabelExternalVolume": "Externes Volumen",
+  "specLabelBays35": "3,5\"-Sch\u00e4chte",
+
+  "compatPowerLoad": "{percent}% Auslastung",
+  "@compatPowerLoad": {
+    "placeholders": { "percent": { "type": "int" } }
+  },
+  "compatPowerBuffer": "{watts}W Puffer",
+  "@compatPowerBuffer": {
+    "placeholders": { "watts": { "type": "int" } }
+  },
+  "compatPowerInsufficient": "{watts}W zu wenig",
+  "@compatPowerInsufficient": {
+    "placeholders": { "watts": { "type": "int" } }
+  },
+
+  "compatCriticalErrors": "Kritische Fehler",
+  "compatWarnings": "Warnungen",
+  "compatMissingRequiredParts": "Fehlende Pflichtteile: {parts}.",
+  "@compatMissingRequiredParts": {
+    "placeholders": { "parts": { "type": "String" } }
+  },
+  "compatSocketMismatch": "Der Sockel des Prozessors ({cpuSocket}) passt nicht zum Mainboard ({mbSocket}).",
+  "@compatSocketMismatch": {
+    "placeholders": {
+      "cpuSocket": { "type": "String" },
+      "mbSocket": { "type": "String" }
+    }
+  },
+  "compatSocketOk": "Prozessor und Mainboard sind sockelkompatibel ({socket}).",
+  "@compatSocketOk": {
+    "placeholders": { "socket": { "type": "String" } }
+  },
+  "compatDdr5Required": "Das Mainboard ({socket}) unterst\u00fctzt nur DDR5-RAM \u2013 ausgew\u00e4hlt ist DDR{ddrGen}.",
+  "@compatDdr5Required": {
+    "placeholders": {
+      "socket": { "type": "String" },
+      "ddrGen": { "type": "int" }
+    }
+  },
+  "compatDdr4Required": "Das Mainboard ({socket}) unterst\u00fctzt nur DDR4-RAM \u2013 ausgew\u00e4hlt ist DDR{ddrGen}.",
+  "@compatDdr4Required": {
+    "placeholders": {
+      "socket": { "type": "String" },
+      "ddrGen": { "type": "int" }
+    }
+  },
+  "compatRamOk": "Arbeitsspeicher (DDR{ddrGen}) ist mit dem Mainboard kompatibel.",
+  "@compatRamOk": {
+    "placeholders": { "ddrGen": { "type": "int" } }
+  },
+  "compatFormFactorIncompatible": "Das Geh\u00e4use unterst\u00fctzt den Formfaktor des Mainboards ({formFactor}) nicht.",
+  "@compatFormFactorIncompatible": {
+    "placeholders": { "formFactor": { "type": "String" } }
+  },
+  "compatFormFactorOk": "Das Mainboard ({formFactor}) ist mit dem Geh\u00e4use kompatibel.",
+  "@compatFormFactorOk": {
+    "placeholders": { "formFactor": { "type": "String" } }
+  },
+  "compatPsuInsufficient": "Das Netzteil ({psuW}W) reicht f\u00fcr den gesch\u00e4tzten Verbrauch (~{estimatedW}W) nicht aus.",
+  "@compatPsuInsufficient": {
+    "placeholders": {
+      "psuW": { "type": "int" },
+      "estimatedW": { "type": "int" }
+    }
+  },
+  "compatPsuLowBuffer": "Netzteil-Puffer gering: {psuW}W f\u00fcr ~{estimatedW}W Verbrauch \u2013 empfohlen sind mind. 20% Reserve.",
+  "@compatPsuLowBuffer": {
+    "placeholders": {
+      "psuW": { "type": "int" },
+      "estimatedW": { "type": "int" }
+    }
+  },
+  "compatPsuAdequate": "Das Netzteil ({psuW}W) hat ausreichend Reserve f\u00fcr den gesch\u00e4tzten Verbrauch (~{estimatedW}W).",
+  "@compatPsuAdequate": {
+    "placeholders": {
+      "psuW": { "type": "int" },
+      "estimatedW": { "type": "int" }
+    }
+  },
+  "compatBiosUpdateAmd": "Ryzen 9000 auf Nicht-X870-Board: m\u00f6glicherweise ist ein BIOS-Update n\u00f6tig, bevor der Prozessor erkannt wird.",
+  "compatBiosUpdateIntel": "Intel 14. Gen auf 600er-Board: BIOS-Update erforderlich, bevor der Prozessor erkannt wird.",
+  "compatXmpRequired": "RAM l\u00e4uft mit {ramMhz}MHz \u00fcber dem JEDEC-Standard ({jedecMhz}MHz) \u2013 XMP/EXPO muss im BIOS aktiviert werden.",
+  "@compatXmpRequired": {
+    "placeholders": {
+      "ramMhz": { "type": "int" },
+      "jedecMhz": { "type": "int" }
+    }
+  },
+  "compatDdr5BudgetBoard": "DDR5 auf Einstiegs-Board: Bei hohen Taktraten kann es zu Stabilit\u00e4tsproblemen kommen \u2013 QVL-Liste des Mainboards pr\u00fcfen.",
+  "compatTooManyRamSticks": "{totalSticks} RAM-Riegel ausgew\u00e4hlt, das Mainboard unterst\u00fctzt jedoch nur {maxSlots} Steckpl\u00e4tze.",
+  "@compatTooManyRamSticks": {
+    "placeholders": {
+      "totalSticks": { "type": "int" },
+      "maxSlots": { "type": "int" }
+    }
+  },
+  "compatRamSlotsOk": "Die {totalSticks} gew\u00e4hlten RAM-Riegel passen in die {maxSlots} Steckpl\u00e4tze des Mainboards.",
+  "@compatRamSlotsOk": {
+    "placeholders": {
+      "totalSticks": { "type": "int" },
+      "maxSlots": { "type": "int" }
+    }
+  }
 }

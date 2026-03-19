@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
 import '../data/build_templates.dart';
+import '../l10n/l10n_ext.dart';
 import 'configure_screen.dart';
 
 class TemplateSelectionScreen extends StatelessWidget {
@@ -34,7 +35,7 @@ class TemplateSelectionScreen extends StatelessWidget {
                 ),
                 const SizedBox(width: 4),
                 Text(
-                  'Build-Vorlagen',
+                  context.l10n.templateTitle,
                   style: theme.textTheme.titleLarge?.copyWith(
                     fontWeight: FontWeight.w800,
                     letterSpacing: -0.2,
@@ -51,8 +52,7 @@ class TemplateSelectionScreen extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'Wähle eine Vorlage als Ausgangspunkt für dein Build. '
-                  'Alle Komponenten können anschließend frei angepasst werden.',
+                  context.l10n.templateDescription,
                   style: theme.textTheme.bodyMedium?.copyWith(
                     color: theme.colorScheme.onSurfaceVariant,
                     height: 1.4,
@@ -88,9 +88,19 @@ class _TemplateTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final l10n = context.l10n;
     final primary = theme.colorScheme.primary;
     final tertiary = theme.colorScheme.tertiary;
     final priceLabel = '~\$${template.build.totalPrice.toStringAsFixed(0)}';
+    final localizedTagline = switch (template.name) {
+      'Budget Gaming' => l10n.templateBudgetGamingTagline,
+      'High-End Gaming' => l10n.templateHighEndGamingTagline,
+      'Office & Work' => l10n.templateOfficeTagline,
+      'Workstation' => l10n.templateWorkstationTagline,
+      'Mini-ITX Build' => l10n.templateMiniItxTagline,
+      'Silent Build' => l10n.templateSilentTagline,
+      _ => template.tagline,
+    };
 
     // Gradient border: outer gradient container (1.5 px padding) → inner Material
     return Container(
@@ -152,7 +162,7 @@ class _TemplateTile extends StatelessWidget {
                   // ── Tagline ───────────────────────────────────────────────
                   Expanded(
                     child: Text(
-                      template.tagline,
+                      localizedTagline,
                       style: theme.textTheme.bodySmall?.copyWith(
                         color: theme.colorScheme.onSurfaceVariant,
                         height: 1.35,

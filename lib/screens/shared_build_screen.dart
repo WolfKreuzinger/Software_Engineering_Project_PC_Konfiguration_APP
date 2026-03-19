@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
 
+import '../l10n/l10n_ext.dart';
 import '../models/saved_build.dart';
 import '../services/builds_repository.dart';
 import 'configure_screen.dart';
@@ -46,9 +47,9 @@ class _SharedBuildScreenState extends State<SharedBuildScreen> {
     await Clipboard.setData(ClipboardData(text: _shareUrl));
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
+      SnackBar(
         behavior: SnackBarBehavior.floating,
-        content: Text('Link kopiert!'),
+        content: Text(context.l10n.sharedLinkCopied),
       ),
     );
   }
@@ -127,14 +128,14 @@ class _ErrorState extends StatelessWidget {
             ),
             const SizedBox(height: 16),
             Text(
-              'Build nicht gefunden',
+              context.l10n.sharedBuildNotFound,
               style: theme.textTheme.titleMedium?.copyWith(
                 fontWeight: FontWeight.w700,
               ),
             ),
             const SizedBox(height: 8),
             Text(
-              'Dieser Link ist ungültig oder wurde noch nicht geteilt.',
+              context.l10n.sharedBuildNotFoundDesc,
               style: theme.textTheme.bodyMedium?.copyWith(
                 color: theme.colorScheme.onSurfaceVariant,
               ),
