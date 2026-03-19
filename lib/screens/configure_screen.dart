@@ -820,11 +820,12 @@ class _ConfigureScreenState extends State<ConfigureScreen> {
     );
     // Append incomplete-data notices as warnings so they appear in the
     // compatibility report screen instead of inline below each component.
+    final slotLabelByKey = {for (final s in slots) s.key: s.label};
     final incompleteWarnings = [
       for (final entry in _selectedParts.entries)
         if (entry.value.missingDataFields.isNotEmpty)
           CompatIssue(
-            '${entry.value.title}: Fehlende Daten – ${entry.value.missingDataFields.join(', ')}',
+            '${slotLabelByKey[entry.key] ?? entry.key}: Fehlende Daten – ${entry.value.missingDataFields.join(', ')}',
             CompatIssueLevel.warning,
           ),
     ];
@@ -1302,7 +1303,7 @@ class _SelectedPartCard extends StatelessWidget {
                         for (final e in selectedEntries.where(
                           (e) => e.part.missingDataFields.isNotEmpty,
                         ))
-                          '${e.part.title}: ${e.part.missingDataFields.join(', ')}',
+                          'Fehlende Daten: ${e.part.missingDataFields.join(', ')}',
                       ].join('\n'),
                       triggerMode: TooltipTriggerMode.tap,
                       child: const Icon(
