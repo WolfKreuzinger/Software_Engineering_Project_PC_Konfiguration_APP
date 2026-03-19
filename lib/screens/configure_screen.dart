@@ -33,6 +33,9 @@ class _ConfigureScreenState extends State<ConfigureScreen> {
   final BuildsRepository _buildsRepository = BuildsRepository();
   String? _editingBuildId;
   String? _editingBuildTitle;
+  bool _isImportedBuild = false;
+  String _rawImportedTitle = '';
+  String _rawImportedAuthor = '';
   DateTime? _editingCreatedAt;
   bool _isSaving = false;
 
@@ -88,7 +91,9 @@ class _ConfigureScreenState extends State<ConfigureScreen> {
     final isTemplate = build.buildId.isEmpty || widget.readOnly;
     _editingBuildId = isTemplate ? null : build.buildId;
     if (widget.readOnly && (build.importedFrom ?? '').isNotEmpty) {
-      _editingBuildTitle = '${build.title} von ${build.importedFrom}';
+      _isImportedBuild = true;
+      _rawImportedTitle = build.title;
+      _rawImportedAuthor = build.importedFrom!;
     } else {
       _editingBuildTitle = build.title.isEmpty ? null : build.title;
     }
@@ -418,9 +423,9 @@ class _ConfigureScreenState extends State<ConfigureScreen> {
   }) async {
     if (_selectedParts.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
+        SnackBar(
           behavior: SnackBarBehavior.floating,
-          content: Text('Select at least one component to save a build.'),
+          content: Text(context.l10n.configureSelectComponent),
         ),
       );
       return;
@@ -464,11 +469,9 @@ class _ConfigureScreenState extends State<ConfigureScreen> {
         ),
       );
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
+        SnackBar(
           behavior: SnackBarBehavior.floating,
-          content: Text(
-            'Please sign in. Your build will be saved automatically.',
-          ),
+          content: Text(context.l10n.configureSignInPrompt),
         ),
       );
       _goNextFrame('/login');
@@ -509,7 +512,7 @@ class _ConfigureScreenState extends State<ConfigureScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           behavior: SnackBarBehavior.floating,
-          content: Text('Could not save build: $e'),
+          content: Text(context.l10n.configureSaveBuildError(e.toString())),
         ),
       );
     } finally {
@@ -529,7 +532,7 @@ class _ConfigureScreenState extends State<ConfigureScreen> {
       builder: (ctx) {
         return StatefulBuilder(
           builder: (ctx, setDialogState) => AlertDialog(
-            title: const Text('Build speichern'),
+            title: Text(ctx.l10n.configureSaveBuildTitle),
             content: Column(
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -537,15 +540,15 @@ class _ConfigureScreenState extends State<ConfigureScreen> {
                 TextField(
                   controller: ctrl,
                   autofocus: true,
-                  decoration: const InputDecoration(
-                    hintText: 'Build-Name',
-                    border: OutlineInputBorder(),
+                  decoration: InputDecoration(
+                    hintText: ctx.l10n.buildDialogNameHint,
+                    border: const OutlineInputBorder(),
                   ),
                   textInputAction: TextInputAction.done,
                 ),
                 const SizedBox(height: 16),
                 Text(
-                  'Cover-Bild (optional)',
+                  ctx.l10n.buildDialogCoverLabel,
                   style: Theme.of(ctx).textTheme.labelSmall?.copyWith(
                         color: Theme.of(ctx).colorScheme.onSurfaceVariant,
                         fontWeight: FontWeight.w700,
@@ -564,7 +567,7 @@ class _ConfigureScreenState extends State<ConfigureScreen> {
               TextButton(
                 onPressed: () =>
                     Navigator.of(ctx, rootNavigator: true).pop(),
-                child: const Text('Abbrechen'),
+                child: Text(ctx.l10n.settingsCancel),
               ),
               FilledButton(
                 onPressed: () {
@@ -574,7 +577,7 @@ class _ConfigureScreenState extends State<ConfigureScreen> {
                     (title: trimmed, heroImageUrl: selectedCover),
                   );
                 },
-                child: const Text('Speichern'),
+                child: Text(ctx.l10n.settingsSave),
               ),
             ],
           ),
@@ -817,6 +820,7 @@ class _ConfigureScreenState extends State<ConfigureScreen> {
     final rawCompatResult = CompatibilityChecker.check(
       parts: _selectedParts,
       estimatedWatts: estWatts,
+      l10n: l10n,
     );
     // Append incomplete-data notices as warnings so they appear in the
     // compatibility report screen instead of inline below each component.
@@ -825,7 +829,7 @@ class _ConfigureScreenState extends State<ConfigureScreen> {
       for (final entry in _selectedParts.entries)
         if (entry.value.missingDataFields.isNotEmpty)
           CompatIssue(
-            '${slotLabelByKey[entry.key] ?? entry.key}: Fehlende Daten – ${entry.value.missingDataFields.join(', ')}',
+            l10n.configureMissingData(slotLabelByKey[entry.key] ?? entry.key, entry.value.missingDataFields.join(', ')),
             CompatIssueLevel.warning,
           ),
     ];
@@ -865,8 +869,10 @@ class _ConfigureScreenState extends State<ConfigureScreen> {
                     const SizedBox(width: 4),
                     Expanded(
                       child: Text(
-                        widget.readOnly && (_editingBuildTitle ?? '').isNotEmpty
-                            ? _editingBuildTitle!
+                        widget.readOnly && (_isImportedBuild || (_editingBuildTitle ?? '').isNotEmpty)
+                            ? (_isImportedBuild
+                                ? l10n.configureImportedFrom(_rawImportedTitle, _rawImportedAuthor)
+                                : _editingBuildTitle!)
                             : l10n.configureBuildTitle,
                         style: theme.textTheme.titleLarge?.copyWith(
                           fontWeight: FontWeight.w800,
@@ -1074,9 +1080,9 @@ class _ConfigureScreenState extends State<ConfigureScreen> {
                                   fit: BoxFit.scaleDown,
                                   child: Text(
                                     _isSaving
-                                        ? 'SAVING...'
+                                        ? l10n.configureSaving
                                         : widget.readOnly
-                                            ? 'ZU MEINEN BUILDS'
+                                            ? l10n.configureAddToMyBuilds
                                             : l10n.configureAddToBuilds,
                                   ),
                                 ),
@@ -1303,7 +1309,7 @@ class _SelectedPartCard extends StatelessWidget {
                         for (final e in selectedEntries.where(
                           (e) => e.part.missingDataFields.isNotEmpty,
                         ))
-                          'Fehlende Daten: ${e.part.missingDataFields.join(', ')}',
+                          context.l10n.configureMissingDataTooltip(e.part.missingDataFields.join(', ')),
                       ].join('\n'),
                       triggerMode: TooltipTriggerMode.tap,
                       child: const Icon(
@@ -1383,7 +1389,7 @@ class _SelectedPartCard extends StatelessWidget {
                         TextButton(
                           onPressed: entry.onView,
                           child: Text(
-                            'Ansehen',
+                            l10n.commonView,
                             style: TextStyle(
                               fontWeight: FontWeight.w900,
                               color: accent,
@@ -1425,7 +1431,7 @@ class _SelectedPartCard extends StatelessWidget {
                   child: TextButton(
                     onPressed: onAdd,
                     child: Text(
-                      'Hinzufügen',
+                      context.l10n.configureAdd,
                       style: TextStyle(
                         fontWeight: FontWeight.w900,
                         color: accent,
@@ -1493,7 +1499,7 @@ class _OptionalComponentsSectionState
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          'EXTRAS',
+                          context.l10n.configureExtras,
                           style: theme.textTheme.labelSmall?.copyWith(
                             fontWeight: FontWeight.w900,
                             letterSpacing: 1.0,
@@ -1503,7 +1509,7 @@ class _OptionalComponentsSectionState
                         if (selectedCount > 0) ...[
                           const SizedBox(height: 2),
                           Text(
-                            '$selectedCount ausgewählt',
+                            context.l10n.configureSelectedCount(selectedCount),
                             style: theme.textTheme.bodySmall?.copyWith(
                               color: accentColor,
                               fontWeight: FontWeight.w700,
@@ -1690,18 +1696,18 @@ class _CompatReportScreen extends StatelessWidget {
     final String statusLabel;
     final String statusSub;
     if (errors.isNotEmpty) {
-      statusLabel = 'Inkompatibel';
+      statusLabel = l10n.compatIncompatible;
       statusSub = errors.length == 1
-          ? '1 kritischer Fehler'
-          : '${errors.length} kritische Fehler';
+          ? l10n.compatSingleError
+          : l10n.compatMultipleErrors(errors.length);
     } else if (warnings.isNotEmpty) {
-      statusLabel = 'Warnung';
+      statusLabel = l10n.compatWarning;
       statusSub = warnings.length == 1
-          ? '1 Warnung erkannt'
-          : '${warnings.length} Warnungen erkannt';
+          ? l10n.compatSingleWarning
+          : l10n.compatMultipleWarnings(warnings.length);
     } else {
-      statusLabel = 'Kompatibel';
-      statusSub = 'Alle Komponenten sind kompatibel';
+      statusLabel = l10n.compatCompatible;
+      statusSub = l10n.compatAllCompatible;
     }
 
     final showPower = estimatedWatts > 0 && psuWatts > 0;
@@ -1762,7 +1768,7 @@ class _CompatReportScreen extends StatelessWidget {
                   ),
                   const SizedBox(height: 6),
                   Text(
-                    'GESAMTSTATUS',
+                    l10n.compatOverallStatus,
                     style: TextStyle(
                       fontSize: 10,
                       fontWeight: FontWeight.w900,
@@ -1807,7 +1813,7 @@ class _CompatReportScreen extends StatelessWidget {
                         ),
                         const SizedBox(width: 6),
                         Text(
-                          'Stromverbrauch',
+                          l10n.configureEstimatedWattage,
                           style: theme.textTheme.labelLarge?.copyWith(
                             fontWeight: FontWeight.w900,
                           ),
@@ -1838,7 +1844,7 @@ class _CompatReportScreen extends StatelessWidget {
                     Row(
                       children: [
                         Text(
-                          '${(loadPct * 100).round()}% Auslastung',
+                          l10n.compatPowerLoad((loadPct * 100).round()),
                           style: theme.textTheme.bodySmall?.copyWith(
                             color: theme.colorScheme.onSurfaceVariant,
                           ),
@@ -1846,8 +1852,8 @@ class _CompatReportScreen extends StatelessWidget {
                         const Spacer(),
                         Text(
                           headroom >= 0
-                              ? '${headroom}W Puffer'
-                              : '${-headroom}W zu wenig',
+                              ? l10n.compatPowerBuffer(headroom)
+                              : l10n.compatPowerInsufficient(-headroom),
                           style: theme.textTheme.bodySmall?.copyWith(
                             color: headroom >= 0
                                 ? theme.colorScheme.onSurfaceVariant
@@ -1866,7 +1872,7 @@ class _CompatReportScreen extends StatelessWidget {
             // ── Issue sections ──────────────────────────────────────────────
             if (errors.isNotEmpty) ...[
               _IssueSection(
-                label: 'Kritische Fehler',
+                label: l10n.compatCriticalErrors,
                 issues: errors,
                 level: CompatIssueLevel.error,
               ),
@@ -1874,7 +1880,7 @@ class _CompatReportScreen extends StatelessWidget {
             ],
             if (warnings.isNotEmpty) ...[
               _IssueSection(
-                label: 'Warnungen',
+                label: l10n.compatWarnings,
                 issues: warnings,
                 level: CompatIssueLevel.warning,
               ),
@@ -1882,7 +1888,7 @@ class _CompatReportScreen extends StatelessWidget {
             ],
             if (oks.isNotEmpty)
               _IssueSection(
-                label: 'Kompatibel',
+                label: l10n.compatCompatible,
                 issues: oks,
                 level: CompatIssueLevel.ok,
               ),

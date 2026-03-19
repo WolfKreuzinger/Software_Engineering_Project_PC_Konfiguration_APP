@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
+import '../l10n/l10n_ext.dart';
+
 class GuidedConfiguratorCard extends StatelessWidget {
   const GuidedConfiguratorCard({super.key});
 
@@ -61,7 +63,7 @@ class GuidedConfiguratorCard extends StatelessWidget {
                               const SizedBox(width: 8),
                               Flexible(
                                 child: Text(
-                                  'BUILD-VORLAGEN',
+                                  context.l10n.guidedCardHeader,
                                   maxLines: 1,
                                   overflow: TextOverflow.ellipsis,
                                   style: const TextStyle(
@@ -75,11 +77,11 @@ class GuidedConfiguratorCard extends StatelessWidget {
                             ],
                           ),
                           const SizedBox(height: 12),
-                          const Text(
-                            'Starte mit einer vorkonfigurierten Vorlage – Budget Gaming, Office, High-End oder Workstation.',
+                          Text(
+                            context.l10n.guidedCardDescription,
                             maxLines: 3,
                             overflow: TextOverflow.ellipsis,
-                            style: TextStyle(
+                            style: const TextStyle(
                               color: Colors.white,
                               height: 1.25,
                               fontSize: 14.5,
@@ -99,16 +101,15 @@ class GuidedConfiguratorCard extends StatelessWidget {
                                 borderRadius: BorderRadius.circular(16),
                               ),
                             ),
-                            child: const Row(
+                            child: Row(
                               mainAxisSize: MainAxisSize.min,
                               children: [
                                 Text(
-                                  'Vorlage auswählen',
-                                  style:
-                                      TextStyle(fontWeight: FontWeight.w800),
+                                  context.l10n.guidedCardButton,
+                                  style: const TextStyle(fontWeight: FontWeight.w800),
                                 ),
-                                SizedBox(width: 10),
-                                Icon(Icons.arrow_forward, size: 18),
+                                const SizedBox(width: 10),
+                                const Icon(Icons.arrow_forward, size: 18),
                               ],
                             ),
                           ),
