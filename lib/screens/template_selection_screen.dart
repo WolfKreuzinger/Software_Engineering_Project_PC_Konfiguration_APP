@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
 import '../data/build_templates.dart';
+import 'configure_screen.dart';
 
 class TemplateSelectionScreen extends StatelessWidget {
   const TemplateSelectionScreen({super.key});
@@ -107,7 +108,7 @@ class _TemplateTile extends StatelessWidget {
         borderRadius: BorderRadius.circular(18.5),
         clipBehavior: Clip.antiAlias,
         child: InkWell(
-          onTap: () => context.go('/configure', extra: template.build),
+          onTap: () => context.go('/configure', extra: ConfigureScreenArgs(build: template.build, backRoute: '/templates')),
           child: Ink(
             decoration: BoxDecoration(
               gradient: LinearGradient(
