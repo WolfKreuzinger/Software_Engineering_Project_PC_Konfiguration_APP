@@ -6,6 +6,7 @@ import '../l10n/l10n_ext.dart';
 import '../models/saved_build.dart';
 import '../services/compatibility_checker.dart';
 import '../services/builds_repository.dart';
+import '../widgets/build_cover_picker.dart';
 import '../services/pending_build_save_service.dart';
 import 'parts_screen.dart';
 
@@ -427,14 +428,18 @@ class _ConfigureScreenState extends State<ConfigureScreen> {
 
     // In read-only mode the title is locked — skip the name prompt.
     String? buildName;
+    String? selectedCoverId = widget.initialBuild?.heroImageUrl;
     if (widget.readOnly) {
       buildName = (_editingBuildTitle ?? '').trim();
     } else {
-      buildName = await _promptBuildName(
+      final info = await _promptBuildInfo(
         initial: (_editingBuildTitle ?? '').trim(),
+        currentCoverId: selectedCoverId,
       );
       if (!mounted) return;
-      if (buildName == null) return;
+      if (info == null) return;
+      buildName = info.title;
+      selectedCoverId = info.heroImageUrl;
     }
 
     await Future<void>.delayed(const Duration(milliseconds: 220));
@@ -490,6 +495,7 @@ class _ConfigureScreenState extends State<ConfigureScreen> {
         importedFrom: widget.readOnly
             ? widget.initialBuild?.importedFrom
             : null,
+        heroImageUrl: selectedCoverId,
       );
       if (!mounted) return;
       setState(() {
@@ -511,39 +517,67 @@ class _ConfigureScreenState extends State<ConfigureScreen> {
     }
   }
 
-  Future<String?> _promptBuildName({required String initial}) async {
+  Future<({String title, String? heroImageUrl})?> _promptBuildInfo({
+    required String initial,
+    String? currentCoverId,
+  }) async {
     final ctrl = TextEditingController(text: initial);
-    final result = await showDialog<String>(
+    String? selectedCover = currentCoverId;
+    final result = await showDialog<({String title, String? heroImageUrl})>(
       context: context,
       useRootNavigator: true,
       builder: (ctx) {
-        return AlertDialog(
-          title: const Text('Build Name'),
-          content: TextField(
-            controller: ctrl,
-            autofocus: true,
-            decoration: const InputDecoration(
-              hintText: 'Enter build name',
-              border: OutlineInputBorder(),
+        return StatefulBuilder(
+          builder: (ctx, setDialogState) => AlertDialog(
+            title: const Text('Build speichern'),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                TextField(
+                  controller: ctrl,
+                  autofocus: true,
+                  decoration: const InputDecoration(
+                    hintText: 'Build-Name',
+                    border: OutlineInputBorder(),
+                  ),
+                  textInputAction: TextInputAction.done,
+                ),
+                const SizedBox(height: 16),
+                Text(
+                  'Cover-Bild (optional)',
+                  style: Theme.of(ctx).textTheme.labelSmall?.copyWith(
+                        color: Theme.of(ctx).colorScheme.onSurfaceVariant,
+                        fontWeight: FontWeight.w700,
+                        letterSpacing: 0.5,
+                      ),
+                ),
+                const SizedBox(height: 8),
+                BuildCoverPicker(
+                  selectedCoverId: selectedCover,
+                  onChanged: (id) =>
+                      setDialogState(() => selectedCover = id),
+                ),
+              ],
             ),
-            textInputAction: TextInputAction.done,
+            actions: [
+              TextButton(
+                onPressed: () =>
+                    Navigator.of(ctx, rootNavigator: true).pop(),
+                child: const Text('Abbrechen'),
+              ),
+              FilledButton(
+                onPressed: () {
+                  final trimmed = ctrl.text.trim();
+                  if (trimmed.isEmpty) return;
+                  Navigator.of(ctx, rootNavigator: true).pop(
+                    (title: trimmed, heroImageUrl: selectedCover),
+                  );
+                },
+                child: const Text('Speichern'),
+              ),
+            ],
           ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(ctx, rootNavigator: true).pop(),
-              child: const Text('Cancel'),
-            ),
-            FilledButton(
-              onPressed: () {
-                final trimmed = ctrl.text.trim();
-                Navigator.of(
-                  ctx,
-                  rootNavigator: true,
-                ).pop(trimmed.isEmpty ? null : trimmed);
-              },
-              child: const Text('Save'),
-            ),
-          ],
         );
       },
     );

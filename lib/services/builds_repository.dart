@@ -76,6 +76,7 @@ class BuildsRepository {
     DateTime? existingCreatedAt,
     bool readOnly = false,
     String? importedFrom,
+    String? heroImageUrl,
   }) async {
     final now = Timestamp.now();
     final ref = existingBuildId == null
@@ -114,6 +115,8 @@ class BuildsRepository {
       'readOnly': readOnly,
       if (importedFrom != null && importedFrom.isNotEmpty)
         'importedFrom': importedFrom,
+      if (heroImageUrl != null && heroImageUrl.isNotEmpty)
+        'heroImageUrl': heroImageUrl,
     };
 
     await ref.set(payload);
@@ -124,12 +127,14 @@ class BuildsRepository {
     required String uid,
     required String buildId,
     required String title,
+    String? heroImageUrl,
   }) async {
     final next = title.trim();
     if (next.isEmpty) return;
     await _buildsRef(uid).doc(buildId).set(<String, dynamic>{
       'title': next,
       'updatedAt': Timestamp.now(),
+      'heroImageUrl': heroImageUrl,
     }, SetOptions(merge: true));
   }
 

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../models/saved_build.dart';
+import 'build_cover_picker.dart';
 
 class BuildListCard extends StatelessWidget {
   const BuildListCard({
@@ -54,21 +55,10 @@ class BuildListCard extends StatelessWidget {
             children: [
               Stack(
                 children: [
-                  Container(
+                  BuildCoverThumbnail(
+                    coverId: savedBuild.heroImageUrl,
                     width: thumbWidth,
                     height: thumbHeight,
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(14),
-                      gradient: LinearGradient(
-                        begin: Alignment.topLeft,
-                        end: Alignment.bottomRight,
-                        colors: [
-                          theme.colorScheme.primary.withValues(alpha: 0.24),
-                          theme.colorScheme.tertiary.withValues(alpha: 0.20),
-                          theme.colorScheme.surfaceContainerHighest,
-                        ],
-                      ),
-                    ),
                   ),
                   Positioned(
                     top: 8,
