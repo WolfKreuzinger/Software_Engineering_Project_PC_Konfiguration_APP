@@ -418,7 +418,6 @@ class _MyBuildsScreenState extends State<MyBuildsScreen> {
                   padding: EdgeInsets.only(bottom: i == builds.length - 1 ? 0 : 12),
                   child: BuildListCard(
                     savedBuild: build,
-                    isCurrent: i == 0 && build.isResumable,
                     pinCostToBottom: true,
                     onTap: () => context.go('/configure', extra: ConfigureScreenArgs(build: build, backRoute: '/my-builds')),
                     onMore: () => _openBuildActions(user, build),
