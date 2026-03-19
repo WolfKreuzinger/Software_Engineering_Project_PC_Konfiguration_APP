@@ -2505,15 +2505,6 @@ const Map<String, List<_SpecDef>> _typeSpecDefs = {
       chips: [4, 6, 8, 12, 16, 32],
     ),
     _SpecDef(
-      specKey: 'threadCount',
-      dataKey: 'thread_count',
-      label: 'Thread Count',
-      min: 1,
-      max: 128,
-      widgetType: _SpecWidgetType.minChips,
-      chips: [4, 6, 8, 12, 16, 32],
-    ),
-    _SpecDef(
       specKey: 'coreClock',
       dataKey: 'core_clock',
       label: 'Core Clock',
