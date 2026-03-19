@@ -886,8 +886,10 @@ class _PartsScreenState extends State<PartsScreen> {
           continue;
         }
         final numVal = _toDouble(rawVal);
-        if (!numVal.isNaN &&
-            (numVal < filterRange.start || numVal > filterRange.end)) {
+        // NaN means the field is null (N/A) → exclude when filtered
+        if (numVal.isNaN ||
+            numVal < filterRange.start ||
+            numVal > filterRange.end) {
           return false;
         }
       } else {
@@ -895,7 +897,7 @@ class _PartsScreenState extends State<PartsScreen> {
         final filterText = filter.textValue!.trim().toLowerCase();
         if (filterText.isEmpty) continue;
         final rawStr = rawVal?.toString().trim().toLowerCase() ?? '';
-        if (rawStr.isEmpty) continue; // no value → don't exclude
+        if (rawStr.isEmpty) return false; // N/A value → exclude when filtered
         if (def.containsMatch) {
           if (!rawStr.contains(filterText)) return false;
         } else {
@@ -2459,6 +2461,9 @@ class _SpecDef {
   final int? listIndex;
   // Overrides default matching logic in _matchesSpecs
   final _FilterMode filterMode;
+  // When true, items with a null/empty value are excluded (not skipped) when
+  // this filter is active – used for Color so N/A products are hidden.
+  final bool excludeNull;
 
   const _SpecDef({
     required this.specKey,
@@ -2476,6 +2481,7 @@ class _SpecDef {
     this.containsMatch = false,
     this.listIndex,
     this.filterMode = _FilterMode.normal,
+    this.excludeNull = false,
   });
 }
 
@@ -2511,19 +2517,19 @@ const Map<String, List<_SpecDef>> _typeSpecDefs = {
       specKey: 'coreClock',
       dataKey: 'core_clock',
       label: 'Core Clock',
-      min: 500,
-      max: 5000,
-      unit: 'MHz',
+      min: 1.0,
+      max: 5.5,
+      unit: 'GHz',
       divisions: 45,
     ),
     _SpecDef(
       specKey: 'boostClock',
       dataKey: 'boost_clock',
       label: 'Boost Clock',
-      min: 1000,
-      max: 7000,
-      unit: 'MHz',
-      divisions: 60,
+      min: 1.5,
+      max: 6.5,
+      unit: 'GHz',
+      divisions: 50,
     ),
     _SpecDef(
       specKey: 'tdp',
@@ -2565,8 +2571,32 @@ const Map<String, List<_SpecDef>> _typeSpecDefs = {
       widgetType: _SpecWidgetType.textDropdown,
       containsMatch: true,
       textOptions: [
-        'RTX 50', 'RTX 40', 'RTX 30', 'RTX 20', 'GTX 16', 'GTX 10',
-        'RX 9', 'RX 7', 'RX 6', 'RX 5', 'Arc',
+        // NVIDIA RTX 50
+        'RTX 5090', 'RTX 5080', 'RTX 5070 Ti', 'RTX 5070', 'RTX 5060 Ti', 'RTX 5060',
+        // NVIDIA RTX 40
+        'RTX 4090', 'RTX 4080 Super', 'RTX 4080', 'RTX 4070 Ti Super',
+        'RTX 4070 Ti', 'RTX 4070 Super', 'RTX 4070', 'RTX 4060 Ti', 'RTX 4060',
+        // NVIDIA RTX 30
+        'RTX 3090 Ti', 'RTX 3090', 'RTX 3080 Ti', 'RTX 3080', 'RTX 3070 Ti',
+        'RTX 3070', 'RTX 3060 Ti', 'RTX 3060',
+        // NVIDIA RTX 20
+        'RTX 2080 Ti', 'RTX 2080 Super', 'RTX 2080', 'RTX 2070 Super',
+        'RTX 2070', 'RTX 2060 Super', 'RTX 2060',
+        // NVIDIA GTX 16 / 10
+        'GTX 1660 Ti', 'GTX 1660 Super', 'GTX 1660', 'GTX 1650 Super', 'GTX 1650',
+        'GTX 1080 Ti', 'GTX 1080', 'GTX 1070 Ti', 'GTX 1070', 'GTX 1060',
+        // AMD RX 9
+        'RX 9070 XT', 'RX 9070',
+        // AMD RX 7
+        'RX 7900 XTX', 'RX 7900 XT', 'RX 7900 GRE', 'RX 7800 XT',
+        'RX 7700 XT', 'RX 7600 XT', 'RX 7600',
+        // AMD RX 6
+        'RX 6950 XT', 'RX 6900 XT', 'RX 6800 XT', 'RX 6800', 'RX 6700 XT',
+        'RX 6700', 'RX 6650 XT', 'RX 6600 XT', 'RX 6600', 'RX 6500 XT', 'RX 6400',
+        // AMD RX 5
+        'RX 5700 XT', 'RX 5700', 'RX 5600 XT', 'RX 5500 XT',
+        // Intel Arc
+        'Arc A770', 'Arc A750', 'Arc A580', 'Arc A380',
       ],
     ),
     _SpecDef(
@@ -2575,6 +2605,7 @@ const Map<String, List<_SpecDef>> _typeSpecDefs = {
       label: 'Color',
       widgetType: _SpecWidgetType.textDropdown,
       containsMatch: true,
+      excludeNull: true,
       textOptions: ['Black', 'White', 'Silver', 'Red', 'Blue', 'Gray', 'RGB'],
     ),
     _SpecDef(
@@ -2625,6 +2656,7 @@ const Map<String, List<_SpecDef>> _typeSpecDefs = {
       label: 'Color',
       widgetType: _SpecWidgetType.textDropdown,
       containsMatch: true,
+      excludeNull: true,
       textOptions: ['Black', 'White', 'Silver', 'Red', 'Blue', 'Gray', 'RGB'],
     ),
     _SpecDef(
@@ -2646,7 +2678,7 @@ const Map<String, List<_SpecDef>> _typeSpecDefs = {
       max: 8,
       unit: 'x',
       widgetType: _SpecWidgetType.exactChips,
-      chips: [1, 2, 4],
+      chips: [1, 2, 4, 8],
       listIndex: 0,
     ),
     _SpecDef(
@@ -2692,10 +2724,10 @@ const Map<String, List<_SpecDef>> _typeSpecDefs = {
       specKey: 'pricePerGb',
       dataKey: 'price_per_gb',
       label: 'Price / GB',
-      min: 0,
-      max: 0.5,
+      min: 0.01,
+      max: 10.0,
       unit: '\$/GB',
-      divisions: 50,
+      divisions: 99,
     ),
   ],
 
@@ -2749,10 +2781,10 @@ const Map<String, List<_SpecDef>> _typeSpecDefs = {
       specKey: 'pricePerGb',
       dataKey: 'price_per_gb',
       label: 'Price / GB',
-      min: 0,
-      max: 0.5,
+      min: 0.01,
+      max: 2.0,
       unit: '\$/GB',
-      divisions: 50,
+      divisions: 79,
     ),
   ],
 
@@ -2773,6 +2805,7 @@ const Map<String, List<_SpecDef>> _typeSpecDefs = {
       label: 'Color',
       widgetType: _SpecWidgetType.textDropdown,
       containsMatch: true,
+      excludeNull: true,
       textOptions: ['Black', 'White', 'Silver', 'Red', 'Blue', 'Gray', 'RGB'],
     ),
     _SpecDef(
@@ -2821,6 +2854,7 @@ const Map<String, List<_SpecDef>> _typeSpecDefs = {
       label: 'Color',
       widgetType: _SpecWidgetType.textDropdown,
       containsMatch: true,
+      excludeNull: true,
       textOptions: ['Black', 'White', 'Silver', 'Red', 'Blue', 'Gray'],
     ),
     _SpecDef(
@@ -2877,6 +2911,7 @@ const Map<String, List<_SpecDef>> _typeSpecDefs = {
       label: 'Color',
       widgetType: _SpecWidgetType.textDropdown,
       containsMatch: true,
+      excludeNull: true,
       textOptions: ['Black', 'White', 'Silver', 'Red', 'Blue', 'Gray'],
     ),
     _SpecDef(
@@ -2935,6 +2970,7 @@ const Map<String, List<_SpecDef>> _typeSpecDefs = {
       label: 'Color',
       widgetType: _SpecWidgetType.textDropdown,
       containsMatch: true,
+      excludeNull: true,
       textOptions: ['Black', 'White', 'Silver', 'Red', 'Blue', 'Gray', 'RGB'],
     ),
     _SpecDef(
@@ -2976,6 +3012,7 @@ const Map<String, List<_SpecDef>> _typeSpecDefs = {
       label: 'Color',
       widgetType: _SpecWidgetType.textDropdown,
       containsMatch: true,
+      excludeNull: true,
       textOptions: ['Black', 'White', 'Silver', 'Red', 'Blue', 'Gray', 'RGB'],
     ),
     _SpecDef(
@@ -3033,6 +3070,7 @@ const Map<String, List<_SpecDef>> _typeSpecDefs = {
       label: 'Color',
       widgetType: _SpecWidgetType.textDropdown,
       containsMatch: true,
+      excludeNull: true,
       textOptions: ['Black', 'White', 'Silver', 'Red', 'Blue', 'Gray'],
     ),
     _SpecDef(
@@ -3070,10 +3108,10 @@ const Map<String, List<_SpecDef>> _typeSpecDefs = {
       specKey: 'pricePerGb',
       dataKey: 'price_per_gb',
       label: 'Price / GB',
-      min: 0,
-      max: 0.2,
+      min: 0.01,
+      max: 0.5,
       unit: '\$/GB',
-      divisions: 40,
+      divisions: 49,
     ),
   ],
 
@@ -3145,6 +3183,7 @@ const Map<String, List<_SpecDef>> _typeSpecDefs = {
       label: 'Color',
       widgetType: _SpecWidgetType.textDropdown,
       containsMatch: true,
+      excludeNull: true,
       textOptions: ['Black', 'White', 'Silver', 'Red', 'Blue', 'Gray'],
     ),
     _SpecDef(
@@ -3165,6 +3204,7 @@ const Map<String, List<_SpecDef>> _typeSpecDefs = {
       label: 'Color',
       widgetType: _SpecWidgetType.textDropdown,
       containsMatch: true,
+      excludeNull: true,
       textOptions: ['Black', 'White', 'Silver', 'Red', 'Blue', 'Gray'],
     ),
     _SpecDef(
@@ -3193,6 +3233,7 @@ const Map<String, List<_SpecDef>> _typeSpecDefs = {
       label: 'Color',
       widgetType: _SpecWidgetType.textDropdown,
       containsMatch: true,
+      excludeNull: true,
       textOptions: ['Black', 'White', 'Silver', 'Red', 'Blue', 'Gray'],
     ),
     _SpecDef(
@@ -3331,14 +3372,6 @@ const Map<String, List<_SpecDef>> _typeSpecDefs = {
         'Corsair', 'NZXT', 'Lian Li', 'Thermaltake', 'Cooler Master',
         'BitFenix', 'Phanteks', 'Silverstone',
       ],
-    ),
-    _SpecDef(
-      specKey: 'color',
-      dataKey: 'color',
-      label: 'Color',
-      widgetType: _SpecWidgetType.textDropdown,
-      containsMatch: true,
-      textOptions: ['Black', 'White', 'Silver', 'Red', 'Blue', 'Gray'],
     ),
     _SpecDef(
       specKey: 'type',
@@ -4098,8 +4131,10 @@ class _SliderWithLabelsState extends State<_SliderWithLabels> {
       color: widget.cs.primary,
       fontWeight: FontWeight.w700,
     );
+    // Use decimal places when the range is small (e.g. $/GB sliders)
+    final decimals = (widget.max - widget.min) < 10 ? 2 : 0;
     String fmt(double v) =>
-        '${widget.prefix}${v.toStringAsFixed(0)}${widget.suffix}';
+        '${widget.prefix}${v.toStringAsFixed(decimals)}${widget.suffix}';
 
     // _ThumbWithLabel receives the exact thumb centre from Flutter's own
     // rendering pipeline — labels are always in sync and always visible.
