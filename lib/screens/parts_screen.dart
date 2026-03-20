@@ -2365,7 +2365,13 @@ class _FiltersSheetState extends State<_FiltersSheet> {
                 Wrap(
                   spacing: 10,
                   runSpacing: 10,
-                  children: widget.types.map((t) {
+                  children: (() {
+                    final types = widget.types;
+                    if (types.length <= 1) return types;
+                    final rest = types.skip(1).toList()
+                      ..sort((a, b) => _localizedTypeName(a, context.l10n).toLowerCase().compareTo(_localizedTypeName(b, context.l10n).toLowerCase()));
+                    return [types.first, ...rest];
+                  })().map((t) {
                     final selected = t == _type;
                     return InkWell(
                       onTap: () => setState(() => _type = t),
@@ -2500,6 +2506,15 @@ class _SimplePickerSheet extends StatelessWidget {
   Widget build(BuildContext context) {
     final cs = theme.colorScheme;
 
+    final List<String> sortedItems;
+    if (items.length <= 1 || labelFor == null) {
+      sortedItems = items;
+    } else {
+      final rest = items.skip(1).toList()
+        ..sort((a, b) => labelFor!(a).toLowerCase().compareTo(labelFor!(b).toLowerCase()));
+      sortedItems = [items.first, ...rest];
+    }
+
     return ListView(
       padding: const EdgeInsets.fromLTRB(16, 6, 16, 16),
       children: [
@@ -2510,7 +2525,7 @@ class _SimplePickerSheet extends StatelessWidget {
           ),
         ),
         const SizedBox(height: 10),
-        ...items.map((e) {
+        ...sortedItems.map((e) {
           final isSelected = e == selected;
           return ListTile(
             onTap: () => onPick(e),
