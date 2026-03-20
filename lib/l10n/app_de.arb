@@ -136,6 +136,16 @@
       "email": { "type": "String", "example": "user@example.com" }
     }
   },
+  "resetPasswordTitle": "Neues Passwort festlegen",
+  "resetPasswordSubtitle": "Mind. 8 Zeichen, 1 Sonderzeichen, 1 Großbuchstabe und 1 Zahl.",
+  "resetPasswordSave": "Passwort speichern",
+  "resetPasswordSuccessTitle": "Passwort geändert!",
+  "resetPasswordSuccessBody": "Dein Passwort wurde erfolgreich zurückgesetzt. Du kannst dich jetzt anmelden.",
+  "resetPasswordGoToLogin": "Zum Login",
+  "settingsCurrentPassword": "Aktuelles Passwort",
+  "settingsNewPassword": "Neues Passwort",
+  "settingsCurrentPasswordRequired": "Bitte aktuelles Passwort eingeben.",
+  "settingsPasswordChanged": "Passwort erfolgreich geändert.",
   "settingsVersion": "BuildMyPC v1.0.0",
 
   "supportTitle": "Support kontaktieren",
