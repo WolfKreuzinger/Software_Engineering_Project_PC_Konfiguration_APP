@@ -47,9 +47,49 @@ class AuthService {
     }
   }
 
-  Future<void> sendPasswordResetEmail({required String email}) async {
+  Future<void> sendPasswordResetEmail({
+    required String email,
+    ActionCodeSettings? actionCodeSettings,
+  }) async {
     try {
-      await _auth.sendPasswordResetEmail(email: email.trim());
+      await _auth.sendPasswordResetEmail(
+        email: email.trim(),
+        actionCodeSettings: actionCodeSettings,
+      );
+    } on FirebaseAuthException catch (e) {
+      throw AuthServiceException(code: e.code, message: _mapAuthError(e));
+    }
+  }
+
+  Future<void> confirmPasswordReset({
+    required String oobCode,
+    required String newPassword,
+  }) async {
+    try {
+      await _auth.confirmPasswordReset(code: oobCode, newPassword: newPassword);
+    } on FirebaseAuthException catch (e) {
+      throw AuthServiceException(code: e.code, message: _mapAuthError(e));
+    }
+  }
+
+  Future<void> updatePassword({
+    required String currentPassword,
+    required String newPassword,
+  }) async {
+    final user = _auth.currentUser;
+    if (user == null || user.email == null) {
+      throw AuthServiceException(
+        code: 'no-user',
+        message: 'Kein eingeloggter Nutzer.',
+      );
+    }
+    try {
+      final credential = EmailAuthProvider.credential(
+        email: user.email!,
+        password: currentPassword,
+      );
+      await user.reauthenticateWithCredential(credential);
+      await user.updatePassword(newPassword);
     } on FirebaseAuthException catch (e) {
       throw AuthServiceException(code: e.code, message: _mapAuthError(e));
     }

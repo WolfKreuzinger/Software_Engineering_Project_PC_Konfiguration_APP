@@ -371,6 +371,39 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String get resetPasswordTitle => 'Set new password';
+
+  @override
+  String get resetPasswordSubtitle =>
+      'Min. 8 characters, 1 special character, 1 uppercase letter, and 1 number.';
+
+  @override
+  String get resetPasswordSave => 'Save password';
+
+  @override
+  String get resetPasswordSuccessTitle => 'Password changed!';
+
+  @override
+  String get resetPasswordSuccessBody =>
+      'Your password has been reset successfully. You can now sign in.';
+
+  @override
+  String get resetPasswordGoToLogin => 'Go to login';
+
+  @override
+  String get settingsCurrentPassword => 'Current Password';
+
+  @override
+  String get settingsNewPassword => 'New Password';
+
+  @override
+  String get settingsCurrentPasswordRequired =>
+      'Please enter your current password.';
+
+  @override
+  String get settingsPasswordChanged => 'Password changed successfully.';
+
+  @override
   String get settingsVersion => 'BuildMyPC v1.0.0';
 
   @override

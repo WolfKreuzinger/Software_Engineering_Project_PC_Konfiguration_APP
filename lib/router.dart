@@ -12,6 +12,7 @@ import 'screens/home_screen.dart';
 import 'screens/my_builds_screen.dart';
 import 'screens/parts_screen.dart';
 import 'screens/privacy_policy_screen.dart';
+import 'screens/reset_password_screen.dart';
 import 'screens/settings_screen.dart';
 import 'screens/shell_screen.dart';
 import 'screens/support_screen.dart';
@@ -20,6 +21,7 @@ import 'screens/template_selection_screen.dart';
 import 'screens/terms_screen.dart';
 import 'models/saved_build.dart';
 import 'services/pending_build_save_service.dart';
+import 'theme/language_global.dart';
 
 class AuthListenable extends ChangeNotifier {
   StreamSubscription<User?>? _sub;
@@ -62,6 +64,20 @@ final router = GoRouter(
   redirect: (context, state) {
     _authListenable.ensureBound();
 
+    // Handle Firebase password reset action URL:
+    // Firebase redirects to /?mode=resetPassword&oobCode=...
+    final mode = state.uri.queryParameters['mode'];
+    final oobCode = state.uri.queryParameters['oobCode'];
+    if (mode == 'resetPassword' && oobCode != null && oobCode.isNotEmpty) {
+      final lang = state.uri.queryParameters['lang'];
+      if (lang == 'en') {
+        languageController.setLocale(const Locale('en'));
+      } else if (lang == 'de') {
+        languageController.setLocale(const Locale('de'));
+      }
+      return '/reset-password?oobCode=${Uri.encodeComponent(oobCode)}';
+    }
+
     User? user;
     try {
       user = FirebaseAuth.instance.currentUser;
@@ -95,6 +111,13 @@ final router = GoRouter(
     GoRoute(
       path: '/login',
       pageBuilder: (_, _) => _noAnim(const AuthScreen()),
+    ),
+    GoRoute(
+      path: '/reset-password',
+      pageBuilder: (_, state) {
+        final oobCode = state.uri.queryParameters['oobCode'] ?? '';
+        return _noAnim(ResetPasswordScreen(oobCode: oobCode));
+      },
     ),
     GoRoute(
       path: '/terms',
