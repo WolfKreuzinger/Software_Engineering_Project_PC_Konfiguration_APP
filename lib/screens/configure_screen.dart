@@ -435,7 +435,9 @@ class _ConfigureScreenState extends State<ConfigureScreen> {
     String? buildName;
     String? selectedCoverId = widget.initialBuild?.heroImageUrl;
     if (widget.readOnly) {
-      buildName = (_editingBuildTitle ?? '').trim();
+      buildName = _isImportedBuild
+          ? context.l10n.configureImportedFrom(_rawImportedTitle, _rawImportedAuthor)
+          : (_editingBuildTitle ?? '').trim();
     } else {
       final info = await _promptBuildInfo(
         initial: (_editingBuildTitle ?? '').trim(),

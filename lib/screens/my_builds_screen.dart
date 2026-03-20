@@ -81,7 +81,7 @@ class _MyBuildsScreenState extends State<MyBuildsScreen> {
       case _BuildFilter.inProgress:
         return build.status == BuildStatus.inProgress;
       case _BuildFilter.draft:
-        return build.readOnly;
+        return build.readOnly || build.importedFrom != null;
       case _BuildFilter.all:
         return true;
     }
@@ -309,11 +309,12 @@ class _MyBuildsScreenState extends State<MyBuildsScreen> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            ListTile(
-              leading: const Icon(Icons.edit_rounded),
-              title: Text(ctx.l10n.commonRename),
-              onTap: () => Navigator.of(ctx).pop('rename'),
-            ),
+            if (!build.readOnly)
+              ListTile(
+                leading: const Icon(Icons.edit_rounded),
+                title: Text(ctx.l10n.commonRename),
+                onTap: () => Navigator.of(ctx).pop('rename'),
+              ),
             if (!build.readOnly)
               ListTile(
                 leading: const Icon(Icons.copy_rounded),
