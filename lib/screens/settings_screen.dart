@@ -435,6 +435,7 @@ class _ChangePasswordDialogState extends State<_ChangePasswordDialog> {
   final _confirmPwCtrl = TextEditingController();
   bool _currentPwVisible = false;
   bool _newPwVisible = false;
+  bool _confirmPwVisible = false;
   bool _loading = false;
 
   final RegExp _specialCharRegex = RegExp(r'[^A-Za-z0-9]');
@@ -532,10 +533,19 @@ class _ChangePasswordDialogState extends State<_ChangePasswordDialog> {
             const SizedBox(height: 12),
             TextFormField(
               controller: _confirmPwCtrl,
-              obscureText: true,
+              obscureText: !_confirmPwVisible,
               decoration: InputDecoration(
                 labelText: l10n.authConfirmPasswordHint,
                 border: const OutlineInputBorder(),
+                suffixIcon: IconButton(
+                  onPressed: () =>
+                      setState(() => _confirmPwVisible = !_confirmPwVisible),
+                  icon: Icon(
+                    _confirmPwVisible
+                        ? Icons.visibility_off
+                        : Icons.visibility,
+                  ),
+                ),
               ),
               validator: (v) {
                 if (v == null || v.isEmpty)

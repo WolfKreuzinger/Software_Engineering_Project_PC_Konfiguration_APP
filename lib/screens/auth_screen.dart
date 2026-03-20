@@ -22,6 +22,7 @@ class _AuthScreenState extends State<AuthScreen> {
 
   bool _isLogin = true;
   bool _pwVisible = false;
+  bool _pw2Visible = false;
   bool _loading = false;
   final RegExp _specialCharRegex = RegExp(r'[^A-Za-z0-9]');
   final RegExp _uppercaseRegex = RegExp(r'[A-Z]');
@@ -372,11 +373,23 @@ class _AuthScreenState extends State<AuthScreen> {
                                 const SizedBox(height: 14),
                                 TextFormField(
                                   controller: _pw2Ctrl,
-                                  obscureText: true,
+                                  obscureText: !_pw2Visible,
                                   decoration: InputDecoration(
                                     prefixIcon: const Icon(Icons.lock),
                                     border: const OutlineInputBorder(),
                                     hintText: l10n.authConfirmPasswordHint,
+                                    suffixIcon: IconButton(
+                                      onPressed: _loading
+                                          ? null
+                                          : () => setState(
+                                              () => _pw2Visible = !_pw2Visible,
+                                            ),
+                                      icon: Icon(
+                                        _pw2Visible
+                                            ? Icons.visibility_off
+                                            : Icons.visibility,
+                                      ),
+                                    ),
                                   ),
                                   validator: (v) {
                                     final value = v ?? '';
