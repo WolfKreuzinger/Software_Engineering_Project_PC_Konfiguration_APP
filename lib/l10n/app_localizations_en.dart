@@ -628,6 +628,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get buildDialogDuplicateNameHint => 'Name of Duplicate';
 
   @override
+  String get buildDialogNameRequired => 'Name must not be empty';
+
+  @override
   String buildDialogCopyOf(String title) {
     return 'Copy of $title';
   }
@@ -831,7 +834,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get partsDataCompletenessHint =>
-      'Filter components by completeness of spec data';
+      'Components with missing compatibility-relevant specifications and/or prices are hidden.';
 
   @override
   String get partsShowAll => 'Show all';

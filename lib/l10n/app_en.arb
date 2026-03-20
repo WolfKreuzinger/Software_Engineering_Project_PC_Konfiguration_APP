@@ -215,6 +215,7 @@
   "buildDialogCoverLabel": "Cover Image (optional)",
   "buildDialogDuplicateTitle": "Duplicate Build",
   "buildDialogDuplicateNameHint": "Name of Duplicate",
+  "buildDialogNameRequired": "Name must not be empty",
   "buildDialogCopyOf": "Copy of {title}",
   "@buildDialogCopyOf": {
     "placeholders": { "title": { "type": "String" } }
@@ -306,7 +307,7 @@
   "partsAddToConfig": "Add to Configuration",
   "partsNoSpecs": "No specs available.",
   "partsDataCompleteness": "Data Completeness",
-  "partsDataCompletenessHint": "Filter components by completeness of spec data",
+  "partsDataCompletenessHint": "Components with missing compatibility-relevant specifications and/or prices are hidden.",
   "partsShowAll": "Show all",
   "partsCompatibilityOnly": "Compatibility",
   "partsAllComponents": "All Components",

@@ -113,38 +113,68 @@ class _DashboardState extends State<Dashboard> {
 
   Future<void> _duplicateBuild(User user, SavedBuild build) async {
     final ctrl = TextEditingController(text: context.l10n.buildDialogCopyOf(build.title));
-    final title = await showDialog<String>(
+    String? selectedCover = build.heroImageUrl;
+    String? nameError;
+    final result = await showDialog<({String title, String? heroImageUrl})>(
       context: context,
       useRootNavigator: true,
-      builder: (ctx) => AlertDialog(
-        title: Text(ctx.l10n.buildDialogDuplicateTitle),
-        content: TextField(
-          controller: ctrl,
-          autofocus: true,
-          decoration: InputDecoration(
-            hintText: ctx.l10n.buildDialogDuplicateNameHint,
-            border: const OutlineInputBorder(),
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setDialogState) => AlertDialog(
+            title: Text(ctx.l10n.buildDialogDuplicateTitle),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                TextField(
+                  controller: ctrl,
+                  autofocus: true,
+                  decoration: InputDecoration(
+                    hintText: ctx.l10n.buildDialogDuplicateNameHint,
+                    border: const OutlineInputBorder(),
+                    errorText: nameError,
+                  ),
+                  textInputAction: TextInputAction.done,
+                ),
+                const SizedBox(height: 16),
+                Text(
+                  ctx.l10n.buildDialogCoverLabel,
+                  style: Theme.of(ctx).textTheme.labelSmall?.copyWith(
+                        color: Theme.of(ctx).colorScheme.onSurfaceVariant,
+                        fontWeight: FontWeight.w700,
+                        letterSpacing: 0.5,
+                      ),
+                ),
+                const SizedBox(height: 8),
+                BuildCoverPicker(
+                  selectedCoverId: selectedCover,
+                  onChanged: (id) =>
+                      setDialogState(() => selectedCover = id),
+                ),
+              ],
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(ctx, rootNavigator: true).pop(),
+                child: Text(ctx.l10n.settingsCancel),
+              ),
+              FilledButton(
+                onPressed: () {
+                  final t = ctrl.text.trim();
+                  if (t.isEmpty) {
+                    setDialogState(() => nameError = ctx.l10n.buildDialogNameRequired);
+                    return;
+                  }
+                  Navigator.of(ctx, rootNavigator: true)
+                      .pop((title: t, heroImageUrl: selectedCover));
+                },
+                child: Text(ctx.l10n.commonDuplicate),
+              ),
+            ],
           ),
-          textInputAction: TextInputAction.done,
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(ctx, rootNavigator: true).pop(),
-            child: Text(ctx.l10n.settingsCancel),
-          ),
-          FilledButton(
-            onPressed: () {
-              final t = ctrl.text.trim();
-              Navigator.of(ctx, rootNavigator: true)
-                  .pop(t.isEmpty ? null : t);
-            },
-            child: Text(ctx.l10n.commonDuplicate),
-          ),
-        ],
       ),
     );
     ctrl.dispose();
-    if (title == null || !mounted) return;
+    if (result == null || !mounted) return;
     try {
       await _repo.saveBuild(
         uid: user.uid,
@@ -152,13 +182,14 @@ class _DashboardState extends State<Dashboard> {
         totalPrice: build.totalPrice,
         estimatedWattage: build.estimatedWattage,
         status: build.status,
-        title: title,
+        title: result.title,
+        heroImageUrl: result.heroImageUrl,
       );
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           behavior: SnackBarBehavior.floating,
-          content: Text(context.l10n.buildDialogSaved(title)),
+          content: Text(context.l10n.buildDialogSaved(result.title)),
         ),
       );
     } catch (e) {
@@ -205,11 +236,12 @@ class _DashboardState extends State<Dashboard> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            ListTile(
-              leading: const Icon(Icons.edit_rounded),
-              title: Text(ctx.l10n.commonRename),
-              onTap: () => Navigator.of(ctx).pop('rename'),
-            ),
+            if (!build.readOnly)
+              ListTile(
+                leading: const Icon(Icons.edit_rounded),
+                title: Text(ctx.l10n.commonRename),
+                onTap: () => Navigator.of(ctx).pop('rename'),
+              ),
             if (!build.readOnly)
               ListTile(
                 leading: const Icon(Icons.copy_rounded),

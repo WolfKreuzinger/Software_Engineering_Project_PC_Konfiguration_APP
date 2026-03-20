@@ -50,7 +50,7 @@ class _ShareBuildSheetState extends State<ShareBuildSheet> {
         widget.repo.publishBuild(
           widget.build,
           readOnly: readOnly,
-          senderName: readOnly ? widget.senderName : null,
+          senderName: widget.senderName,
         ),
         Future<void>.delayed(minDuration),
       ]);

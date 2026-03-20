@@ -1148,7 +1148,8 @@ class _PartsScreenState extends State<PartsScreen> {
                                     _searchQuery.trim().isNotEmpty ||
                                     _specFilters.isNotEmpty ||
                                     _priceRange.start > 0 ||
-                                    _priceRange.end < 5000;
+                                    _priceRange.end < 5000 ||
+                                    _dataFilter != _DataCompletenessFilter.showAll;
                                 final int count;
                                 if (hasActiveFilters) {
                                   // Use the pre-computed cache — free during build
@@ -2357,11 +2358,28 @@ class _FiltersSheetState extends State<_FiltersSheet> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  context.l10n.myBuildsFilters,
-                  style: theme.textTheme.titleLarge?.copyWith(
-                    fontWeight: FontWeight.w900,
-                  ),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      context.l10n.myBuildsFilters,
+                      style: theme.textTheme.titleLarge?.copyWith(
+                        fontWeight: FontWeight.w900,
+                      ),
+                    ),
+                    if (_type != widget.types[0] ||
+                        _sort != widget.sorts[0] ||
+                        _range.start > 0 ||
+                        _range.end < 5000)
+                      TextButton(
+                        onPressed: () => setState(() {
+                          _type = widget.types[0];
+                          _sort = widget.sorts[0];
+                          _range = const RangeValues(0, 5000);
+                        }),
+                        child: Text(context.l10n.partsSpecsReset),
+                      ),
+                  ],
                 ),
                 const SizedBox(height: 14),
                 Text(
@@ -3601,11 +3619,28 @@ class _SortSheetState extends State<_SortSheet> {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
-              context.l10n.partsSort,
-              style: theme.textTheme.titleLarge?.copyWith(
-                fontWeight: FontWeight.w900,
-              ),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  context.l10n.partsSort,
+                  style: theme.textTheme.titleLarge?.copyWith(
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+                if (_sort != widget.sorts[0] ||
+                    _range.start > 0 ||
+                    _range.end < 5000 ||
+                    _dataFilter != _DataCompletenessFilter.showAll)
+                  TextButton(
+                    onPressed: () => setState(() {
+                      _sort = widget.sorts[0];
+                      _range = const RangeValues(0, 5000);
+                      _dataFilter = _DataCompletenessFilter.showAll;
+                    }),
+                    child: Text(context.l10n.partsSpecsReset),
+                  ),
+              ],
             ),
             const SizedBox(height: 14),
             Text(

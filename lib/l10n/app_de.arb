@@ -225,6 +225,7 @@
   "buildDialogCoverLabel": "Cover-Bild (optional)",
   "buildDialogDuplicateTitle": "Build duplizieren",
   "buildDialogDuplicateNameHint": "Name des Duplikats",
+  "buildDialogNameRequired": "Name darf nicht leer sein",
   "buildDialogCopyOf": "Kopie von {title}",
   "@buildDialogCopyOf": {
     "placeholders": { "title": { "type": "String" } }
@@ -316,7 +317,7 @@
   "partsAddToConfig": "Hinzufügen",
   "partsNoSpecs": "Keine Spezifikationen verfügbar.",
   "partsDataCompleteness": "Datenvollständigkeit",
-  "partsDataCompletenessHint": "Komponenten nach Vollständigkeit der Spezifikationsdaten filtern",
+  "partsDataCompletenessHint": "Komponenten mit fehlenden kompatibilitätsrelevanten Spezifikationen und/oder Preisen werden ausgeblendet.",
   "partsShowAll": "Alle anzeigen",
   "partsCompatibilityOnly": "Kompatibilität",
   "partsAllComponents": "Alle Komponenten",
