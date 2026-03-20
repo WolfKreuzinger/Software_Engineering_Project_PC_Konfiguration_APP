@@ -1241,23 +1241,33 @@ class _PartsScreenState extends State<PartsScreen> {
                                 showModalBottomSheet(
                                   context: context,
                                   showDragHandle: true,
-                                  builder: (_) => _SimplePickerSheet(
-                                    title: context.l10n.partsComponentType,
-                                    items: _types,
-                                    selected: _selectedType,
-                                    onPick: (v) {
-                                      setState(() {
-                                        _selectedType = v;
-                                        _specFilters = {};
-                                        _displayedCount = _kBatchSize;
-                                        _recomputeFiltered();
-                                      });
-                                      _scrollToTop();
-                                      Navigator.of(context).pop();
-                                    },
-                                    theme: theme,
-                                    labelFor: (t) => _localizedTypeName(t, context.l10n),
-                                  ),
+                                  builder: (sheetCtx) {
+                                    final l10n = sheetCtx.l10n;
+                                    final labelMap = {
+                                      for (final t in _types)
+                                        t: _localizedTypeName(t, l10n),
+                                    };
+                                    final rest = _types.skip(1).toList()
+                                      ..sort((a, b) => labelMap[a]!.toLowerCase().compareTo(labelMap[b]!.toLowerCase()));
+                                    final sortedTypes = [_types.first, ...rest];
+                                    return _SimplePickerSheet(
+                                      title: l10n.partsComponentType,
+                                      items: sortedTypes,
+                                      selected: _selectedType,
+                                      onPick: (v) {
+                                        setState(() {
+                                          _selectedType = v;
+                                          _specFilters = {};
+                                          _displayedCount = _kBatchSize;
+                                          _recomputeFiltered();
+                                        });
+                                        _scrollToTop();
+                                        Navigator.of(context).pop();
+                                      },
+                                      theme: theme,
+                                      labelFor: (t) => labelMap[t] ?? t,
+                                    );
+                                  },
                                 );
                               },
                             ),
@@ -2365,7 +2375,13 @@ class _FiltersSheetState extends State<_FiltersSheet> {
                 Wrap(
                   spacing: 10,
                   runSpacing: 10,
-                  children: widget.types.map((t) {
+                  children: (() {
+                    final types = widget.types;
+                    if (types.length <= 1) return types;
+                    final rest = types.skip(1).toList()
+                      ..sort((a, b) => _localizedTypeName(a, context.l10n).toLowerCase().compareTo(_localizedTypeName(b, context.l10n).toLowerCase()));
+                    return [types.first, ...rest];
+                  })().map((t) {
                     final selected = t == _type;
                     return InkWell(
                       onTap: () => setState(() => _type = t),
