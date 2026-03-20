@@ -160,9 +160,23 @@ class BuildsRepository {
     bool readOnly = false,
     String? senderName,
   }) async {
+    // Strip any attribution suffix (e.g. " by Person A" / " von Person A") so
+    // re-sharing an imported build does not chain multiple sender names.
+    String titleForShare = build.title;
+    final imported = build.importedFrom;
+    if (imported != null && imported.isNotEmpty) {
+      for (final sep in [' by ', ' von ']) {
+        final suffix = '$sep$imported';
+        if (titleForShare.endsWith(suffix)) {
+          titleForShare =
+              titleForShare.substring(0, titleForShare.length - suffix.length).trim();
+          break;
+        }
+      }
+    }
     await _firestore.collection('publicBuilds').doc(build.buildId).set({
       'buildId': build.buildId,
-      'title': build.title,
+      'title': titleForShare,
       'status': buildStatusToString(build.status),
       'selectedParts': build.selectedParts,
       'totalPrice': build.totalPrice,
@@ -170,6 +184,8 @@ class BuildsRepository {
       'publishedAt': FieldValue.serverTimestamp(),
       if (senderName != null && senderName.isNotEmpty)
         'senderName': senderName,
+      if (build.heroImageUrl != null && build.heroImageUrl!.isNotEmpty)
+        'heroImageUrl': build.heroImageUrl,
     });
     final suffix = readOnly ? '?ro=1' : '';
     return '$shareBaseUrl/build/${build.buildId}$suffix';

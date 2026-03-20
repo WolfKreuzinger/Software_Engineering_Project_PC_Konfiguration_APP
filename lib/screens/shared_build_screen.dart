@@ -76,8 +76,11 @@ class _SharedBuildScreenState extends State<SharedBuildScreen> {
       selectedParts: rawParts,
       totalPrice: (data['totalPrice'] as num?)?.toDouble() ?? 0.0,
       estimatedWattage: _toInt(data['estimatedWattage']),
+      heroImageUrl: (data['heroImageUrl'] as String?)?.isNotEmpty == true
+          ? data['heroImageUrl'] as String
+          : null,
       readOnly: isReadOnly,
-      importedFrom: isReadOnly && senderName.isNotEmpty ? senderName : null,
+      importedFrom: senderName.isNotEmpty ? senderName : null,
     );
     context.go(
       '/configure',

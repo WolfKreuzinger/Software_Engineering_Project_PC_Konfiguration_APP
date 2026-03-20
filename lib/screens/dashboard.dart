@@ -236,11 +236,12 @@ class _DashboardState extends State<Dashboard> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            ListTile(
-              leading: const Icon(Icons.edit_rounded),
-              title: Text(ctx.l10n.commonRename),
-              onTap: () => Navigator.of(ctx).pop('rename'),
-            ),
+            if (!build.readOnly)
+              ListTile(
+                leading: const Icon(Icons.edit_rounded),
+                title: Text(ctx.l10n.commonRename),
+                onTap: () => Navigator.of(ctx).pop('rename'),
+              ),
             if (!build.readOnly)
               ListTile(
                 leading: const Icon(Icons.copy_rounded),
