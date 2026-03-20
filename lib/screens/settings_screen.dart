@@ -2,6 +2,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
+import '../auth_service.dart';
 import '../l10n/l10n_ext.dart';
 import '../theme/language_global.dart';
 import '../theme/theme_global.dart';
@@ -94,7 +95,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
     AppLocalizations l10n,
   ) {
     final displayName =
-        user?.displayName ?? user?.email?.split('@').first ?? l10n.settingsGuest;
+        user?.displayName ??
+        user?.email?.split('@').first ??
+        l10n.settingsGuest;
 
     return Card(
       child: Padding(
@@ -102,10 +105,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
         child: Container(
           decoration: BoxDecoration(
             gradient: LinearGradient(
-              colors: [
-                theme.colorScheme.primary,
-                theme.colorScheme.tertiary,
-              ],
+              colors: [theme.colorScheme.primary, theme.colorScheme.tertiary],
             ),
             borderRadius: BorderRadius.circular(999),
           ),
@@ -152,8 +152,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     children: [
                       Text(
                         authed ? displayName : l10n.settingsGuest,
-                        style: theme.textTheme.titleMedium
-                            ?.copyWith(fontWeight: FontWeight.w900),
+                        style: theme.textTheme.titleMedium?.copyWith(
+                          fontWeight: FontWeight.w900,
+                        ),
                         overflow: TextOverflow.ellipsis,
                         maxLines: 1,
                       ),
@@ -199,7 +200,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
   // ── Appearance Card ──────────────────────────────────────────────────────
 
   Widget _buildAppearanceCard(
-      BuildContext context, ThemeData theme, AppLocalizations l10n) {
+    BuildContext context,
+    ThemeData theme,
+    AppLocalizations l10n,
+  ) {
     final isDark = theme.brightness == Brightness.dark;
     return Card(
       child: _SettingsTile(
@@ -238,7 +242,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
   // ── Language Card ─────────────────────────────────────────────────────────
 
   Widget _buildLanguageCard(
-      BuildContext context, ThemeData theme, AppLocalizations l10n) {
+    BuildContext context,
+    ThemeData theme,
+    AppLocalizations l10n,
+  ) {
     final isDE = languageController.locale.languageCode == 'de';
     return Card(
       child: _SettingsTile(
@@ -318,7 +325,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
   // ── Legal Card ───────────────────────────────────────────────────────────
 
   Widget _buildLegalCard(
-      BuildContext context, ThemeData theme, AppLocalizations l10n) {
+    BuildContext context,
+    ThemeData theme,
+    AppLocalizations l10n,
+  ) {
     return Card(
       child: Column(
         children: [
@@ -354,11 +364,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
   }
 
   Divider _divider(ThemeData theme) => Divider(
-        height: 1,
-        indent: 16,
-        endIndent: 16,
-        color: theme.dividerColor.withValues(alpha: 0.5),
-      );
+    height: 1,
+    indent: 16,
+    endIndent: 16,
+    color: theme.dividerColor.withValues(alpha: 0.5),
+  );
 
   // ── Edit Account Bottom Sheet ─────────────────────────────────────────────
 
@@ -370,62 +380,189 @@ class _SettingsScreenState extends State<SettingsScreen> {
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
-      builder: (_) => _EditAccountSheet(
-        user: user,
-        onSaved: () => setState(() {}),
-      ),
+      builder: (_) =>
+          _EditAccountSheet(user: user, onSaved: () => setState(() {})),
     );
   }
 
-  // ── Password Reset Dialog ─────────────────────────────────────────────────
+  // ── Password Change Dialog ────────────────────────────────────────────────
 
   void _showPasswordResetDialog(BuildContext context, User user) {
     final l10n = context.l10n;
-    final hasEmailProvider =
-        user.providerData.any((p) => p.providerId == 'password');
+    final hasEmailProvider = user.providerData.any(
+      (p) => p.providerId == 'password',
+    );
+
+    if (!hasEmailProvider) {
+      showDialog(
+        context: context,
+        builder: (ctx) => AlertDialog(
+          title: Text(l10n.settingsResetPassword),
+          content: Text(l10n.settingsGoogleAccountNote),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(ctx).pop(),
+              child: Text(l10n.settingsCancel),
+            ),
+          ],
+        ),
+      );
+      return;
+    }
 
     showDialog(
       context: context,
-      builder: (ctx) => AlertDialog(
-        title: Text(l10n.settingsResetPassword),
-        content: Text(
-          hasEmailProvider
-              ? l10n.settingsPasswordResetBody(user.email ?? '')
-              : l10n.settingsGoogleAccountNote,
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(ctx).pop(),
-            child: Text(l10n.settingsCancel),
-          ),
-          if (hasEmailProvider)
-            FilledButton(
-              onPressed: () async {
-                Navigator.of(ctx).pop();
-                try {
-                  FirebaseAuth.instance.setLanguageCode(Localizations.localeOf(context).languageCode);
-                  await FirebaseAuth.instance
-                      .sendPasswordResetEmail(email: user.email!);
-                  if (context.mounted) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                          content: Text(l10n.settingsPasswordResetSent)),
-                    );
-                  }
-                } catch (e) {
-                  if (context.mounted) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                          content:
-                              Text('${l10n.settingsError}: $e')),
-                    );
-                  }
-                }
-              },
-              child: Text(l10n.settingsSendEmail),
+      builder: (ctx) => _ChangePasswordDialog(user: user),
+    );
+  }
+}
+
+// ── Change Password Dialog ────────────────────────────────────────────────────
+
+class _ChangePasswordDialog extends StatefulWidget {
+  final User user;
+
+  const _ChangePasswordDialog({required this.user});
+
+  @override
+  State<_ChangePasswordDialog> createState() => _ChangePasswordDialogState();
+}
+
+class _ChangePasswordDialogState extends State<_ChangePasswordDialog> {
+  final _formKey = GlobalKey<FormState>();
+  final _currentPwCtrl = TextEditingController();
+  final _newPwCtrl = TextEditingController();
+  final _confirmPwCtrl = TextEditingController();
+  bool _currentPwVisible = false;
+  bool _newPwVisible = false;
+  bool _loading = false;
+
+  final RegExp _specialCharRegex = RegExp(r'[^A-Za-z0-9]');
+  final RegExp _uppercaseRegex = RegExp(r'[A-Z]');
+  final RegExp _digitRegex = RegExp(r'\d');
+
+  @override
+  void dispose() {
+    _currentPwCtrl.dispose();
+    _newPwCtrl.dispose();
+    _confirmPwCtrl.dispose();
+    super.dispose();
+  }
+
+  Future<void> _submit() async {
+    if (!_formKey.currentState!.validate()) return;
+    final l10n = context.l10n;
+    setState(() => _loading = true);
+    try {
+      await AuthService().updatePassword(
+        currentPassword: _currentPwCtrl.text,
+        newPassword: _newPwCtrl.text,
+      );
+      if (!mounted) return;
+      Navigator.of(context).pop();
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(l10n.settingsPasswordChanged)));
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('${l10n.settingsError}: $e')));
+    } finally {
+      if (mounted) setState(() => _loading = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = context.l10n;
+    return AlertDialog(
+      title: Text(l10n.settingsChangePassword),
+      content: Form(
+        key: _formKey,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            TextFormField(
+              controller: _currentPwCtrl,
+              obscureText: !_currentPwVisible,
+              decoration: InputDecoration(
+                labelText: l10n.settingsCurrentPassword,
+                border: const OutlineInputBorder(),
+                suffixIcon: IconButton(
+                  onPressed: () =>
+                      setState(() => _currentPwVisible = !_currentPwVisible),
+                  icon: Icon(
+                    _currentPwVisible ? Icons.visibility_off : Icons.visibility,
+                  ),
+                ),
+              ),
+              validator: (v) => (v == null || v.isEmpty)
+                  ? l10n.settingsCurrentPasswordRequired
+                  : null,
             ),
-        ],
+            const SizedBox(height: 12),
+            TextFormField(
+              controller: _newPwCtrl,
+              obscureText: !_newPwVisible,
+              decoration: InputDecoration(
+                labelText: l10n.settingsNewPassword,
+                border: const OutlineInputBorder(),
+                errorMaxLines: 2,
+                suffixIcon: IconButton(
+                  onPressed: () =>
+                      setState(() => _newPwVisible = !_newPwVisible),
+                  icon: Icon(
+                    _newPwVisible ? Icons.visibility_off : Icons.visibility,
+                  ),
+                ),
+              ),
+              validator: (v) {
+                final value = v ?? '';
+                if (value.isEmpty) return l10n.authPasswordRequired;
+                if (value.length < 8 ||
+                    !_specialCharRegex.hasMatch(value) ||
+                    !_uppercaseRegex.hasMatch(value) ||
+                    !_digitRegex.hasMatch(value)) {
+                  return l10n.authPasswordMinLength;
+                }
+                return null;
+              },
+            ),
+            const SizedBox(height: 12),
+            TextFormField(
+              controller: _confirmPwCtrl,
+              obscureText: true,
+              decoration: InputDecoration(
+                labelText: l10n.authConfirmPasswordHint,
+                border: const OutlineInputBorder(),
+              ),
+              validator: (v) {
+                if (v == null || v.isEmpty)
+                  return l10n.authConfirmPasswordRequired;
+                if (v != _newPwCtrl.text) return l10n.authPasswordMismatch;
+                return null;
+              },
+            ),
+          ],
+        ),
       ),
+      actions: [
+        TextButton(
+          onPressed: _loading ? null : () => Navigator.of(context).pop(),
+          child: Text(l10n.settingsCancel),
+        ),
+        FilledButton(
+          onPressed: _loading ? null : _submit,
+          child: _loading
+              ? const SizedBox(
+                  width: 18,
+                  height: 18,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                )
+              : Text(l10n.settingsSave),
+        ),
+      ],
     );
   }
 }
@@ -548,10 +685,7 @@ class _EditAccountSheet extends StatefulWidget {
   final User user;
   final VoidCallback onSaved;
 
-  const _EditAccountSheet({
-    required this.user,
-    required this.onSaved,
-  });
+  const _EditAccountSheet({required this.user, required this.onSaved});
 
   @override
   State<_EditAccountSheet> createState() => _EditAccountSheetState();
@@ -564,8 +698,9 @@ class _EditAccountSheetState extends State<_EditAccountSheet> {
   @override
   void initState() {
     super.initState();
-    _nameController =
-        TextEditingController(text: widget.user.displayName ?? '');
+    _nameController = TextEditingController(
+      text: widget.user.displayName ?? '',
+    );
   }
 
   @override
@@ -614,8 +749,9 @@ class _EditAccountSheetState extends State<_EditAccountSheet> {
             children: [
               Text(
                 l10n.settingsEditProfile,
-                style: theme.textTheme.titleLarge
-                    ?.copyWith(fontWeight: FontWeight.bold),
+                style: theme.textTheme.titleLarge?.copyWith(
+                  fontWeight: FontWeight.bold,
+                ),
               ),
               const Spacer(),
               IconButton(
@@ -631,8 +767,9 @@ class _EditAccountSheetState extends State<_EditAccountSheet> {
             controller: _nameController,
             decoration: InputDecoration(
               labelText: l10n.settingsDisplayName,
-              border:
-                  OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
               prefixIcon: const Icon(Icons.person_outline_rounded),
             ),
             textInputAction: TextInputAction.done,
@@ -645,12 +782,14 @@ class _EditAccountSheetState extends State<_EditAccountSheet> {
             readOnly: true,
             decoration: InputDecoration(
               labelText: l10n.settingsEmail,
-              border:
-                  OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
               prefixIcon: const Icon(Icons.email_outlined),
               filled: true,
-              fillColor: theme.colorScheme.surfaceContainerHighest
-                  .withValues(alpha: 0.5),
+              fillColor: theme.colorScheme.surfaceContainerHighest.withValues(
+                alpha: 0.5,
+              ),
             ),
             controller: TextEditingController(text: widget.user.email ?? ''),
           ),

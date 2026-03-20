@@ -806,6 +806,66 @@ abstract class AppLocalizations {
   /// **'Wir senden eine E-Mail zum Zurücksetzen des Passworts an:\n\n{email}'**
   String settingsPasswordResetBody(String email);
 
+  /// No description provided for @resetPasswordTitle.
+  ///
+  /// In de, this message translates to:
+  /// **'Neues Passwort festlegen'**
+  String get resetPasswordTitle;
+
+  /// No description provided for @resetPasswordSubtitle.
+  ///
+  /// In de, this message translates to:
+  /// **'Mind. 8 Zeichen, 1 Sonderzeichen, 1 Großbuchstabe und 1 Zahl.'**
+  String get resetPasswordSubtitle;
+
+  /// No description provided for @resetPasswordSave.
+  ///
+  /// In de, this message translates to:
+  /// **'Passwort speichern'**
+  String get resetPasswordSave;
+
+  /// No description provided for @resetPasswordSuccessTitle.
+  ///
+  /// In de, this message translates to:
+  /// **'Passwort geändert!'**
+  String get resetPasswordSuccessTitle;
+
+  /// No description provided for @resetPasswordSuccessBody.
+  ///
+  /// In de, this message translates to:
+  /// **'Dein Passwort wurde erfolgreich zurückgesetzt. Du kannst dich jetzt anmelden.'**
+  String get resetPasswordSuccessBody;
+
+  /// No description provided for @resetPasswordGoToLogin.
+  ///
+  /// In de, this message translates to:
+  /// **'Zum Login'**
+  String get resetPasswordGoToLogin;
+
+  /// No description provided for @settingsCurrentPassword.
+  ///
+  /// In de, this message translates to:
+  /// **'Aktuelles Passwort'**
+  String get settingsCurrentPassword;
+
+  /// No description provided for @settingsNewPassword.
+  ///
+  /// In de, this message translates to:
+  /// **'Neues Passwort'**
+  String get settingsNewPassword;
+
+  /// No description provided for @settingsCurrentPasswordRequired.
+  ///
+  /// In de, this message translates to:
+  /// **'Bitte aktuelles Passwort eingeben.'**
+  String get settingsCurrentPasswordRequired;
+
+  /// No description provided for @settingsPasswordChanged.
+  ///
+  /// In de, this message translates to:
+  /// **'Passwort erfolgreich geändert.'**
+  String get settingsPasswordChanged;
+
   /// No description provided for @settingsVersion.
   ///
   /// In de, this message translates to:

@@ -375,6 +375,39 @@ class AppLocalizationsDe extends AppLocalizations {
   }
 
   @override
+  String get resetPasswordTitle => 'Neues Passwort festlegen';
+
+  @override
+  String get resetPasswordSubtitle =>
+      'Mind. 8 Zeichen, 1 Sonderzeichen, 1 Großbuchstabe und 1 Zahl.';
+
+  @override
+  String get resetPasswordSave => 'Passwort speichern';
+
+  @override
+  String get resetPasswordSuccessTitle => 'Passwort geändert!';
+
+  @override
+  String get resetPasswordSuccessBody =>
+      'Dein Passwort wurde erfolgreich zurückgesetzt. Du kannst dich jetzt anmelden.';
+
+  @override
+  String get resetPasswordGoToLogin => 'Zum Login';
+
+  @override
+  String get settingsCurrentPassword => 'Aktuelles Passwort';
+
+  @override
+  String get settingsNewPassword => 'Neues Passwort';
+
+  @override
+  String get settingsCurrentPasswordRequired =>
+      'Bitte aktuelles Passwort eingeben.';
+
+  @override
+  String get settingsPasswordChanged => 'Passwort erfolgreich geändert.';
+
+  @override
   String get settingsVersion => 'BuildMyPC v1.0.0';
 
   @override
