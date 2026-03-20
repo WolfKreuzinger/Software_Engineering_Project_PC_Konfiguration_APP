@@ -1274,6 +1274,12 @@ abstract class AppLocalizations {
   /// **'Name des Duplikats'**
   String get buildDialogDuplicateNameHint;
 
+  /// No description provided for @buildDialogNameRequired.
+  ///
+  /// In de, this message translates to:
+  /// **'Name darf nicht leer sein'**
+  String get buildDialogNameRequired;
+
   /// No description provided for @buildDialogCopyOf.
   ///
   /// In de, this message translates to:

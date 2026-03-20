@@ -633,6 +633,9 @@ class AppLocalizationsDe extends AppLocalizations {
   String get buildDialogDuplicateNameHint => 'Name des Duplikats';
 
   @override
+  String get buildDialogNameRequired => 'Name darf nicht leer sein';
+
+  @override
   String buildDialogCopyOf(String title) {
     return 'Kopie von $title';
   }
