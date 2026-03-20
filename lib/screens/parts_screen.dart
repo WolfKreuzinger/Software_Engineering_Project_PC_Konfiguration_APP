@@ -1241,23 +1241,33 @@ class _PartsScreenState extends State<PartsScreen> {
                                 showModalBottomSheet(
                                   context: context,
                                   showDragHandle: true,
-                                  builder: (_) => _SimplePickerSheet(
-                                    title: context.l10n.partsComponentType,
-                                    items: _types,
-                                    selected: _selectedType,
-                                    onPick: (v) {
-                                      setState(() {
-                                        _selectedType = v;
-                                        _specFilters = {};
-                                        _displayedCount = _kBatchSize;
-                                        _recomputeFiltered();
-                                      });
-                                      _scrollToTop();
-                                      Navigator.of(context).pop();
-                                    },
-                                    theme: theme,
-                                    labelFor: (t) => _localizedTypeName(t, context.l10n),
-                                  ),
+                                  builder: (sheetCtx) {
+                                    final l10n = sheetCtx.l10n;
+                                    final labelMap = {
+                                      for (final t in _types)
+                                        t: _localizedTypeName(t, l10n),
+                                    };
+                                    final rest = _types.skip(1).toList()
+                                      ..sort((a, b) => labelMap[a]!.toLowerCase().compareTo(labelMap[b]!.toLowerCase()));
+                                    final sortedTypes = [_types.first, ...rest];
+                                    return _SimplePickerSheet(
+                                      title: l10n.partsComponentType,
+                                      items: sortedTypes,
+                                      selected: _selectedType,
+                                      onPick: (v) {
+                                        setState(() {
+                                          _selectedType = v;
+                                          _specFilters = {};
+                                          _displayedCount = _kBatchSize;
+                                          _recomputeFiltered();
+                                        });
+                                        _scrollToTop();
+                                        Navigator.of(context).pop();
+                                      },
+                                      theme: theme,
+                                      labelFor: (t) => labelMap[t] ?? t,
+                                    );
+                                  },
                                 );
                               },
                             ),
@@ -2506,15 +2516,6 @@ class _SimplePickerSheet extends StatelessWidget {
   Widget build(BuildContext context) {
     final cs = theme.colorScheme;
 
-    final List<String> sortedItems;
-    if (items.length <= 1 || labelFor == null) {
-      sortedItems = items;
-    } else {
-      final rest = items.skip(1).toList()
-        ..sort((a, b) => labelFor!(a).toLowerCase().compareTo(labelFor!(b).toLowerCase()));
-      sortedItems = [items.first, ...rest];
-    }
-
     return ListView(
       padding: const EdgeInsets.fromLTRB(16, 6, 16, 16),
       children: [
@@ -2525,7 +2526,7 @@ class _SimplePickerSheet extends StatelessWidget {
           ),
         ),
         const SizedBox(height: 10),
-        ...sortedItems.map((e) {
+        ...items.map((e) {
           final isSelected = e == selected;
           return ListTile(
             onTap: () => onPick(e),
