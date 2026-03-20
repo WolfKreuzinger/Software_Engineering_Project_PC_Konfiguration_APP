@@ -1637,7 +1637,7 @@ abstract class AppLocalizations {
   /// No description provided for @partsDataCompletenessHint.
   ///
   /// In de, this message translates to:
-  /// **'Komponenten nach Vollständigkeit der Spezifikationsdaten filtern'**
+  /// **'Komponenten mit fehlenden kompatibilitätsrelevanten Spezifikationen und/oder Preisen werden ausgeblendet.'**
   String get partsDataCompletenessHint;
 
   /// No description provided for @partsShowAll.

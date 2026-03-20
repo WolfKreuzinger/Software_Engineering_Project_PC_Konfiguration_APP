@@ -837,7 +837,7 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get partsDataCompletenessHint =>
-      'Komponenten nach Vollständigkeit der Spezifikationsdaten filtern';
+      'Komponenten mit fehlenden kompatibilitätsrelevanten Spezifikationen und/oder Preisen werden ausgeblendet.';
 
   @override
   String get partsShowAll => 'Alle anzeigen';
