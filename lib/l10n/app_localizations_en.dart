@@ -628,6 +628,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get buildDialogDuplicateNameHint => 'Name of Duplicate';
 
   @override
+  String get buildDialogNameRequired => 'Name must not be empty';
+
+  @override
   String buildDialogCopyOf(String title) {
     return 'Copy of $title';
   }

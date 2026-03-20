@@ -225,6 +225,7 @@
   "buildDialogCoverLabel": "Cover-Bild (optional)",
   "buildDialogDuplicateTitle": "Build duplizieren",
   "buildDialogDuplicateNameHint": "Name des Duplikats",
+  "buildDialogNameRequired": "Name darf nicht leer sein",
   "buildDialogCopyOf": "Kopie von {title}",
   "@buildDialogCopyOf": {
     "placeholders": { "title": { "type": "String" } }

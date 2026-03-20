@@ -58,6 +58,7 @@ class BuildsRepository {
       'storage',
       'psu',
       'case',
+      'cpuCooler',
     };
     return core.every(selectedKeys.contains)
         ? BuildStatus.completed
