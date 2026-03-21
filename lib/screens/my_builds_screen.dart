@@ -454,7 +454,7 @@ class _MyBuildsScreenState extends State<MyBuildsScreen> {
                   child: BuildListCard(
                     savedBuild: build,
                     pinCostToBottom: true,
-                    onTap: () => context.go('/configure', extra: ConfigureScreenArgs(build: build, backRoute: '/my-builds')),
+                    onTap: () => context.go('/configure', extra: ConfigureScreenArgs(build: build, readOnly: build.readOnly, backRoute: '/my-builds')),
                     onMore: () => _openBuildActions(user, build),
                     onShare: () => _shareBuild(build),
                   ),
