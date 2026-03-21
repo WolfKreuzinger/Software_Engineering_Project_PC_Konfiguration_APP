@@ -360,6 +360,7 @@ class _ConfigureScreenState extends State<ConfigureScreen> {
       ...part.rawData,
       'name': part.title,
       'price': part.price,
+      '_category': part.type,
     };
     // Flatten the nested spec map (stored with camelCase keys) to the top level
     // using snake_case keys so PartsScreen._detailSpecs can render them.
@@ -497,9 +498,7 @@ class _ConfigureScreenState extends State<ConfigureScreen> {
         estimatedWattage: estimatedWattage,
         status: status,
         readOnly: widget.readOnly,
-        importedFrom: widget.readOnly
-            ? widget.initialBuild?.importedFrom
-            : null,
+        importedFrom: widget.initialBuild?.importedFrom,
         heroImageUrl: selectedCoverId,
       );
       if (!mounted) return;
