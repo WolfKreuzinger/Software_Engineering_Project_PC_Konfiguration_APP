@@ -861,9 +861,7 @@ class _ConfigureScreenState extends State<ConfigureScreen> {
                 child: Row(
                   children: [
                     IconButton(
-                      onPressed: () => context.go(
-                        widget.readOnly ? '/' : widget.backRoute,
-                      ),
+                      onPressed: () => context.go(widget.backRoute),
                       icon: const Icon(Icons.arrow_back_rounded),
                       splashRadius: 22,
                     ),
